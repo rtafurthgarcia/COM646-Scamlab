@@ -5,33 +5,36 @@ import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import jakarta.validation.constraints.NotNull;
 
 @Entity
-@Table(name = "player")
+@Table(name = "player", indexes = @Index(name = "idx_player_multiple", columnList = "secondary_id, ip_address, is_bot"))
 public class Player {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     public Long getId() {
         return id;
     }
 
-    @Id
-    @GeneratedValue
-    private UUID secondaryId;
+    @Column(name = "secondary_id", unique = true)
+    private UUID secondaryId = UUID.randomUUID();
 
     public UUID getSecondaryId() {
         return secondaryId;
     }
 
     @NotNull
+    @Column(unique = true, name = "ip_address")
     private String ipAddress;
 
     public String getIpAddress() {
@@ -57,6 +60,7 @@ public class Player {
     }
 
     @NotNull
+    @Column(name = "is_bot")
     private Boolean isBot;
 
     public Boolean getIsBot() {
@@ -68,7 +72,7 @@ public class Player {
     }
 
     @NotNull
-    private String token;
+    private String token = "";
 
     public String getToken() {
         return token;
