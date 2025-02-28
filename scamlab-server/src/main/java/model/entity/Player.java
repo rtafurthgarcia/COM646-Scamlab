@@ -13,7 +13,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
-import jakarta.validation.constraints.NotNull;
 
 @Entity
 @Table(name = "player", indexes = @Index(name = "idx_player_multiple", columnList = "secondary_id, ip_address, is_bot"))
@@ -33,8 +32,7 @@ public class Player {
         return secondaryId;
     }
 
-    @NotNull
-    @Column(unique = true, name = "ip_address")
+    @Column(unique = true, name = "ip_address", nullable = false)
     private String ipAddress;
 
     public String getIpAddress() {
@@ -59,8 +57,7 @@ public class Player {
         return version;
     }
 
-    @NotNull
-    @Column(name = "is_bot")
+    @Column(name = "is_bot", nullable = false)
     private Boolean isBot;
 
     public Boolean getIsBot() {
@@ -71,7 +68,7 @@ public class Player {
         this.isBot = isBot;
     }
 
-    @NotNull
+    @Column(nullable = false)
     private String token = "";
 
     public String getToken() {
@@ -80,5 +77,30 @@ public class Player {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((ipAddress == null) ? 0 : ipAddress.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        Player other = (Player) obj;
+        if (ipAddress == null) {
+            if (other.ipAddress != null)
+                return false;
+        } else if (!ipAddress.equals(other.ipAddress))
+            return false;
+        return true;
     }
 }
