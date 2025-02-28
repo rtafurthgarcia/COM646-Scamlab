@@ -1,6 +1,5 @@
 package model.entity;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -27,5 +26,36 @@ public class StateTransition {
 
     public Long getVersion() {
         return version;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((stateTransitionId == null) ? 0 : stateTransitionId.hashCode());
+        result = prime * result + ((reason == null) ? 0 : reason.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        StateTransition other = (StateTransition) obj;
+        if (stateTransitionId == null) {
+            if (other.stateTransitionId != null)
+                return false;
+        } else if (!stateTransitionId.equals(other.stateTransitionId))
+            return false;
+        if (reason == null) {
+            if (other.reason != null)
+                return false;
+        } else if (!reason.equals(other.reason))
+            return false;
+        return true;
     }
 }

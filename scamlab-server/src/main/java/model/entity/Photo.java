@@ -1,5 +1,8 @@
 package model.entity;
 
+import java.time.LocalDateTime;
+
+import org.hibernate.annotations.CreationTimestamp;
 import org.jspecify.annotations.NonNull;
 
 import jakarta.persistence.Column;
@@ -12,14 +15,21 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 @Entity
-@Table(name = "state", indexes = @Index(name = "idx_state_name", columnList = "name"))
-public class State {
+@Table(name = "photo", indexes = @Index(name = "idx_photo_multiple", columnList = "name, resource_path"))
+public class Photo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     public Long getId() {
         return id;
+    }
+
+    @CreationTimestamp
+    private LocalDateTime creation;
+
+    public LocalDateTime getCreation() {
+        return creation;
     }
 
     @NonNull
@@ -34,35 +44,22 @@ public class State {
         this.name = name;
     }
 
+    @NonNull
+    @Column(name = "resource_path", unique = true)
+    private String resourcePath;
+
+    public String getResourcePath() {
+        return resourcePath;
+    }
+
+    public void setResourcePath(String ResourcePath) {
+        this.resourcePath = ResourcePath;
+    }
+
     @Version
     private Long version;
 
     public Long getVersion() {
         return version;
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((name == null) ? 0 : name.hashCode());
-        return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        State other = (State) obj;
-        if (name == null) {
-            if (other.name != null)
-                return false;
-        } else if (!name.equals(other.name))
-            return false;
-        return true;
     }
 }
