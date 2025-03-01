@@ -8,7 +8,6 @@ import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -17,13 +16,20 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 @Entity
-@Table(name = "conversation", indexes = @Index(name = "idx_conversation_multiple", columnList = "secondary_id, testing_scenario, invalidated, testing_day"))
+@Table(name = "conversations", indexes = {
+    @Index(name = "idx_conversation_secondary_id", columnList = "secondary_id"),
+    @Index(name = "idx_conversation_testing_scenario", columnList = "testing_scenario"),
+    @Index(name = "idx_conversation_testing_day", columnList = "testing_day"),
+    @Index(name = "idx_conversation_strategy_id", columnList = "strategy_id")
+})
 public class Conversation {
     @Id 
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -82,7 +88,7 @@ public class Conversation {
         this.end = end;
     }
 
-    @OneToMany(mappedBy = "stateTransitionId.conversation", cascade=CascadeType.ALL) 
+    @OneToMany(mappedBy = "stateTransitionId.conversation") 
     @OrderBy("stateTransitionId.creation")
     private List<StateTransition> states = new ArrayList<>();
 
@@ -90,12 +96,37 @@ public class Conversation {
         return states;
     }
 
-    @OneToMany(mappedBy = "conversation", cascade=CascadeType.ALL) 
+    @OneToMany(mappedBy = "conversation") 
     @OrderBy("creation")
     private List<Message> messages = new ArrayList<>();
 
     public List<Message> getMessages() {
         return messages;
+    }
+
+    @OneToMany(mappedBy = "participationId.conversation")
+    private List<Participation> participants = new ArrayList<>();
+
+    public List<Participation> getParticipants() {
+        return participants;
+    }
+
+    @OneToMany(mappedBy = "voteId.conversation")
+    private List<Vote> votes = new ArrayList<>();
+
+    public List<Vote> getVotes() {
+        return votes;
+    }
+
+    @ManyToOne
+    @JoinColumn(name = "strategy_id", referencedColumnName = "id")
+    private Strategy strategy;
+
+    public Strategy getStrategy() {
+        return strategy;
+    }
+    public void setStrategy(Strategy strategy) {
+        this.strategy = strategy;
     }
 
     @Version
@@ -110,9 +141,10 @@ public class Conversation {
         int result = 1;
         result = prime * result + ((testingScenario == null) ? 0 : testingScenario.hashCode());
         result = prime * result + ((testingDay == null) ? 0 : testingDay.hashCode());
-        result = prime * result + (invalidated ? 1231 : 1237);
         result = prime * result + ((start == null) ? 0 : start.hashCode());
         result = prime * result + ((end == null) ? 0 : end.hashCode());
+        result = prime * result + ((participants == null) ? 0 : participants.hashCode());
+        result = prime * result + ((strategy == null) ? 0 : strategy.hashCode());
         return result;
     }
     @Override
@@ -131,8 +163,6 @@ public class Conversation {
                 return false;
         } else if (!testingDay.equals(other.testingDay))
             return false;
-        if (invalidated != other.invalidated)
-            return false;
         if (start == null) {
             if (other.start != null)
                 return false;
@@ -142,6 +172,16 @@ public class Conversation {
             if (other.end != null)
                 return false;
         } else if (!end.equals(other.end))
+            return false;
+        if (participants == null) {
+            if (other.participants != null)
+                return false;
+        } else if (!participants.equals(other.participants))
+            return false;
+        if (strategy == null) {
+            if (other.strategy != null)
+                return false;
+        } else if (!strategy.equals(other.strategy))
             return false;
         return true;
     }

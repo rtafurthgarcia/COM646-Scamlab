@@ -10,13 +10,19 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 @Entity
-@Table(name = "message")
+@Table(name = "messages", indexes = {
+    @Index(name = "idx_message_conversation_id", columnList = "conversation_id"),
+    @Index(name = "idx_message_photo_id", columnList = "photo_id"),
+    @Index(name = "idx_message_creation", columnList = "creation")
+})
 public class Message {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,7 +39,8 @@ public class Message {
         return creation;
     }
 
-    @NonNull
+    @Lob()
+    @Column(length = 1024, nullable = false)
     private String message;
 
     public String getMessage() {
@@ -44,8 +51,7 @@ public class Message {
         this.message = message;
     }
 
-    @NonNull
-    @Column(name = "llm_token_count")
+    @Column(name = "llm_token_count", nullable = false)
     private Integer llmTokenCount = 0;
     
     public Integer getLlmTokenCount() {
@@ -56,8 +62,7 @@ public class Message {
         this.llmTokenCount = llmTokenCount;
     }
 
-    @NonNull
-    @Column(name = "llm_generation_time")
+    @Column(name = "llm_generation_time", nullable = false)
     private Integer llmGenerationTime = 0;
 
     public Integer getLlmGenerationTime() {

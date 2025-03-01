@@ -4,13 +4,15 @@ import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "vote")
+@Table(name = "votes", indexes = {
+    @Index(name = "idx_vote_creation", columnList = "creation")
+})
 public class Vote {
     @EmbeddedId
     private VoteId voteId;
@@ -30,24 +32,12 @@ public class Vote {
         return creation;
     }
 
-    @Column(nullable = false)
-    private String username;
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((voteId == null) ? 0 : voteId.hashCode());
         result = prime * result + ((creation == null) ? 0 : creation.hashCode());
-        result = prime * result + ((username == null) ? 0 : username.hashCode());
         return result;
     }
 
@@ -69,11 +59,6 @@ public class Vote {
             if (other.creation != null)
                 return false;
         } else if (!creation.equals(other.creation))
-            return false;
-        if (username == null) {
-            if (other.username != null)
-                return false;
-        } else if (!username.equals(other.username))
             return false;
         return true;
     }

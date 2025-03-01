@@ -15,7 +15,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 @Entity
-@Table(name = "photo", indexes = @Index(name = "idx_photo_multiple", columnList = "name, resource_path"))
+@Table(name = "photos", indexes = @Index(name = "idx_photo_name", columnList = "name"))
 public class Photo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,28 +32,25 @@ public class Photo {
         return creation;
     }
 
-    @NonNull
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String name;
 
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    @Column(unique = true, nullable = false)
+    private String description;
+
+    public String getDescription() {
+        return description;
     }
 
-    @NonNull
-    @Column(name = "resource_path", unique = true)
+    @Column(name = "resource_path", unique = true, nullable = false)
     private String resourcePath;
 
     public String getResourcePath() {
         return resourcePath;
-    }
-
-    public void setResourcePath(String ResourcePath) {
-        this.resourcePath = ResourcePath;
     }
 
     @Version

@@ -2,14 +2,25 @@ package model.entity;
 
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 @Entity
-@Table(name = "state_transition")
+@Table(name = "state_transitions", indexes = {
+    @Index(name = "idx_state_transition_creation", columnList = "creation")
+})
 public class StateTransition {
     @EmbeddedId
     private StateTransitionId stateTransitionId;
+
+    public StateTransitionId getStateTransitionId() {
+        return stateTransitionId;
+    }
+
+    public void setStateTransitionId(StateTransitionId stateTransitionId) {
+        this.stateTransitionId = stateTransitionId;
+    }
 
     private String reason = "";
 
