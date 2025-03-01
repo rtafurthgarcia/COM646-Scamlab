@@ -16,16 +16,16 @@ public class StrategyByRole {
         return strategyByRoleId;
     }
 
-    @Lob 
-    @Column(nullable = false, length = 1024)
+    // TEXT is not portable, but for now it works
+    @Column(length = 1024, nullable = false, columnDefinition = "TEXT")
     private String script;
 
-    @Lob 
-    @Column(nullable = false, length = 1024)
+    // TEXT is not portable, but for now it works
+    @Column(length = 1024, nullable = false, columnDefinition = "TEXT")
     private String example;
 
-    @Lob 
-    @Column(name = "evasion_example", nullable = false, length = 1024)
+    // TEXT is not portable, but for now it works
+    @Column(name = "evasion_example", length = 1024, nullable = false, columnDefinition = "TEXT")
     private String evasionExample;
 
     public String getScript() {

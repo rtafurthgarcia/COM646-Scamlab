@@ -39,8 +39,8 @@ public class Message {
         return creation;
     }
 
-    @Lob()
-    @Column(length = 1024, nullable = false)
+    // TEXT is not portable, but for now it works
+    @Column(length = 1024, nullable = false, columnDefinition = "TEXT")
     private String message;
 
     public String getMessage() {
