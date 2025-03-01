@@ -15,14 +15,43 @@ class HomePage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             spacing: 16,
             children: [
+              Row(
+                children: [
+                  Card(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    child: SizedBox(
+                      width: 150,
+                      child: Center(child: Text("Players online: 15")),
+                    ),
+                  ),
+                  Card(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    child: SizedBox(
+                      width: 150,
+                      child: Center(child: Text("Player's ID: 01-54456")),
+                    ),
+                  ),
+                  IconButton(onPressed: null, icon: Icon(Icons.refresh_sharp)),
+                ],
+              ),
               Card(
                 child: Column(
                   children: [
                     ListTile(
-                      titleTextStyle:
-                          Theme.of(context).textTheme.headlineSmall!,
-                      subtitleTextStyle: Theme.of(context).textTheme.labelMedium
-                          ?.copyWith(fontStyle: FontStyle.italic),
+                      titleTextStyle: Theme.of(
+                        context,
+                      ).textTheme.headlineSmall!.copyWith(
+                        color:
+                            Theme.of(
+                              context,
+                            ).colorScheme.primary, // Use primary color
+                      ),
+                      subtitleTextStyle: Theme.of(
+                        context,
+                      ).textTheme.labelMedium?.copyWith(
+                        fontStyle: FontStyle.italic,
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
                       visualDensity: VisualDensity.comfortable,
                       leading: const Icon(Icons.question_mark),
                       title: Text("1. What's the game about"),
@@ -46,8 +75,14 @@ class HomePage extends StatelessWidget {
                 child: Column(
                   children: [
                     ListTile(
-                      titleTextStyle:
-                          Theme.of(context).textTheme.headlineSmall!,
+                      titleTextStyle: Theme.of(
+                        context,
+                      ).textTheme.headlineSmall!.copyWith(
+                        color:
+                            Theme.of(
+                              context,
+                            ).colorScheme.primary, // Use primary color
+                      ),
                       visualDensity: VisualDensity.comfortable,
                       leading: const Icon(Icons.menu_book),
                       title: Text("2. How to play"),
@@ -67,10 +102,20 @@ class HomePage extends StatelessWidget {
                 child: Column(
                   children: [
                     ListTile(
-                      titleTextStyle:
-                          Theme.of(context).textTheme.headlineSmall!,
-                      subtitleTextStyle: Theme.of(context).textTheme.labelMedium
-                          ?.copyWith(fontStyle: FontStyle.italic),
+                      titleTextStyle: Theme.of(
+                        context,
+                      ).textTheme.headlineSmall!.copyWith(
+                        color:
+                            Theme.of(
+                              context,
+                            ).colorScheme.primary, // Use primary color
+                      ),
+                      subtitleTextStyle: Theme.of(
+                        context,
+                      ).textTheme.labelMedium?.copyWith(
+                        fontStyle: FontStyle.italic,
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
                       visualDensity: VisualDensity.comfortable,
                       leading: const Icon(Icons.not_interested),
                       title: Text("3. What's off limits"),
@@ -85,9 +130,15 @@ class HomePage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text('1. Share only fictional/scenario details: Never personal data, links, or real identities.'),
-                          Text('2. No IRL Coordination: Interact in-game only! No external chats to reveal identities.'),
-                          Text('3. No harassment, hate speech, or explicit content.'),
+                          Text(
+                            '1. Stick to fictional/scenario details only: Never personal data, links, or real identities.',
+                          ),
+                          Text(
+                            '2. No IRL Coordination: Interact in-game only! No external chats to reveal identities.',
+                          ),
+                          Text(
+                            '3. No harassment, hate speech, or explicit content.',
+                          ),
                         ],
                       ),
                     ),
