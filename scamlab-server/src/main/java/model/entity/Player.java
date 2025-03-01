@@ -15,7 +15,10 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 @Entity
-@Table(name = "player", indexes = @Index(name = "idx_player_multiple", columnList = "secondary_id, ip_address, is_bot"))
+@Table(name = "players", indexes = { 
+    @Index(name = "idx_player_secondary_id", columnList = "secondary_id"),
+    @Index(name = "idx_player_ip_address", columnList = "ip_address"), 
+})
 public class Player {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

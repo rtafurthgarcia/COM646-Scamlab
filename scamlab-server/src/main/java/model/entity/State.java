@@ -12,7 +12,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 @Entity
-@Table(name = "state", indexes = @Index(name = "idx_state_name", columnList = "name"))
+@Table(name = "states", indexes = @Index(name = "idx_state_name", columnList = "name"))
 public class State {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,10 +28,6 @@ public class State {
 
     public String getName() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     @Version

@@ -10,18 +10,18 @@ import jakarta.persistence.ManyToOne;
 @Embeddable
 public class VoteId implements Serializable {
     @ManyToOne
-    @JoinColumn(name = "player_id", referencedColumnName = "id", nullable = true)
+    @JoinColumn(name = "player_id", referencedColumnName = "id")
     private Player player;
 
     @ManyToOne
-    @JoinColumn(name = "conversation_id", referencedColumnName = "id", nullable = true)
+    @JoinColumn(name = "conversation_id", referencedColumnName = "id")
     private Conversation conversation;
 
     @ManyToOne
-    @JoinColumn(name = "player_voted_against_id", referencedColumnName = "id")
+    @JoinColumn(name = "player_voted_against_id", referencedColumnName = "id", nullable = true)
     private Player playerVotedAgainst;
 
-    @Column(name = "round_no", nullable = false)
+    @Column(name = "round_no")
     private Integer RoundNo;
 
     @Override
@@ -65,5 +65,37 @@ public class VoteId implements Serializable {
         } else if (!RoundNo.equals(other.RoundNo))
             return false;
         return true;
+    }
+
+    public Player getPlayer() {
+        return player;
+    }
+
+    public void setPlayer(Player player) {
+        this.player = player;
+    }
+
+    public Conversation getConversation() {
+        return conversation;
+    }
+
+    public void setConversation(Conversation conversation) {
+        this.conversation = conversation;
+    }
+
+    public Player getPlayerVotedAgainst() {
+        return playerVotedAgainst;
+    }
+
+    public void setPlayerVotedAgainst(Player playerVotedAgainst) {
+        this.playerVotedAgainst = playerVotedAgainst;
+    }
+
+    public Integer getRoundNo() {
+        return RoundNo;
+    }
+
+    public void setRoundNo(Integer roundNo) {
+        RoundNo = roundNo;
     }
 }
