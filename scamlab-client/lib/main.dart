@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:scamlab/view/page/HomePage.dart';
 
 void main() {
   runApp(const MainApp());
@@ -9,12 +10,12 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
-      ),
+    return MaterialApp(
+      initialRoute: '/',
+      routes: <String, WidgetBuilder>{
+        '/': (BuildContext context) => const HomePage(),
+        //'/signup': (BuildContext context) => const SignUpPage(),
+      }
     );
   }
 }
