@@ -31,12 +31,12 @@ class PlayerProvider with ChangeNotifier {
     }
   }
 
-  Future<void> unregisterPlayer(String secondaryId, String authToken) async {
+  Future<void> unregisterPlayer() async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      await _playerService.unregisterPlayer(secondaryId, authToken);
+      await _playerService.unregisterPlayer(player!.secondaryId, player!.jwtToken);
       _player = null;
     } catch (error) {
       debugPrint('Error unregistering player: $error');

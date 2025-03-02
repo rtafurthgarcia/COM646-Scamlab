@@ -8,7 +8,32 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Scamlab')),
+      appBar: AppBar(title: Consumer<PlayerProvider>(
+        builder: (context, playerProvider, child) {
+          if (! playerProvider.isLoading) {
+            String titleSuffix = playerProvider.player != null ? playerProvider.player!.secondaryId : "-";
+            return Row(
+              children: [
+                Text("Scamlab - Player's ID: "),
+                SelectableText(titleSuffix),
+                IconButton(
+                  onPressed: playerProvider.isLoading ? null : () {
+                    if (playerProvider.player != null) {
+                      playerProvider.unregisterPlayer().then(
+                        (value) => playerProvider.registerNewPlayer()
+                      );
+                    } else {
+                      playerProvider.registerNewPlayer();
+                    }
+                  }, 
+                  icon: Icon(Icons.refresh_sharp)),
+              ],
+            );
+          } else {
+            return LinearProgressIndicator();            
+          }
+        }
+      )),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
@@ -22,34 +47,12 @@ class HomePage extends StatelessWidget {
                   Card(
                     color: Theme.of(context).colorScheme.onPrimary,
                     child: SizedBox(
-                      width: 100,
+                      width: 150,
                       child: Center(child: Text(
-                        style: Theme.of(
-                                context,
-                              ).textTheme.labelSmall!,
-                        "Players online:\n15"
+                        "Players online: 15"
                       )),
                     ),
                   ),
-                  Consumer<PlayerProvider>(
-                    builder: (context, playerProvider, child) {
-                      return Card(
-                        color: Theme.of(context).colorScheme.onPrimary,
-                        child: SizedBox(
-                          width: 360,
-                          child: Text(
-                              style: Theme.of(
-                                context,
-                              ).textTheme.labelSmall!,
-                              playerProvider.player != null
-                                  ? "Player's ID: ${playerProvider.player!.secondaryId}"
-                                  : "Player's ID: loading...",
-                            ),
-                        ),
-                      );
-                    }
-                  ),
-                  IconButton(onPressed: null, icon: Icon(Icons.refresh_sharp)),
                 ],
               ),
               Card(
@@ -169,14 +172,26 @@ class HomePage extends StatelessWidget {
                 spacing: 32.0,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: null,
+                    onPressed: () => {},
                     icon: Icon(Icons.videogame_asset),
                     label: Text('New game'),
                   ),
-                  ElevatedButton.icon(
-                    onPressed: null,
-                    icon: Icon(Icons.dashboard),
-                    label: Text('Dashboard (admin-only)'),
+                  Consumer<PlayerProvider>(
+                     builder: (context, playerProvider, child) {
+                      if (playerProvider.player?.systemRole == "USER") {
+                         return ElevatedButton.icon(
+                          onPressed: null,
+                          icon: Icon(Icons.dashboard),
+                          label: Text('Dashboard (admin-only)'),
+                        );
+                      } else {
+                         return ElevatedButton.icon(
+                          onPressed: () {},
+                          icon: Icon(Icons.dashboard),
+                          label: Text('Dashboard'),
+                        );
+                      }
+                    }
                   ),
                 ],
               ),
