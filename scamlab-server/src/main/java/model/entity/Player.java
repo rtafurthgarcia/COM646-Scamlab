@@ -6,14 +6,18 @@ import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.NaturalId;
 
+import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
 
 @Entity
@@ -21,14 +25,9 @@ import jakarta.persistence.Version;
     @Index(name = "idx_player_ip_address", columnList = "ip_address")
 })
 public class Player {
-
-    public enum SystemRole {
-        PLAYER,
-        ADMIN;
-    }
-
-    @Transient
-    private SystemRole systemRole;    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "system_role", nullable = false)
+    private SystemRole systemRole = SystemRole.USER;    
 
     public SystemRole getSystemRole() {
         return systemRole;
@@ -97,8 +96,9 @@ public class Player {
         return this;
     }
 
-    @Transient
-    private String token = "";
+    @Lob 
+    @Basic(fetch = FetchType.LAZY)
+    private String token;
 
     public String getToken() {
         return token;
