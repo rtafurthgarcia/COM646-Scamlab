@@ -10,6 +10,7 @@ import org.jboss.logging.Logger;
 
 import exception.PlayerException;
 import io.quarkus.security.Authenticated;
+import io.quarkus.websockets.next.runtime.ConnectionManager;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
@@ -40,8 +41,11 @@ public class PlayerResource {
     @Context
     SecurityContext securityContext;
 
+    @Inject
+    ConnectionManager connectionManager;
+
     @GET
-    @Path("join")
+    @Path("new")
     @APIResponses(value = {
         @APIResponse(
             responseCode = "201",
@@ -53,14 +57,14 @@ public class PlayerResource {
         )
     })
     @Transactional
-    public Response join(@Context RoutingContext routingContext) {
+    public Response register(@Context RoutingContext routingContext) {
         var clientIP = routingContext.request().remoteAddress().host();
 
         var player = service.registerNewPlayer(clientIP);
 
         return Response
             .status(Status.CREATED)
-            .entity(mapper.toGetNewPlayerDto(player, 0))
+            .entity(mapper.toGetNewPlayerDto(player))
             .build();
     }
 
@@ -74,7 +78,7 @@ public class PlayerResource {
     })
     @Transactional
     @Authenticated
-    public Response leave(String secondaryId) {
+    public Response clearToken(String secondaryId) {
     
         if (securityContext.getUserPrincipal().getName().equals(secondaryId)) {
             service.unregisterPlayersToken(service.findUserBySecondaryId(UUID.fromString(secondaryId)));

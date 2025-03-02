@@ -23,7 +23,7 @@ public class PlayerResourceTest {
     public void testRegistrationSystem() {
         // register
         var player = given()
-            .when().get("/api/players/join")
+            .when().get("/api/players/new")
             .then()
             .statusCode(201)
             .and()
@@ -33,12 +33,11 @@ public class PlayerResourceTest {
         var playerFromDb = repository.find("secondaryId", UUID.fromString(player.secondaryId())).firstResult();
 
         assertEquals(player.systemRole(), playerFromDb.getSystemRole().toString());
-        assertNotNull(player.numberOfConnectedPlayers());
         assertNotNull(player.jwtToken());
 
         // re-register
         given()
-            .when().get("/api/players/join")
+            .when().get("/api/players/new")
             .then()
             .statusCode(409);
 
@@ -52,7 +51,7 @@ public class PlayerResourceTest {
 
         // re-register
         player = given()
-          .when().get("/api/players/join")
+          .when().get("/api/players/new")
           .then()
           .statusCode(201)
           .and()
@@ -62,7 +61,6 @@ public class PlayerResourceTest {
         playerFromDb = repository.find("secondaryId", UUID.fromString(player.secondaryId())).firstResult();
 
         assertEquals(player.systemRole(), playerFromDb.getSystemRole().toString());
-        assertNotNull(player.numberOfConnectedPlayers());
         assertNotNull(player.jwtToken());
     }
 }
