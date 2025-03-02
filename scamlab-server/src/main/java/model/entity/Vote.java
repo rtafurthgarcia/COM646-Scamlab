@@ -21,8 +21,10 @@ public class Vote {
         return voteId;
     }
 
-    public void setVoteId(VoteId voteId) {
+    public Vote setVoteId(VoteId voteId) {
         this.voteId = voteId;
+
+        return this;
     }
 
     @CreationTimestamp

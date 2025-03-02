@@ -3,8 +3,6 @@ package model.entity;
 import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
-import org.jspecify.annotations.NonNull;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -12,7 +10,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
@@ -47,8 +44,10 @@ public class Message {
         return message;
     }
 
-    public void setMessage(String message) {
+    public Message setMessage(String message) {
         this.message = message;
+
+        return this;
     }
 
     @Column(name = "llm_token_count", nullable = false)
@@ -58,8 +57,10 @@ public class Message {
         return llmTokenCount;
     }
 
-    public void setLlmTokenCount(Integer llmTokenCount) {
+    public Message setLlmTokenCount(Integer llmTokenCount) {
         this.llmTokenCount = llmTokenCount;
+
+        return this;
     }
 
     @Column(name = "llm_generation_time", nullable = false)
@@ -69,8 +70,10 @@ public class Message {
         return llmGenerationTime;
     }
 
-    public void setLlmGenerationTime(Integer llmGenerationTime) {
+    public Message setLlmGenerationTime(Integer llmGenerationTime) {
         this.llmGenerationTime = llmGenerationTime;
+
+        return this;
     }
 
     @ManyToOne
@@ -81,8 +84,10 @@ public class Message {
         return conversation;
     }
 
-    public void setConversation(Conversation conversation) {
+    public Message setConversation(Conversation conversation) {
         this.conversation = conversation;
+
+        return this;
     }
 
     @ManyToOne
@@ -93,8 +98,10 @@ public class Message {
         return photo;
     }
 
-    public void setPhoto(Photo photo) {
+    public Message setPhoto(Photo photo) {
         this.photo = photo;
+
+        return this;
     }
 
     @Version

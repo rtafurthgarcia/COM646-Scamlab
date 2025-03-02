@@ -1,50 +1,57 @@
 package service;
 import org.eclipse.microprofile.jwt.Claims;
-import org.jboss.logmanager.Logger;
+import org.jboss.logging.Logger;
 import org.jose4j.jwt.JwtClaims;
 
-import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import model.entity.Player;
+import model.entity.Player.SystemRole;
 import repository.PlayerRepository;
-import resource.PlayerResource.SystemRole;
 import utils.TokenUtils;
 
 import java.util.Arrays;
 import java.util.UUID;
 
-@RequestScoped
+@ApplicationScoped
 public class PlayerService {
 
     @Inject
-    PlayerRepository playerRepository;
+    PlayerRepository repository;
 
-    public final static Logger LOGGER = Logger.getLogger(PlayerService.class.getSimpleName());
+    @Inject
+    Logger logger;
 
-    public String registerNewPlayer(String ipAddress) {
+    public Player registerNewPlayer(String ipAddress) {
         SystemRole role = SystemRole.PLAYER;
         
         if (ipAddress.equals("127.0.0.1")) {
             role = SystemRole.ADMIN;
         }
 
-        return generateToken(ipAddress, role);
+        Player player = new Player().setIpAddress(ipAddress).setSystemRole(role).setIsBot(false);
+        String token = generateToken(player.getSecondaryId().toString(), ipAddress, role);
+        player.setToken(token);
+
+        repository.persistAndFlush(player);
+
+        return player;
     }
 
-    private String generateToken(String subject, SystemRole role) {
+    private String generateToken(String secondaryId, String ipAddress, SystemRole role) {
         try {
             JwtClaims jwtClaims = new JwtClaims();
-            jwtClaims.setIssuer("DonauTech"); // change to your company
+            jwtClaims.setIssuer("Richard Tafurth-Garcia");
             jwtClaims.setJwtId(UUID.randomUUID().toString());
-            jwtClaims.setSubject(subject);
-            jwtClaims.setClaim(Claims.upn.name(), subject);
-            jwtClaims.setClaim(Claims.preferred_username.name(), UUID.randomUUID()); //add more
+            jwtClaims.setSubject(secondaryId);
+            jwtClaims.setClaim(Claims.address.name(), ipAddress); 
             jwtClaims.setClaim(Claims.groups.name(), Arrays.asList(role.name()));
             jwtClaims.setAudience("using-jwt");
             jwtClaims.setExpirationTimeMinutesInTheFuture(60);
 
 
             String token = TokenUtils.generateTokenString(jwtClaims);
-            LOGGER.info("TOKEN generated: " + token);
+            logger.info("TOKEN generated: " + token);
             return token;
         } catch (Exception e) {
             e.printStackTrace();

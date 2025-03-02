@@ -14,8 +14,10 @@ public class Participation {
     @EmbeddedId
     private ParticipationId participationId;
 
-    public void setParticipationId(ParticipationId participationId) {
+    public Participation setParticipationId(ParticipationId participationId) {
         this.participationId = participationId;
+
+        return this;
     }
 
     public ParticipationId getParticipationId() {
@@ -29,8 +31,10 @@ public class Participation {
         return userName;
     }
 
-    public void setUserName(String name) {
+    public Participation setUserName(String name) {
         this.userName = name;
+
+        return this;
     }
 
     @Column(name = "rate_of_confidence", nullable = true)
@@ -40,8 +44,10 @@ public class Participation {
         return rateOfConfidence;
     }
 
-    public void setRateOfConfidence(Integer rateOfConfidence) {
+    public Participation setRateOfConfidence(Integer rateOfConfidence) {
         this.rateOfConfidence = rateOfConfidence;
+
+        return this;
     }
 
     @Column(name = "rate_of_experience", nullable = true)
@@ -51,8 +57,10 @@ public class Participation {
         return rateOfExperience;
     }
 
-    public void setRateOfExperience(Integer rateOfExperience) {
+    public Participation setRateOfExperience(Integer rateOfExperience) {
         this.rateOfExperience = rateOfExperience;
+
+        return this;
     }
 
     @Column(name = "giveaway", nullable = true)
@@ -62,7 +70,9 @@ public class Participation {
         return giveaway;
     }
 
-    public void setGiveaway(String giveaway) {
+    public Participation setGiveaway(String giveaway) {
         this.giveaway = giveaway;
+
+        return this;
     }
 }

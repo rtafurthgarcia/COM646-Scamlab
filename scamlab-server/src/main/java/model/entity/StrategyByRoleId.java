@@ -20,16 +20,20 @@ public class StrategyByRoleId implements Serializable {
         return strategy;
     }
 
-    public void setStrategy(Strategy strategy) {
+    public StrategyByRoleId setStrategy(Strategy strategy) {
         this.strategy = strategy;
+
+        return this;
     }
 
     public Role getRole() {
         return role;
     }
 
-    public void setRole(Role role) {
+    public StrategyByRoleId setRole(Role role) {
         this.role = role;
+
+        return this;
     }
 
     @Override
