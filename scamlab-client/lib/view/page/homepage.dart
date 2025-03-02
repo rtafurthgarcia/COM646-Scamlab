@@ -8,32 +8,65 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Consumer<PlayerProvider>(
-        builder: (context, playerProvider, child) {
-          if (! playerProvider.isLoading) {
-            String titleSuffix = playerProvider.player != null ? playerProvider.player!.secondaryId : "-";
-            return Row(
-              children: [
-                Text("Scamlab - Player's ID: "),
-                SelectableText(titleSuffix),
-                IconButton(
-                  onPressed: playerProvider.isLoading ? null : () {
-                    if (playerProvider.player != null) {
-                      playerProvider.unregisterPlayer().then(
-                        (value) => playerProvider.registerNewPlayer()
-                      );
-                    } else {
-                      playerProvider.registerNewPlayer();
-                    }
-                  }, 
-                  icon: Icon(Icons.refresh_sharp)),
-              ],
-            );
-          } else {
-            return LinearProgressIndicator();            
-          }
-        }
-      )),
+      appBar: AppBar(
+        title: Consumer<PlayerProvider>(
+          builder: (context, playerProvider, child) {
+            if (!playerProvider.isLoading) {
+              String titleSuffix =
+                  playerProvider.player != null
+                      ? playerProvider.player!.secondaryId
+                      : "-";
+              return Row(
+                children: [
+                  Text("Scamlab - Player's ID: "),
+                  SelectableText(titleSuffix),
+                  IconButton(
+                    onPressed:
+                        playerProvider.isLoading
+                            ? null
+                            : () async {
+                              final bool? confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: const Text('Confirm New Identity'),
+                                    content: const Text(
+                                      'Are you sure you want to generate a new identity?',
+                                    ),
+                                    actions: <Widget>[
+                                      TextButton(
+                                        onPressed:
+                                            () => Navigator.pop(context, false),
+                                        child: const Text('No'),
+                                      ),
+                                      TextButton(
+                                        onPressed:
+                                            () => Navigator.pop(context, true),
+                                        child: const Text('Yes'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                              if (confirm == true) {
+                                if (playerProvider.player != null) {
+                                  await playerProvider.unregisterPlayer();
+                                  playerProvider.registerNewPlayer();
+                                } else {
+                                  playerProvider.registerNewPlayer();
+                                }
+                              }
+                            },
+                    icon: const Icon(Icons.refresh_sharp),
+                  ),
+                ],
+              );
+            } else {
+              return LinearProgressIndicator();
+            }
+          },
+        ),
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
@@ -48,9 +81,7 @@ class HomePage extends StatelessWidget {
                     color: Theme.of(context).colorScheme.onPrimary,
                     child: SizedBox(
                       width: 150,
-                      child: Center(child: Text(
-                        "Players online: 15"
-                      )),
+                      child: Center(child: Text("Players online: 15")),
                     ),
                   ),
                 ],
@@ -172,26 +203,41 @@ class HomePage extends StatelessWidget {
                 spacing: 32.0,
                 children: [
                   ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.secondary,
+                      foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                      iconColor: Theme.of(context).colorScheme.onSecondary,
+                    ),
                     onPressed: () => {},
                     icon: Icon(Icons.videogame_asset),
                     label: Text('New game'),
                   ),
                   Consumer<PlayerProvider>(
-                     builder: (context, playerProvider, child) {
+                    builder: (context, playerProvider, child) {
                       if (playerProvider.player?.systemRole == "USER") {
-                         return ElevatedButton.icon(
+                        return ElevatedButton.icon(
                           onPressed: null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.secondary,
+                            foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                            iconColor: Theme.of(context).colorScheme.onSecondary,
+                          ),
                           icon: Icon(Icons.dashboard),
                           label: Text('Dashboard (admin-only)'),
                         );
                       } else {
-                         return ElevatedButton.icon(
+                        return ElevatedButton.icon(
                           onPressed: () {},
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.secondary,
+                            foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                            iconColor: Theme.of(context).colorScheme.onSecondary,
+                          ),
                           icon: Icon(Icons.dashboard),
                           label: Text('Dashboard'),
                         );
                       }
-                    }
+                    },
                   ),
                 ],
               ),
