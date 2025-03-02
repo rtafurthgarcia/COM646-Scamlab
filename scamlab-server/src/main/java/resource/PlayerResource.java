@@ -8,6 +8,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.jboss.logging.Logger;
 
+import exception.PlayerException;
 import io.quarkus.security.Authenticated;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.annotation.security.PermitAll;
@@ -76,23 +77,14 @@ public class PlayerResource {
     @Authenticated
     public Response leave(String secondaryId) {
     
-        var name = securityContext.getUserPrincipal().getName();
+        if (securityContext.getUserPrincipal().getName().equals(secondaryId)) {
+            service.unregisterPlayersToken(service.findUserBySecondaryId(UUID.fromString(secondaryId)));
 
-        //service.unregisterPlayersToken(secondaryId);
-
-        return Response
-            .status(205)
-            .build();
-    }
-
-    /* 
-    @GET
-    @Path("/login")
-    public String login(@QueryParam("login")String login, @QueryParam("password") String password) {
-        User existingUser = User.find("login", login).firstResult();
-        if(existingUser == null || !existingUser.password.equals(password)) {
-            throw new WebApplicationException(Response.status(404).entity("No user found or password is incorrect").build());
+            return Response
+                .status(205)
+                .build();
+        } else {
+            throw new PlayerException("Cannot unregister a player that has never been registered before");
         }
-        return service.generateUserToken(existingUser.email, password);
-    }*/
+    }
 } 
