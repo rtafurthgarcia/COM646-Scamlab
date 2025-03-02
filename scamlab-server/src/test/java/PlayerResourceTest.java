@@ -1,4 +1,3 @@
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import model.dto.PlayerDto.GetNewPlayerDto;

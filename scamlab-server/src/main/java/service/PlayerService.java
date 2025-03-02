@@ -1,5 +1,6 @@
 package service;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 import exception.PlayerException;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -7,6 +8,7 @@ import jakarta.inject.Inject;
 import model.entity.Player;
 import model.entity.SystemRole;
 import repository.PlayerRepository;
+import io.quarkus.panache.common.Parameters;
 import io.smallrye.jwt.build.Jwt;
 
 import java.util.Arrays;
@@ -19,19 +21,29 @@ public class PlayerService {
     @Inject
     PlayerRepository repository;
 
+    static final String LOCALHOST = "127.0.0.1";
+    static final Integer TOKEN_EXPIRATION_SECONDS = 3600;
+
+    @Inject
+    @ConfigProperty(name = "mp.jwt.verify.issuer")
+    String Issuer;
+
     @Inject
     Logger logger;
 
     public Player registerNewPlayer(String ipAddress) {
-        var player = repository.find("ipAddress", ipAddress).firstResult();
+        var player = repository.find(
+            "ipAddress = :ipAddress AND token IS NOT NULL", 
+            Parameters.with("ipAddress", ipAddress)
+        ).firstResult();
 
-        if (player != null && player.getToken() != null) {
+        if (player != null) {
             throw new PlayerException("One device cannot play more than once at the same time");
         }
 
         player = new Player().setIpAddress(ipAddress).setIsBot(false);
 
-        if (ipAddress.equals("127.0.0.1")) {
+        if (ipAddress.equals(LOCALHOST)) {
             player.setSystemRole(SystemRole.ADMIN);
         }
 
@@ -58,13 +70,13 @@ public class PlayerService {
         }
 
         try {
-            String token = Jwt.issuer("RichardTafurthGarcia") // This value must match the server-side mp.jwt.verify.issuer configuration for the token to be considered valid.
+            String token = Jwt.issuer(Issuer) // This value must match the server-side mp.jwt.verify.issuer configuration for the token to be considered valid.
                 .upn(secondaryId.toString()) // Using the player's secondaryId as the subject -> makes it easier to search within the SecurityContext
                 .groups(embeddedRole) 
                 .claim("address", ipAddress)
                 .audience("using-jwt")
                 // Set token expiration in seconds (e.g., 3600 seconds = 60 minutes)
-                .expiresIn(3600)
+                .expiresIn(TOKEN_EXPIRATION_SECONDS)
                 .sign();
 
             logger.info("TOKEN generated: " + token);
