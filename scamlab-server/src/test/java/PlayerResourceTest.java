@@ -4,7 +4,6 @@ import model.entity.Player.SystemRole;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +25,7 @@ public class PlayerResourceTest {
         
         assertEquals(player.systemRole(), SystemRole.ADMIN);
         assertNotNull(player.numberOfConnectedPlayers());
+        assertNotNull(player.jwtToken());
         assertNotNull(player.secondaryId());
     }
 }

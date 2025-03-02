@@ -6,7 +6,7 @@ import model.entity.Player.SystemRole;
 public abstract class PlayerDto {
     @RegisterForReflection
     public static record GetNewPlayerDto(
-        String secondaryId, SystemRole systemRole, long numberOfConnectedPlayers
+        String secondaryId, SystemRole systemRole, String jwtToken, long numberOfConnectedPlayers
     ) {
     }
 }
