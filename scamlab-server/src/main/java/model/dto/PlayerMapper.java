@@ -7,6 +7,6 @@ import model.entity.Player;
 @ApplicationScoped
 public class PlayerMapper {
     public GetNewPlayerDto toGetNewPlayerDto(Player player, long numberOfConnectedPlayers) {
-        return new GetNewPlayerDto(player.getSecondaryId().toString(), player.getSystemRole(), numberOfConnectedPlayers);
+        return new GetNewPlayerDto(player.getSecondaryId().toString(), player.getSystemRole(), player.getToken(), numberOfConnectedPlayers);
     }
 }
