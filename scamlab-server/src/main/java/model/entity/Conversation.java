@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.NaturalId;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,7 +26,6 @@ import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "conversations", indexes = {
-    @Index(name = "idx_conversation_secondary_id", columnList = "secondary_id"),
     @Index(name = "idx_conversation_testing_scenario", columnList = "testing_scenario"),
     @Index(name = "idx_conversation_testing_day", columnList = "testing_day"),
     @Index(name = "idx_conversation_strategy_id", columnList = "strategy_id")
@@ -39,7 +39,9 @@ public class Conversation {
         return id;
     }
 
-    @Column(name = "secondary_id", unique = true)
+    @NaturalId
+    @Column(name = "secondary_id")
+    //@GeneratedValue(strategy = GenerationType.UUID)
     private UUID secondaryId = UUID.randomUUID();
 
     public UUID getSecondaryId() {
@@ -52,8 +54,10 @@ public class Conversation {
     public TestingScenario getTestingScenario() {
         return testingScenario;
     }
-    public void setTestingScenario(TestingScenario testingScenario) {
+    public Conversation setTestingScenario(TestingScenario testingScenario) {
         this.testingScenario = testingScenario;
+
+        return this;
     }
     @CreationTimestamp
     @Column(name = "testing_day")
@@ -65,8 +69,10 @@ public class Conversation {
     public boolean isInvalidated() {
         return invalidated;
     }
-    public void setInvalidated(boolean invalidated) {
+    public Conversation setInvalidated(boolean invalidated) {
         this.invalidated = invalidated;
+
+        return this;
     }
 
     @Column(name = "start_of_conversation")
@@ -74,8 +80,10 @@ public class Conversation {
     public LocalTime getStart() {
         return start;
     }
-    public void setStart(LocalTime start) {
+    public Conversation setStart(LocalTime start) {
         this.start = start;
+
+        return this;
     }
     
     @Column(name = "end_of_conversation")
@@ -84,8 +92,10 @@ public class Conversation {
     public LocalTime getEnd() {
         return end;
     }
-    public void setEnd(LocalTime end) {
+    public Conversation setEnd(LocalTime end) {
         this.end = end;
+
+        return this;
     }
 
     @OneToMany(mappedBy = "stateTransitionId.conversation") 
@@ -125,8 +135,10 @@ public class Conversation {
     public Strategy getStrategy() {
         return strategy;
     }
-    public void setStrategy(Strategy strategy) {
+    public Conversation setStrategy(Strategy strategy) {
         this.strategy = strategy;
+
+        return this;
     }
 
     @Version

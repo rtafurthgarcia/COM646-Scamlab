@@ -18,8 +18,10 @@ public class StateTransition {
         return stateTransitionId;
     }
 
-    public void setStateTransitionId(StateTransitionId stateTransitionId) {
+    public StateTransition setStateTransitionId(StateTransitionId stateTransitionId) {
         this.stateTransitionId = stateTransitionId;
+
+        return this;
     }
 
     private String reason = "";
@@ -28,8 +30,10 @@ public class StateTransition {
         return reason;
     }
 
-    public void setReason(String reason) {
+    public StateTransition setReason(String reason) {
         this.reason = reason;
+
+        return this;
     }
 
     @Version

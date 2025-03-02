@@ -71,31 +71,39 @@ public class VoteId implements Serializable {
         return player;
     }
 
-    public void setPlayer(Player player) {
+    public VoteId setPlayer(Player player) {
         this.player = player;
+
+        return this;
     }
 
     public Conversation getConversation() {
         return conversation;
     }
 
-    public void setConversation(Conversation conversation) {
+    public VoteId setConversation(Conversation conversation) {
         this.conversation = conversation;
+
+        return this;
     }
 
     public Player getPlayerVotedAgainst() {
         return playerVotedAgainst;
     }
 
-    public void setPlayerVotedAgainst(Player playerVotedAgainst) {
+    public VoteId setPlayerVotedAgainst(Player playerVotedAgainst) {
         this.playerVotedAgainst = playerVotedAgainst;
+
+        return this;
     }
 
     public Integer getRoundNo() {
         return RoundNo;
     }
 
-    public void setRoundNo(Integer roundNo) {
+    public VoteId setRoundNo(Integer roundNo) {
         RoundNo = roundNo;
+
+        return this;
     }
 }

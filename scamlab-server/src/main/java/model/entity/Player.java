@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.NaturalId;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,14 +13,34 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "players", indexes = { 
-    @Index(name = "idx_player_secondary_id", columnList = "secondary_id"),
     @Index(name = "idx_player_ip_address", columnList = "ip_address"), 
+    @Index(name = "idx_player_token", columnList = "token"), 
 })
 public class Player {
+
+    public enum SystemRole {
+        PLAYER,
+        ADMIN;
+    }
+
+    @Transient
+    private SystemRole systemRole;    
+
+    public SystemRole getSystemRole() {
+        return systemRole;
+    }
+
+    public Player setSystemRole(SystemRole systemRole) {
+        this.systemRole = systemRole;
+
+        return this;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,7 +49,9 @@ public class Player {
         return id;
     }
 
-    @Column(name = "secondary_id", unique = true)
+    @NaturalId
+    @Column(name = "secondary_id")
+    //@GeneratedValue(strategy = GenerationType.UUID)
     private UUID secondaryId = UUID.randomUUID();
 
     public UUID getSecondaryId() {
@@ -42,8 +65,10 @@ public class Player {
         return ipAddress;
     }
 
-    public void setIpAddress(String ipAddress) {
+    public Player setIpAddress(String ipAddress) {
         this.ipAddress = ipAddress;
+
+        return this;
     }
 
     @CreationTimestamp
@@ -67,19 +92,23 @@ public class Player {
         return isBot;
     }
 
-    public void setIsBot(Boolean isBot) {
+    public Player setIsBot(Boolean isBot) {
         this.isBot = isBot;
+
+        return this;
     }
 
-    @Column(nullable = false)
+    @Transient
     private String token = "";
 
     public String getToken() {
         return token;
     }
 
-    public void setToken(String token) {
+    public Player setToken(String token) {
         this.token = token;
+
+        return this;
     }
 
     @Override

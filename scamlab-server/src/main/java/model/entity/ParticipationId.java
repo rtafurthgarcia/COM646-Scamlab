@@ -24,24 +24,30 @@ public class ParticipationId implements Serializable {
         return role;
     }
 
-    public void setRole(Role role) {
+    public ParticipationId setRole(Role role) {
         this.role = role;
+
+        return this;
     }
 
     public Conversation getConversation() {
         return conversation;
     }
 
-    public void setConversation(Conversation conversation) {
+    public ParticipationId setConversation(Conversation conversation) {
         this.conversation = conversation;
+
+        return this;
     }
 
     public Player getPlayer() {
         return player;
     }
 
-    public void setPlayer(Player player) {
+    public ParticipationId setPlayer(Player player) {
         this.player = player;
+
+        return this;
     }
 
     @Override

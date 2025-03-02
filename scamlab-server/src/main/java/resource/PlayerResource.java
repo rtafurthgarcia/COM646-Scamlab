@@ -1,40 +1,57 @@
 package resource;
 
-import org.jboss.logmanager.Logger;
-import io.vertx.mutiny.core.http.HttpServerRequest;
-import jakarta.enterprise.context.Dependent;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.jboss.logging.Logger;
+
+import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
+import model.dto.PlayerMapper;
+import model.dto.PlayerDto.GetNewPlayerDto;
+import model.entity.Player;
 import service.PlayerService;
 
 @Path("players")
-@Consumes(MediaType.APPLICATION_JSON)
-@Produces(MediaType.APPLICATION_JSON)
-@Dependent
 public class PlayerResource {
-    public final static Logger LOGGER = Logger.getLogger(PlayerService.class.getSimpleName());
-
-    public enum SystemRole {
-        PLAYER,
-        ADMIN;
-    }
+    @Inject
+    Logger logger;
 
     @Inject
     PlayerService service;
 
+    @Inject 
+    PlayerMapper mapper;
+
     @GET
     @Path("join")
+    @APIResponses(value = {
+        @APIResponse(
+            responseCode = "201",
+            description = "New player successfully registered", 
+            content = @Content(
+                mediaType = "application/json", 
+                schema = @Schema(implementation = GetNewPlayerDto.class)
+            )
+        )
+    })
     @Transactional
-    public void join(@Context HttpServerRequest request) {
-        String clientIP = request.remoteAddress().hostAddress();
-        LOGGER.info("IP Address: " + clientIP);;    
+    public Response join(@Context RoutingContext routingContext) {
+        String clientIP = routingContext.request().remoteAddress().host();
+
+        Player player = service.registerNewPlayer(clientIP);
+
+        return Response
+            .status(Status.CREATED)
+            .entity(mapper.toGetNewPlayerDto(player, 0))
+            .build();
     }
 
     /* 

@@ -23,24 +23,30 @@ public class StateTransitionId implements Serializable {
         return state;
     }
 
-    public void setState(State state) {
+    public StateTransitionId setState(State state) {
         this.state = state;
+
+        return this;
     }
 
     public Conversation getConversation() {
         return conversation;
     }
 
-    public void setConversation(Conversation conversation) {
+    public StateTransitionId setConversation(Conversation conversation) {
         this.conversation = conversation;
+
+        return this;
     }
 
     public LocalDateTime getCreation() {
         return creation;
     }
 
-    public void setCreation(LocalDateTime creation) {
+    public StateTransitionId setCreation(LocalDateTime creation) {
         this.creation = creation;
+
+        return this;
     }
 
     @Override
