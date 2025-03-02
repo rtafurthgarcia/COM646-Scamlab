@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 class Player {
   final String secondaryId;
   final String systemRole;
@@ -13,7 +11,7 @@ class Player {
 
   factory Player.fromJson(Map<String, dynamic> json) {
     return Player(
-      secondaryId: base64Url.encode(utf8.encode(json['secondaryId'])),
+      secondaryId: json['secondaryId'],
       systemRole: json['systemRole'],
       jwtToken: json['jwtToken'],
     );
