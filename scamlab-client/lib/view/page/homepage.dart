@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:scamlab/provider/player_provider.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -20,16 +22,32 @@ class HomePage extends StatelessWidget {
                   Card(
                     color: Theme.of(context).colorScheme.onPrimary,
                     child: SizedBox(
-                      width: 150,
-                      child: Center(child: Text("Players online: 15")),
+                      width: 100,
+                      child: Center(child: Text(
+                        style: Theme.of(
+                                context,
+                              ).textTheme.labelSmall!,
+                        "Players online:\n15"
+                      )),
                     ),
                   ),
-                  Card(
-                    color: Theme.of(context).colorScheme.onPrimary,
-                    child: SizedBox(
-                      width: 150,
-                      child: Center(child: Text("Player's ID: 01-54456")),
-                    ),
+                  Consumer<PlayerProvider>(
+                    builder: (context, playerProvider, child) {
+                      return Card(
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        child: SizedBox(
+                          width: 360,
+                          child: Text(
+                              style: Theme.of(
+                                context,
+                              ).textTheme.labelSmall!,
+                              playerProvider.player != null
+                                  ? "Player's ID: ${playerProvider.player!.secondaryId}"
+                                  : "Player's ID: loading...",
+                            ),
+                        ),
+                      );
+                    }
                   ),
                   IconButton(onPressed: null, icon: Icon(Icons.refresh_sharp)),
                 ],

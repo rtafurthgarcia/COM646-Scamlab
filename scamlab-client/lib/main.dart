@@ -1,9 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:scamlab/provider/player_provider.dart';
+import 'package:scamlab/service/player_service.dart';
 import 'package:scamlab/theme.dart';
 import 'package:scamlab/view/page/HomePage.dart';
 
 void main() {
-  runApp(const MainApp());
+    runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => PlayerProvider(playerService: PlayerService(baseUrl: 'http://127.0.0.1:8080/api')),
+        ),
+      ],
+      child: MainApp(),
+    ),
+  );
 }
 
 class MainApp extends StatelessWidget {
