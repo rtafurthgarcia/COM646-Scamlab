@@ -18,8 +18,7 @@ import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "players", indexes = { 
-    @Index(name = "idx_player_ip_address", columnList = "ip_address"), 
-    @Index(name = "idx_player_token", columnList = "token"), 
+    @Index(name = "idx_player_ip_address", columnList = "ip_address")
 })
 public class Player {
 
@@ -58,7 +57,7 @@ public class Player {
         return secondaryId;
     }
 
-    @Column(unique = true, name = "ip_address", nullable = false)
+    @Column(name = "ip_address", nullable = false)
     private String ipAddress;
 
     public String getIpAddress() {
