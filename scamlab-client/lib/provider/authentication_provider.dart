@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:scamlab/model/player.dart';
-import 'package:scamlab/service/player_service.dart';
+import 'package:scamlab/service/authentication_service.dart';
 
 class PlayerProvider with ChangeNotifier {
   final PlayerService _playerService;

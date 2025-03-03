@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:scamlab/provider/player_provider.dart';
+import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/websocket_provider.dart';
 
 class HomePage extends StatelessWidget {
