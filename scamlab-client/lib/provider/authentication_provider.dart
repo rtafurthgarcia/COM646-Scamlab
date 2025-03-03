@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:scamlab/model/player.dart';
 import 'package:scamlab/service/authentication_service.dart';
 
-class PlayerProvider with ChangeNotifier {
-  final PlayerService _playerService;
+class AuthenticationProvider with ChangeNotifier {
+  final AuthenticationService _authenticationService;
   bool _isLoading = false;
 
   Player? _player;
   Player? get player => _player;
 
-  PlayerProvider({required PlayerService playerService}) : _playerService = playerService {
+  AuthenticationProvider({required AuthenticationService authenticationService}) : _authenticationService = authenticationService {
     if (_player == null) {
       registerNewPlayer();
     }
@@ -22,7 +22,7 @@ class PlayerProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      _player = await _playerService.registerNewPlayer();
+      _player = await _authenticationService.registerNewPlayer();
     } catch (error) {
       debugPrint("Error registering player: $error");
     } finally {
@@ -36,7 +36,7 @@ class PlayerProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      await _playerService.unregisterPlayer(player!.secondaryId, player!.jwtToken);
+      await _authenticationService.unregisterPlayer(player!.secondaryId, player!.jwtToken);
       _player = null;
     } catch (error) {
       debugPrint('Error unregistering player: $error');

@@ -6,11 +6,21 @@ class ConversationWSProvider extends ChangeNotifier {
   final ConversationWSService wsService;
   ConversationStartMessage? _chatMessage;
 
+  bool isReady() {
+    return wsService.jwtToken != null;
+  }
+
   ConversationStartMessage? get chatMessage => _chatMessage;
 
   ConversationWSProvider({required this.wsService}) {
+    connect();
+  }
+
+  void connect() {
     // Start the connection when this provider is instantiated.
-    wsService.connect(_onMessageReceived);
+    if (isReady()) {
+      wsService.connect(_onMessageReceived);
+    }
   }
 
   void _onMessageReceived(ConversationStartMessage message) {

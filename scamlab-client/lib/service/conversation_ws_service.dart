@@ -5,15 +5,24 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 class ConversationWSService {
   final String wsUrl;
-  late final WebSocketChannel _channel;
+  String? jwtToken;
+  late final WebSocketChannel? _channel;
 
-  ConversationWSService({required this.wsUrl});
+  ConversationWSService({required this.wsUrl, this.jwtToken});
+
+  bool isListening() {
+    return _channel != null && _channel.protocol != null;
+  }
 
   /// Connects to the WebSocket and listens for messages.
   void connect(void Function(ConversationStartMessage) onMessage) {
-    _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+    if (jwtToken == null) {
+      throw Exception("Missing JWT token for WebSocket!");
+    }
 
-    _channel.stream.listen((data) {
+    _channel = WebSocketChannel.connect(Uri.parse("$wsUrl?authorization=$jwtToken"));
+
+    _channel?.stream.listen((data) {
       // Assume the incoming data is in JSON format.
       final Map<String, dynamic> decodedData = json.decode(data);
       final chatMessage = ConversationStartMessage.fromJson(decodedData);
@@ -27,6 +36,8 @@ class ConversationWSService {
 
   /// Disconnects the WebSocket.
   void disconnect() {
-    _channel.sink.close();
+    if (isListening()) {
+      _channel?.sink.close();
+    }
   }
 }

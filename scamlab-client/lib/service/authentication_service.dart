@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:scamlab/model/player.dart';
 
-class PlayerService {
+class AuthenticationService {
   final String baseUrl;
 
-  PlayerService({required this.baseUrl});
+  AuthenticationService({required this.baseUrl});
 
   Future<Player> registerNewPlayer() async {
     final response = await http.get(
