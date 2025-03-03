@@ -63,6 +63,13 @@ public class PlayerService {
         return repository.find("secondaryId", secondaryId).firstResult();   
     }
 
+    public boolean isTokenMatchingIP(String token, String ipAddress) {
+        return ! repository.find(
+            "token = :token AND ipAddress = :ipAddress", 
+            Parameters.with("token", token).and("ipAddress", ipAddress)
+        ).singleResultOptional().isEmpty();
+    }
+
     private String generateToken(UUID secondaryId, String ipAddress, SystemRole role) {
         var embeddedRole = new HashSet<>(Arrays.asList(SystemRole.USER.name()));
         if (role.equals(SystemRole.ADMIN)) {
