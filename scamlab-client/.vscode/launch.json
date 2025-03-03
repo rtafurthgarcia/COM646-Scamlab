@@ -9,8 +9,8 @@
             "request": "launch",
             "type": "dart",
             "args": [
-                "--dart-define=API_URL=https://bi-aerial-k-reload.trycloudflare.com",
-                "--dart-define=WS_URL=ws://bi-aerial-k-reload.trycloudflare.com",
+                //"--dart-define=API_URL=https://bi-aerial-k-reload.trycloudflare.com",
+                //"--dart-define=WS_URL=ws://bi-aerial-k-reload.trycloudflare.com",
                 "--web-browser-flag=--disable-web-security"
             ]
         }

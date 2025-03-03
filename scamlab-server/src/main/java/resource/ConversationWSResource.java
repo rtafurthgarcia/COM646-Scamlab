@@ -6,15 +6,20 @@ import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.websockets.next.OnClose;
 import io.quarkus.websockets.next.OnOpen;
+import io.quarkus.websockets.next.PathParam;
 import io.quarkus.websockets.next.WebSocket;
 import io.quarkus.websockets.next.WebSocketConnection;
 import io.quarkus.websockets.next.runtime.ConnectionManager;
 import jakarta.inject.Inject;
+import service.PlayerService;
 
 @Authenticated
 @WebSocket(path = "/ws/conversation/start")
 public class ConversationWSResource {
     public record ChatMessage(long numberOfPlayersConnected) {}
+
+    @Inject
+    PlayerService service;
 
     @Inject
     Logger logger;
@@ -26,10 +31,11 @@ public class ConversationWSResource {
     ConnectionManager connectionManager;
 
     @Inject
-    SecurityIdentity currentIdentity;
+    SecurityIdentity securityIdentity;
 
-    @OnOpen(broadcast = true)
+    @OnOpen
     public ChatMessage onOpen() {
+        logger.info(securityIdentity.getPrincipal().getName() + " successfully authenticated");
         logger.info("New WS connection: " + connection.endpointId());
         return new ChatMessage(connectionManager.getConnections("*").size());
     }
