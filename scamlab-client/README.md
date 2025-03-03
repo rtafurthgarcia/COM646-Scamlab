@@ -22,7 +22,20 @@ with --dart-define
     ]
 }
 ```
+
+On Windows, to make the API available online, run the following command:
+```
+cloudflared.exe tunnel --url http://localhost:8080
+```
+
+## CORS
 That also means disabling, on chrome at least, CORS security features, for the WebApp to run on Chrome. 
 ```
 --web-browser-flag=--disable-web-security
 ```
+
+https://stackoverflow.com/questions/65630743/how-to-solve-flutter-web-api-cors-error-only-with-dart-code
+
+## WS authentication
+
+https://stackoverflow.com/questions/57521056/how-to-use-jwt-with-websocketchannel-in-flutter
