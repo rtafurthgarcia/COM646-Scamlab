@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/provider/player_provider.dart';
+import 'package:scamlab/provider/websocket_provider.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -81,7 +82,11 @@ class HomePage extends StatelessWidget {
                     color: Theme.of(context).colorScheme.onPrimary,
                     child: SizedBox(
                       width: 150,
-                      child: Center(child: Text("Players online: 15")),
+                      child: Center(child: Consumer<ConversationWSProvider>(
+                        builder: (context, conversationWSProvider, child) {
+                          return Text("Players online: ${conversationWSProvider.chatMessage?.numberOfPlayersConnected}");
+                        }
+                      )),
                     ),
                   ),
                 ],
