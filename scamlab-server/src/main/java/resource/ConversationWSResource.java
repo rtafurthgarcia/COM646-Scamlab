@@ -1,5 +1,7 @@
 package resource;
 
+import org.jboss.logging.Logger;
+
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.websockets.next.OnClose;
@@ -15,6 +17,9 @@ public class ConversationWSResource {
     public record ChatMessage(long numberOfPlayersConnected) {}
 
     @Inject
+    Logger logger;
+
+    @Inject
     WebSocketConnection connection;
 
     @Inject
@@ -25,11 +30,13 @@ public class ConversationWSResource {
 
     @OnOpen(broadcast = true)
     public ChatMessage onOpen() {
+        logger.info("New WS connection: " + connection.endpointId());
         return new ChatMessage(connectionManager.getConnections("*").size());
     }
 
     @OnClose
     public void onClose() {
+        logger.info("WS connection closed: " + connection.endpointId());
         connection.broadcast().sendTextAndAwait(new ChatMessage(connectionManager.getConnections("*").size()));
     }
 }
