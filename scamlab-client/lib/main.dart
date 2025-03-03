@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:scamlab/provider/player_provider.dart';
+import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/websocket_provider.dart';
 import 'package:scamlab/service/conversation_ws_service.dart';
-import 'package:scamlab/service/player_service.dart';
+import 'package:scamlab/service/authentication_service.dart';
 import 'package:scamlab/theme.dart';
 import 'package:scamlab/view/page/home_page.dart';
 
