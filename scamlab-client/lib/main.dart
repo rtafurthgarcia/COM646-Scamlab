@@ -8,6 +8,10 @@ import 'package:scamlab/theme.dart';
 import 'package:scamlab/view/page/home_page.dart';
 
 void main() {
+
+  const apiURL = String.fromEnvironment('API_URL', defaultValue: 'http://127.0.0.1:8080');
+  const wsURL = String.fromEnvironment('WS_URL', defaultValue: 'ws://127.0.0.1:8080');
+
   runApp(
     MultiProvider(
       providers: [
@@ -15,7 +19,7 @@ void main() {
           create:
               (_) => PlayerProvider(
                 playerService: PlayerService(
-                  baseUrl: 'http://127.0.0.1:8080/api',
+                  baseUrl: '$apiURL/api',
                 ),
               ),
         ),
@@ -23,7 +27,7 @@ void main() {
           create:
               (_) => ConversationWSProvider(
                 wsService: ConversationWSService(
-                  wsUrl: 'ws://127.0.0.1:8080/ws/conversation/start',
+                  wsUrl: '$wsURL/ws/conversation/start',
                 ),
               ),
         ),
