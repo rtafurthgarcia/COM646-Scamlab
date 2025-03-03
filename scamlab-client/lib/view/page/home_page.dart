@@ -10,12 +10,12 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Consumer<PlayerProvider>(
-          builder: (context, playerProvider, child) {
-            if (!playerProvider.isLoading) {
+        title: Consumer<AuthenticationProvider>(
+          builder: (context, authenticationProvider, child) {
+            if (!authenticationProvider.isLoading) {
               String titleSuffix =
-                  playerProvider.player != null
-                      ? playerProvider.player!.secondaryId
+                  authenticationProvider.player != null
+                      ? authenticationProvider.player!.secondaryId
                       : "-";
               return Row(
                 children: [
@@ -23,7 +23,7 @@ class HomePage extends StatelessWidget {
                   SelectableText(titleSuffix),
                   IconButton(
                     onPressed:
-                        playerProvider.isLoading
+                        authenticationProvider.isLoading
                             ? null
                             : () async {
                               final bool? confirm = await showDialog<bool>(
@@ -50,11 +50,11 @@ class HomePage extends StatelessWidget {
                                 },
                               );
                               if (confirm == true) {
-                                if (playerProvider.player != null) {
-                                  await playerProvider.unregisterPlayer();
-                                  playerProvider.registerNewPlayer();
+                                if (authenticationProvider.player != null) {
+                                  await authenticationProvider.unregisterPlayer();
+                                  authenticationProvider.registerNewPlayer();
                                 } else {
-                                  playerProvider.registerNewPlayer();
+                                  authenticationProvider.registerNewPlayer();
                                 }
                               }
                             },
@@ -217,9 +217,9 @@ class HomePage extends StatelessWidget {
                     icon: Icon(Icons.videogame_asset),
                     label: Text('New game'),
                   ),
-                  Consumer<PlayerProvider>(
-                    builder: (context, playerProvider, child) {
-                      if (playerProvider.player?.systemRole == "USER") {
+                  Consumer<AuthenticationProvider>(
+                    builder: (context, authenticationProvider, child) {
+                      if (authenticationProvider.player?.systemRole == "USER") {
                         return ElevatedButton.icon(
                           onPressed: null,
                           style: ElevatedButton.styleFrom(
