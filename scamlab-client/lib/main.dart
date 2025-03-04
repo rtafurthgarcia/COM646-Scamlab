@@ -6,6 +6,7 @@ import 'package:scamlab/service/conversation_ws_service.dart';
 import 'package:scamlab/service/authentication_service.dart';
 import 'package:scamlab/theme.dart';
 import 'package:scamlab/view/page/home_page.dart';
+import 'package:scamlab/view/widget/auth_error_listener.dart';
 
 void main() {
   const apiURL = String.fromEnvironment(
@@ -63,7 +64,7 @@ class MainApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       initialRoute: '/',
       routes: <String, WidgetBuilder>{
-        '/': (BuildContext context) => const HomePage(),
+        '/': (BuildContext context) => AuthErrorListener(child: const HomePage()),
         //'/signup': (BuildContext context) => const SignUpPage(),
       },
     );
