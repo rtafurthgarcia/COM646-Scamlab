@@ -14,6 +14,8 @@ import model.dto.PlayerDto.GetNewPlayerDto;
 import repository.PlayerRepository;
 
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -27,65 +29,56 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-public class ConversationWSResourceTest {
+public class StartMenuWSResourceTest {
 
     @Inject
     PlayerRepository repository;
 
     private static final LinkedBlockingDeque<String> MESSAGES = new LinkedBlockingDeque<>();
 
-    @TestHTTPResource("/ws/conversation/start")
+    @TestHTTPResource("/ws/start-menu")
     URI uri;
 
-   @Test
+     @Test
     public void testGetCurrentCountOfConnectedUsers() throws Exception {
-        // register
+        // Register new player and get token
         var player = given()
             .when().get("/api/players/new")
             .then()
             .statusCode(201)
-            .and()
             .extract()
             .as(GetNewPlayerDto.class);
 
-        var authenticationToken = player.jwtToken();
+        String token = player.jwtToken();
 
-        // Create a custom configurator to add the Authorization header with the JWT token.
-        ClientEndpointConfig.Configurator configurator = new ClientEndpointConfig.Configurator() {
-            @Override
-            public void beforeRequest(Map<String, List<String>> headers) {
-                headers.put("Authorization", Collections.singletonList("Bearer " + authenticationToken));
-            }
-        };
+        // Create subprotocol with encoded authorization header
+        String headerProtocol = "quarkus-http-upgrade#Authorization#Bearer " + token;
+        String encodedProtocol = URLEncoder.encode(headerProtocol, StandardCharsets.UTF_8)
+                                          .replace("+", "%20"); // Proper URI encoding
 
+        // Configure client with subprotocols
         ClientEndpointConfig clientConfig = ClientEndpointConfig.Builder.create()
-            .configurator(configurator)
+            .preferredSubprotocols(List.of(
+                "bearer-token-carrier",  // Our custom protocol
+                encodedProtocol          // Quarkus header protocol
+            ))
             .build();
 
-        // Instantiate the client endpoint.
-        Client clientEndpoint = new Client();
-
-        // Connect using the custom configuration.
-        try (Session session = ContainerProvider.getWebSocketContainer().connectToServer(clientEndpoint, clientConfig, uri)) {
-            // Your assertions or message handling can follow here.
-            // Example: Check for the connection open message.
+        // Connect to WebSocket endpoint
+        try (Session session = ContainerProvider.getWebSocketContainer()
+                .connectToServer(new Client(), clientConfig, uri)) {
+                
             Assertions.assertEquals("CONNECT", MESSAGES.poll(10, TimeUnit.SECONDS));
         }
     }
 
     @ClientEndpoint
     public static class Client extends Endpoint {
-    @Override
+        @Override
         public void onOpen(Session session, EndpointConfig config) {
             MESSAGES.add("CONNECT");
-            // Add a message handler to capture incoming text messages.
-            session.addMessageHandler(String.class, new MessageHandler.Whole<String>() {
-                @Override
-                public void onMessage(String message) {
-                    MESSAGES.add(message);
-                }
-            });
-            // Optionally send a ready message.
+            session.addMessageHandler(String.class, 
+                (MessageHandler.Whole<String>) MESSAGES::add);
             session.getAsyncRemote().sendText("_ready_");
         }
     }
