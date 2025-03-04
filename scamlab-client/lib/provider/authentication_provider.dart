@@ -1,13 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:scamlab/model/player.dart';
+import 'package:scamlab/provider/clearable_provider.dart';
 import 'package:scamlab/service/authentication_service.dart';
 
-class AuthenticationProvider with ChangeNotifier {
+class AuthenticationProvider extends ClearableProvider {
   final AuthenticationService _authenticationService;
-  bool _isLoading = false;
-
-  Exception? _exception;
-  Exception? get exception => _exception;
 
   Player? _player;
   Player? get player => _player;
@@ -18,27 +14,25 @@ class AuthenticationProvider with ChangeNotifier {
     }
   }
 
-  bool get isLoading => _isLoading;
-
   Future<void> registerNewPlayer() async {
-    _exception = null;
-    _isLoading = true;
+    exception = null;
+    isLoading = true;
     notifyListeners();
 
     try {
       _player = await _authenticationService.registerNewPlayer();
     } on Exception catch (e)  {
       //debugPrint("Error registering player: $error");
-      _exception = e;
+      exception = e;
     } finally {
-      _isLoading = false;
+      isLoading = false;
       notifyListeners();
     }
   }
 
   Future<void> unregisterPlayer() async {
-    _exception = null;
-    _isLoading = true;
+    exception = null;
+    isLoading = true;
     notifyListeners();
 
     try {
@@ -46,24 +40,20 @@ class AuthenticationProvider with ChangeNotifier {
       _player = null;
     } on Exception catch (e)  {
       //debugPrint("Error registering player: $error");
-      _exception = e;
+      exception = e;
     } finally {
-      _isLoading = false;
+      isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<void> refreshPlayersIdentity() async {
+  @override
+  Future<void> tryAgain() async {
     if (_player != null) {
       await unregisterPlayer();
       registerNewPlayer();
     } else {
       registerNewPlayer();
     }
-  }
-
-  void clearException() {
-    _exception = null;
-    notifyListeners();
   }
 }
