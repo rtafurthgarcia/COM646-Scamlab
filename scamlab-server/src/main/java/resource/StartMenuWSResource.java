@@ -12,8 +12,8 @@ import io.quarkus.websockets.next.runtime.ConnectionManager;
 import jakarta.inject.Inject;
 
 @Authenticated
-@WebSocket(path = "/ws/conversation/start")
-public class ConversationWSResource {
+@WebSocket(path = "/ws/start-menu")
+public class StartMenuWSResource {
     public record ChatMessage(long numberOfPlayersConnected) {}
 
     @Inject
