@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
-import 'package:scamlab/provider/websocket_provider.dart';
+import 'package:scamlab/provider/startmenu_ws_provider.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -19,7 +19,7 @@ class HomePage extends StatelessWidget {
                       : "-";
               return Row(
                 children: [
-                  Text("Scamlab - Player's ID: "),
+                  Text("Scamlab - Player's username: "),
                   SelectableText(titleSuffix),
                   IconButton(
                     onPressed:
@@ -77,7 +77,7 @@ class HomePage extends StatelessWidget {
                     color: Theme.of(context).colorScheme.onPrimary,
                     child: SizedBox(
                       width: 150,
-                      child: Center(child: Consumer<ConversationWSProvider>(
+                      child: Center(child: Consumer<StartMenuWSProvider>(
                         builder: (context, conversationWSProvider, child) {
                           return Text("Players online: ${conversationWSProvider.chatMessage == null ? "-" : conversationWSProvider.chatMessage?.numberOfPlayersConnected}");
                         }

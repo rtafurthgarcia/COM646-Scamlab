@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:scamlab/model/conversation_start_message.dart';
-import 'package:scamlab/service/conversation_ws_service.dart';
+import 'package:scamlab/service/startmenu_ws_service.dart';
 
-class ConversationWSProvider extends ChangeNotifier {
-  final ConversationWSService wsService;
+class StartMenuWSProvider extends ChangeNotifier {
+  final StartMenuWSService wsService;
   ConversationStartMessage? _chatMessage;
 
   bool isReady() {
@@ -12,7 +12,7 @@ class ConversationWSProvider extends ChangeNotifier {
 
   ConversationStartMessage? get chatMessage => _chatMessage;
 
-  ConversationWSProvider({required this.wsService}) {
+  StartMenuWSProvider({required this.wsService}) {
     connect();
   }
 

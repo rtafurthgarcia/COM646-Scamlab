@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:scamlab/model/conversation_start_message.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-class ConversationWSService {
+class StartMenuWSService {
   final String wsUrl;
   String? jwtToken;
   WebSocketChannel? _channel;
 
-  ConversationWSService({required this.wsUrl, this.jwtToken});
+  StartMenuWSService({required this.wsUrl, this.jwtToken});
 
   bool isListening() {
     return _channel != null && _channel!.protocol != null;
