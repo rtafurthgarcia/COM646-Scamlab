@@ -64,7 +64,7 @@ class MainApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       initialRoute: '/',
       routes: <String, WidgetBuilder>{
-        '/': (BuildContext context) => ClearableExceptionListener(
+        '/': (BuildContext context) => ClearableExceptionListener<AuthenticationProvider>(
           message: "Couldn't get a new identity",
           child: const HomePage(),
         ),
