@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
-import 'package:scamlab/provider/websocket_provider.dart';
-import 'package:scamlab/service/conversation_ws_service.dart';
+import 'package:scamlab/provider/startmenu_ws_provider.dart';
+import 'package:scamlab/service/startmenu_ws_service.dart';
 import 'package:scamlab/service/authentication_service.dart';
 import 'package:scamlab/theme.dart';
 import 'package:scamlab/view/page/home_page.dart';
@@ -27,16 +27,16 @@ void main() {
                 authenticationService: AuthenticationService(baseUrl: '$apiURL/api'),
               ),
         ),
-        ChangeNotifierProxyProvider<AuthenticationProvider, ConversationWSProvider>(
+        ChangeNotifierProxyProvider<AuthenticationProvider, StartMenuWSProvider>(
           update: (context, authenticationProvider, conversationWSProvider) =>
-          ConversationWSProvider(
-            wsService: ConversationWSService(
+          StartMenuWSProvider(
+            wsService: StartMenuWSService(
               wsUrl: "$wsURL/ws/conversation/start",
               jwtToken: authenticationProvider.player?.jwtToken
             )
           ), 
-          create: (BuildContext context) => ConversationWSProvider(
-            wsService: ConversationWSService(
+          create: (BuildContext context) => StartMenuWSProvider(
+            wsService: StartMenuWSService(
               wsUrl: "$wsURL/ws/conversation/start",
               jwtToken: null
             )
