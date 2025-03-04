@@ -6,6 +6,9 @@ class AuthenticationProvider with ChangeNotifier {
   final AuthenticationService _authenticationService;
   bool _isLoading = false;
 
+  Exception? _exception;
+  Exception? get exception => _exception;
+
   Player? _player;
   Player? get player => _player;
 
@@ -18,13 +21,15 @@ class AuthenticationProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
 
   Future<void> registerNewPlayer() async {
+    _exception = null;
     _isLoading = true;
     notifyListeners();
 
     try {
       _player = await _authenticationService.registerNewPlayer();
-    } catch (error) {
-      debugPrint("Error registering player: $error");
+    } on Exception catch (e)  {
+      //debugPrint("Error registering player: $error");
+      _exception = e;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -32,17 +37,33 @@ class AuthenticationProvider with ChangeNotifier {
   }
 
   Future<void> unregisterPlayer() async {
+    _exception = null;
     _isLoading = true;
     notifyListeners();
 
     try {
       await _authenticationService.unregisterPlayer(player!.secondaryId, player!.jwtToken);
       _player = null;
-    } catch (error) {
-      debugPrint('Error unregistering player: $error');
+    } on Exception catch (e)  {
+      //debugPrint("Error registering player: $error");
+      _exception = e;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> refreshPlayersIdentity() async {
+    if (_player != null) {
+      await unregisterPlayer();
+      registerNewPlayer();
+    } else {
+      registerNewPlayer();
+    }
+  }
+
+  void clearException() {
+    _exception = null;
+    notifyListeners();
   }
 }

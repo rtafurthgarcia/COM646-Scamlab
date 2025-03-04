@@ -50,12 +50,7 @@ class HomePage extends StatelessWidget {
                                 },
                               );
                               if (confirm == true) {
-                                if (authenticationProvider.player != null) {
-                                  await authenticationProvider.unregisterPlayer();
-                                  authenticationProvider.registerNewPlayer();
-                                } else {
-                                  authenticationProvider.registerNewPlayer();
-                                }
+                                authenticationProvider.refreshPlayersIdentity();
                               }
                             },
                     icon: const Icon(Icons.refresh_sharp),
@@ -84,7 +79,7 @@ class HomePage extends StatelessWidget {
                       width: 150,
                       child: Center(child: Consumer<ConversationWSProvider>(
                         builder: (context, conversationWSProvider, child) {
-                          return Text("Players online: ${conversationWSProvider.chatMessage?.numberOfPlayersConnected}");
+                          return Text("Players online: ${conversationWSProvider.chatMessage == null ? "-" : conversationWSProvider.chatMessage?.numberOfPlayersConnected}");
                         }
                       )),
                     ),
