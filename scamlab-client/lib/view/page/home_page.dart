@@ -50,7 +50,7 @@ class HomePage extends StatelessWidget {
                                 },
                               );
                               if (confirm == true) {
-                                authenticationProvider.refreshPlayersIdentity();
+                                authenticationProvider.tryAgain();
                               }
                             },
                     icon: const Icon(Icons.refresh_sharp),
