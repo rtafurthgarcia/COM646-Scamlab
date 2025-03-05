@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:scamlab/model/player.dart';
 
+class TokenAlreadyAttributedException implements Exception {}
+
 class AuthenticationService {
   final String baseUrl;
 
@@ -16,6 +18,8 @@ class AuthenticationService {
     if (response.statusCode == 201) {
       final Map<String, dynamic> data = json.decode(response.body);
       return Player.fromJson(data);
+    } else if (response.statusCode == 409) {
+      throw TokenAlreadyAttributedException();
     } else {
       throw Exception(
         'Failed to register player. Status: ${response.statusCode}\n'

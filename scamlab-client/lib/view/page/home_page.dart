@@ -1,13 +1,63 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/startmenu_ws_provider.dart';
+import 'package:scamlab/view/widget/rules_card_widget.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
+  List<Widget> buildButtons(BuildContext context) {
+    return [
+      Consumer<AuthenticationProvider>(
+        builder: (context, authenticationProvider, child) {
+          return ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.secondary,
+              foregroundColor: Theme.of(context).colorScheme.onSecondary,
+              iconColor: Theme.of(context).colorScheme.onSecondary,
+            ),
+            onPressed: () => authenticationProvider.player != null ? Navigator.pushNamed(context, '/lobby') : null,
+            icon: Icon(Icons.videogame_asset),
+            label: Text('New game'),
+          );
+        },
+      ),
+      Consumer<AuthenticationProvider>(
+        builder: (context, authenticationProvider, child) {
+          if (authenticationProvider.player?.systemRole == "USER") {
+            return ElevatedButton.icon(
+              onPressed: null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.secondary,
+                foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                iconColor: Theme.of(context).colorScheme.onSecondary,
+              ),
+              icon: Icon(Icons.dashboard),
+              label: Text('Dashboard (admin-only)'),
+            );
+          } else {
+            return ElevatedButton.icon(
+              onPressed: () => authenticationProvider.player != null ? Navigator.pushNamed(context, '/lobby') : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.secondary,
+                foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                iconColor: Theme.of(context).colorScheme.onSecondary,
+              ),
+              icon: Icon(Icons.dashboard),
+              label: Text('Dashboard'),
+            );
+          }
+        },
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
+    bool isScreenSmall = MediaQuery.of(context).size.width < 600;
+
     return Scaffold(
       appBar: AppBar(
         title: Consumer<AuthenticationProvider>(
@@ -17,10 +67,35 @@ class HomePage extends StatelessWidget {
                   authenticationProvider.player != null
                       ? authenticationProvider.player!.secondaryId
                       : "-";
+              // Shorten the ID if on mobile and if it's long enough.
+              String displayedId = titleSuffix;
+              if (isScreenSmall && titleSuffix.length > 10) {
+                displayedId =
+                    "${titleSuffix.substring(0, 4)}...${titleSuffix.substring(titleSuffix.length - 2)}";
+              }
+
               return Row(
                 children: [
-                  Text("Scamlab - Player's username: "),
-                  SelectableText(titleSuffix),
+                  const Text("Scamlab - Player's ID: "),
+                  // If on mobile, show a tappable text that copies the full ID to clipboard.
+                  isScreenSmall
+                      ? GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: titleSuffix));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Player ID copied to clipboard!"),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          displayedId,
+                          style: const TextStyle(
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      )
+                      : SelectableText(titleSuffix),
                   IconButton(
                     onPressed:
                         authenticationProvider.isLoading
@@ -58,7 +133,7 @@ class HomePage extends StatelessWidget {
                 ],
               );
             } else {
-              return LinearProgressIndicator();
+              return const LinearProgressIndicator();
             }
           },
         ),
@@ -77,11 +152,15 @@ class HomePage extends StatelessWidget {
                     color: Theme.of(context).colorScheme.onPrimary,
                     child: SizedBox(
                       width: 150,
-                      child: Center(child: Consumer<StartMenuWSProvider>(
-                        builder: (context, conversationWSProvider, child) {
-                          return Text("Players online: ${conversationWSProvider.chatMessage == null ? "-" : conversationWSProvider.chatMessage?.numberOfPlayersConnected}");
-                        }
-                      )),
+                      child: Center(
+                        child: Consumer<StartMenuWSProvider>(
+                          builder: (context, conversationWSProvider, child) {
+                            return Text(
+                              "Players online: ${conversationWSProvider.chatMessage == null ? "-" : conversationWSProvider.chatMessage?.numberOfPlayersConnected}",
+                            );
+                          },
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -123,33 +202,7 @@ class HomePage extends StatelessWidget {
                   ],
                 ),
               ),
-              Card(
-                child: Column(
-                  children: [
-                    ListTile(
-                      titleTextStyle: Theme.of(
-                        context,
-                      ).textTheme.headlineSmall!.copyWith(
-                        color:
-                            Theme.of(
-                              context,
-                            ).colorScheme.primary, // Use primary color
-                      ),
-                      visualDensity: VisualDensity.comfortable,
-                      leading: const Icon(Icons.menu_book),
-                      title: Text("2. How to play"),
-                    ),
-                    Container(
-                      padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        "Join the game, chat/vote to unmask the AI bot hidden among players using scripted scenarios. Earn candy by voting correctly, or lose if the bot fools you—rate your confidence post-game. Stay anonymous: new username each round.",
-                        textAlign: TextAlign.justify,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              RulesCardWidget(title: "2. How to play"),
               Card(
                 child: Column(
                   children: [
@@ -197,49 +250,11 @@ class HomePage extends StatelessWidget {
                   ],
                 ),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                //crossAxisAlignment: CrossAxisAlignment.stretch,
+              Flex(
+                direction: isScreenSmall ? Axis.vertical : Axis.horizontal,
                 spacing: 32.0,
-                children: [
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.secondary,
-                      foregroundColor: Theme.of(context).colorScheme.onSecondary,
-                      iconColor: Theme.of(context).colorScheme.onSecondary,
-                    ),
-                    onPressed: () => {},
-                    icon: Icon(Icons.videogame_asset),
-                    label: Text('New game'),
-                  ),
-                  Consumer<AuthenticationProvider>(
-                    builder: (context, authenticationProvider, child) {
-                      if (authenticationProvider.player?.systemRole == "USER") {
-                        return ElevatedButton.icon(
-                          onPressed: null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.secondary,
-                            foregroundColor: Theme.of(context).colorScheme.onSecondary,
-                            iconColor: Theme.of(context).colorScheme.onSecondary,
-                          ),
-                          icon: Icon(Icons.dashboard),
-                          label: Text('Dashboard (admin-only)'),
-                        );
-                      } else {
-                        return ElevatedButton.icon(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.secondary,
-                            foregroundColor: Theme.of(context).colorScheme.onSecondary,
-                            iconColor: Theme.of(context).colorScheme.onSecondary,
-                          ),
-                          icon: Icon(Icons.dashboard),
-                          label: Text('Dashboard'),
-                        );
-                      }
-                    },
-                  ),
-                ],
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: buildButtons(context),
               ),
             ],
           ),

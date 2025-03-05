@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
+import 'package:scamlab/provider/lobby_ws_provider.dart';
 import 'package:scamlab/provider/startmenu_ws_provider.dart';
 import 'package:scamlab/service/startmenu_ws_service.dart';
 import 'package:scamlab/service/authentication_service.dart';
 import 'package:scamlab/theme.dart';
 import 'package:scamlab/view/page/home_page.dart';
+import 'package:scamlab/view/page/waiting_lobby_page.dart';
 import 'package:scamlab/view/widget/clearable_exception_listener.dart';
 
 void main() {
@@ -31,16 +33,20 @@ void main() {
           update: (context, authenticationProvider, conversationWSProvider) =>
           StartMenuWSProvider(
             wsService: StartMenuWSService(
-              wsUrl: "$wsURL/ws/conversation/start",
+              wsUrl: "$wsURL/ws/start-menu",
               jwtToken: authenticationProvider.player?.jwtToken
             )
           ), 
           create: (BuildContext context) => StartMenuWSProvider(
             wsService: StartMenuWSService(
-              wsUrl: "$wsURL/ws/conversation/start",
+              wsUrl: "$wsURL/ws/start-menu",
               jwtToken: null
             )
           )
+        ),
+        ChangeNotifierProxyProvider<AuthenticationProvider, LobbyWSProvider>(
+          update: (context, authenticationProvider, lobbyWSProvider) => LobbyWSProvider(), 
+          create: (BuildContext context) => LobbyWSProvider()
         ),
       ],
       child: MainApp(),
@@ -68,7 +74,7 @@ class MainApp extends StatelessWidget {
           message: "Couldn't get a new identity",
           child: const HomePage(),
         ),
-        //'/signup': (BuildContext context) => const SignUpPage(),
+        '/lobby': (BuildContext context) => const WaitingLobbyPage(),
       },
     );
   }
