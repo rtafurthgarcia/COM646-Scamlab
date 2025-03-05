@@ -33,8 +33,9 @@ public class PlayerService {
 
     public Player registerNewPlayer(String ipAddress) {
         var player = repository.find(
-            "ipAddress = :ipAddress AND token IS NOT NULL", 
-            Parameters.with("ipAddress", ipAddress)
+            "ipAddress = ?1 and token = ?2", 
+            ipAddress, 
+            null
         ).firstResult();
 
         if (player != null) {

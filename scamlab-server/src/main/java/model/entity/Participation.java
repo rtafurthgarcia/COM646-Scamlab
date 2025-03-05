@@ -10,6 +10,12 @@ import jakarta.persistence.Table;
 @Table(name = "participations", indexes = {
     @Index(name = "idx_participation_username", columnList = "username")
 })
+/*@org.hibernate.annotations.NamedQuery(
+    name = "participations.countOfParticipantsWaiting", 
+    query = "select count(P) \n" 
+          + "from participations as P \n"
+          + "join participations.conversation as C \n"
+          + "where C.state_id = 1 \n")*/
 public class Participation {
     @EmbeddedId
     private ParticipationId participationId;
