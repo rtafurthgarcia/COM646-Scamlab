@@ -28,7 +28,8 @@ import jakarta.persistence.Version;
 @Table(name = "conversations", indexes = {
     @Index(name = "idx_conversation_testing_scenario", columnList = "testing_scenario"),
     @Index(name = "idx_conversation_testing_day", columnList = "testing_day"),
-    @Index(name = "idx_conversation_strategy_id", columnList = "strategy_id")
+    @Index(name = "idx_conversation_strategy_id", columnList = "strategy_id"),
+    @Index(name = "idx_conversation_state_id", columnList = "state_id")
 })
 public class Conversation {
     @Id 
@@ -104,6 +105,20 @@ public class Conversation {
 
     public List<StateTransition> getStates() {
         return states;
+    }
+
+    @ManyToOne
+    @JoinColumn(name = "state_id", referencedColumnName = "id", nullable = false)
+    private State currentState; 
+
+    public State getCurrentState() {
+        return currentState;
+    }
+
+    public Conversation setCurrentState(State currentState) {
+        this.currentState = currentState;
+
+        return this;
     }
 
     @OneToMany(mappedBy = "conversation") 

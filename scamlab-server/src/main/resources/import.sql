@@ -4,9 +4,10 @@ INSERT INTO roles(id, name) VALUES(2, 'scammer');
 INSERT INTO states(id, name) VALUES(1, 'waiting');
 INSERT INTO states(id, name) VALUES(2, 'ready');
 INSERT INTO states(id, name) VALUES(3, 'running');
-INSERT INTO states(id, name) VALUES(4, 'finished - unmasked');
-INSERT INTO states(id, name) VALUES(5, 'finished - masked');
-INSERT INTO states(id, name) VALUES(6, 'cancelled');
+INSERT INTO states(id, name) VALUES(4, 'voting');
+INSERT INTO states(id, name) VALUES(5, 'finished - unmasked');
+INSERT INTO states(id, name) VALUES(6, 'finished - masked');
+INSERT INTO states(id, name) VALUES(7, 'cancelled');
 
 INSERT INTO strategies(id, name) VALUES(1, 'tech support scam');
 INSERT INTO strategies(id, name) VALUES(2, 'business email compromise');
