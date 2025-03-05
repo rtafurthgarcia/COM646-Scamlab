@@ -21,6 +21,10 @@ class AuthenticationProvider extends ClearableProvider {
 
     try {
       _player = await _authenticationService.registerNewPlayer();
+    } on TokenAlreadyAttributedException catch (e) {
+      unregisterPlayer();
+
+      exception = e;
     } on Exception catch (e)  {
       //debugPrint("Error registering player: $error");
       exception = e;
