@@ -14,7 +14,6 @@ import io.quarkus.websockets.next.runtime.ConnectionManager;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -22,8 +21,8 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
-import model.dto.PlayerMapper;
-import model.dto.PlayerDto.GetNewPlayerDto;
+import model.dto.AuthenticationMapper;
+import model.dto.AuthenticationDto.GetNewPlayerDto;
 import service.AuthenticationService;
 
 @Path("players")
@@ -36,7 +35,7 @@ public class AuthenticationResource {
     AuthenticationService service;
 
     @Inject 
-    PlayerMapper mapper;
+    AuthenticationMapper mapper;
 
     @Context
     SecurityContext securityContext;

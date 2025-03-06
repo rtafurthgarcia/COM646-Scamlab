@@ -26,7 +26,7 @@ public class AuthenticationService {
 
     @Inject
     @ConfigProperty(name = "mp.jwt.verify.issuer")
-    String Issuer;
+    String issuer;
 
     @Inject
     Logger logger;
@@ -74,7 +74,7 @@ public class AuthenticationService {
         }
 
         try {
-            String token = Jwt.issuer(Issuer) // This value must match the server-side mp.jwt.verify.issuer configuration for the token to be considered valid.
+            String token = Jwt.issuer(issuer) // This value must match the server-side mp.jwt.verify.issuer configuration for the token to be considered valid.
                 .upn(secondaryId.toString()) // Using the player's secondaryId as the subject -> makes it easier to search within the SecurityContext
                 .groups(embeddedRole) 
                 .claim("address", ipAddress)
