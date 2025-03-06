@@ -24,16 +24,16 @@ import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
 import model.dto.PlayerMapper;
 import model.dto.PlayerDto.GetNewPlayerDto;
-import service.PlayerService;
+import service.AuthenticationService;
 
 @Path("players")
 @PermitAll
-public class PlayerResource {
+public class AuthenticationResource {
     @Inject
     Logger logger;
 
     @Inject
-    PlayerService service;
+    AuthenticationService service;
 
     @Inject 
     PlayerMapper mapper;
@@ -56,7 +56,6 @@ public class PlayerResource {
             )
         )
     })
-    @Transactional
     public Response register(@Context RoutingContext routingContext) {
         var clientIP = routingContext.request().remoteAddress().host();
 
@@ -76,7 +75,6 @@ public class PlayerResource {
             description = "Player successfully unregistered"
         )
     })
-    @Transactional
     @Authenticated
     public Response clearToken(String secondaryId) {
     

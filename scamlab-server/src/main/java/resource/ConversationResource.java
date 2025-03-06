@@ -10,19 +10,16 @@ import org.jboss.logging.Logger;
 
 import io.quarkus.security.Authenticated;
 import io.quarkus.websockets.next.runtime.ConnectionManager;
-import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
 import model.dto.PlayerDto.GetNewPlayerDto;
-import model.dto.PlayerMapper;
 import service.ConversationService;
-import service.PlayerService;
+import service.AuthenticationService;
 
 @Path("conversations")
 public class ConversationResource {
@@ -33,7 +30,7 @@ public class ConversationResource {
     SecurityContext securityContext;
 
     @Inject
-    PlayerService playerService;
+    AuthenticationService authenticationService;
 
     @Inject
     ConversationService conversationService;
@@ -53,10 +50,10 @@ public class ConversationResource {
             )
         )
     })
-    @Transactional
+    
     @Authenticated
     public Response join() {
-        var player = playerService.findUserBySecondaryId(UUID.fromString(securityContext.getUserPrincipal().getName()));        
+        var player = authenticationService.findUserBySecondaryId(UUID.fromString(securityContext.getUserPrincipal().getName()));        
 
         conversationService.putPlayerOnWaitingList(player);
 

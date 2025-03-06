@@ -1,39 +1,28 @@
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.websockets.next.OnOpen;
-import jakarta.inject.Inject;
 import jakarta.websocket.ClientEndpoint;
 import jakarta.websocket.Endpoint;
 import jakarta.websocket.EndpointConfig;
 import jakarta.websocket.MessageHandler;
 import jakarta.websocket.ClientEndpointConfig;
 import jakarta.websocket.ContainerProvider;
-import jakarta.websocket.OnMessage;
 import jakarta.websocket.Session;
 import model.dto.PlayerDto.GetNewPlayerDto;
-import repository.PlayerRepository;
 
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
 import static io.restassured.RestAssured.given;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 public class StartMenuWSResourceTest {
-
-    @Inject
-    PlayerRepository repository;
-
     private static final LinkedBlockingDeque<String> MESSAGES = new LinkedBlockingDeque<>();
 
     @TestHTTPResource("/ws/start-menu")

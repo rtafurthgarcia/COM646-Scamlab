@@ -97,7 +97,7 @@ public class Player {
     }
 
     @Lob 
-    @Basic(fetch = FetchType.LAZY)
+    @Basic(fetch = FetchType.EAGER)
     private String token;
 
     public String getToken() {
