@@ -5,10 +5,10 @@ import org.jboss.logging.Logger;
 import exception.PlayerException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import model.entity.Player;
 import model.entity.SystemRole;
-import repository.PlayerRepository;
-import io.quarkus.panache.common.Parameters;
 import io.smallrye.jwt.build.Jwt;
 
 import java.util.Arrays;
@@ -16,10 +16,10 @@ import java.util.HashSet;
 import java.util.UUID;
 
 @ApplicationScoped
-public class PlayerService {
-
+@Transactional
+public class AuthenticationService {
     @Inject
-    PlayerRepository repository;
+    EntityManager entityManager;
 
     static final String LOCALHOST = "127.0.0.1";
     static final Integer TOKEN_EXPIRATION_SECONDS = 3600;
@@ -32,17 +32,16 @@ public class PlayerService {
     Logger logger;
 
     public Player registerNewPlayer(String ipAddress) {
-        var player = repository.find(
-            "ipAddress = ?1 and token = ?2", 
-            ipAddress, 
-            null
-        ).firstResult();
+        var isPlayerAlreadyAssignedToken = ! entityManager.createQuery(
+            "SELECT p FROM Player p WHERE p.ipAddress = :ipAddress AND p.token IS NOT NULL", 
+            Player.class)
+            .setParameter("ipAddress", ipAddress).getResultList().isEmpty();
 
-        if (player != null) {
+        if (isPlayerAlreadyAssignedToken) {
             throw new PlayerException("One device cannot play more than once at the same time");
         }
 
-        player = new Player().setIpAddress(ipAddress).setIsBot(false);
+        var player = new Player().setIpAddress(ipAddress).setIsBot(false);
 
         if (ipAddress.equals(LOCALHOST)) {
             player.setSystemRole(SystemRole.ADMIN);
@@ -51,17 +50,21 @@ public class PlayerService {
         var token = generateToken(player.getSecondaryId(), ipAddress, player.getSystemRole());
         player.setToken(token);
 
-        repository.persistAndFlush(player);
+        entityManager.persist(player);
+        entityManager.flush();
         return player;
     }
 
     public void unregisterPlayersToken(Player player) {
         player.setToken(null);
-        repository.persistAndFlush(player);
+        entityManager.merge(player);
+        entityManager.flush();
     }
 
     public Player findUserBySecondaryId(UUID secondaryId) {
-        return repository.find("secondaryId", secondaryId).firstResult();   
+        return entityManager.createQuery("SELECT p FROM Player p WHERE secondaryId = :secondaryId", Player.class)
+            .setParameter("secondaryId", secondaryId)
+            .getSingleResult();   
     }
 
     private String generateToken(UUID secondaryId, String ipAddress, SystemRole role) {

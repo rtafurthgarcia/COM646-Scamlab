@@ -2,54 +2,61 @@ package service;
 
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
-import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.jboss.logging.Logger;
 
 import helper.DefaultKeyValues;
 import helper.MathHelper;
-import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import model.entity.Conversation;
 import model.entity.Player;
+import model.entity.State;
+import model.entity.Strategy;
 import model.entity.TestingScenario;
-import repository.ConversationRepository;
-import repository.ParticipationRepository;
-import repository.StateRepository;
-import repository.StrategyRepository;
 
 @ApplicationScoped
+@Transactional
 public class ConversationService {
     @Inject
-    ConversationRepository conversationRepository;
-
-    @Inject
-    StateRepository stateRepository;
-
-    @Inject
-    StrategyRepository strategyRepository;
+    EntityManager entityManager; 
 
     @Inject
     Logger logger;
 
-    @Outgoing("player-joined-waiting-lobby")
-    public Uni<Player> putPlayerOnWaitingList(Player player) {
-        var conversationOnWaiting = conversationRepository.find("state_id", helper.DefaultKeyValues.StateValue.WAITING.value).firstResult();
+    @Inject
+    @Channel("player-joined-waiting-lobby")
+    Emitter<Player> emitter;
+
+    public void putPlayerOnWaitingList(Player player) {
+        var conversationOnWaiting = entityManager.createQuery(
+            """
+                SELECT c.id, COUNT(p) FROM conversations c
+                JOIN c.participations p
+                WHERE c.state = :State
+                GROUP BY c.id
+                    """, Conversation.class)
+                    .setParameter(0, DefaultKeyValues.StateValue.WAITING.value)
+                    .getSingleResult();
         
         if (conversationOnWaiting == null) {
-            var randomlyPickedStrategy = strategyRepository.findAll().list().get(MathHelper.getRandomNumber(0, (int) strategyRepository.count()-1));
+            var strategies = entityManager.createQuery("SELECT s FROM strategies", Strategy.class)
+                .getResultList(); 
+                
+            var randomlyPickedStrategy = strategies.get(MathHelper.getRandomNumber(0, (int) strategies.size()-1));
             var randomlyPickedScenario =  TestingScenario.values()[MathHelper.getRandomNumber(0, TestingScenario.values().length -1)];
             
-            conversationRepository.persist(
+            entityManager.persist(
                 new Conversation()
-                    .setCurrentState(stateRepository.findById(helper.DefaultKeyValues.StateValue.WAITING.value))
+                    .setCurrentState(entityManager.find(State.class, helper.DefaultKeyValues.StateValue.WAITING.value))
                     .setStrategy(randomlyPickedStrategy)
                     .setTestingScenario(randomlyPickedScenario)
             );
         }
-        conversationRepository.flush();
+        entityManager.flush();
 
-        return Uni.createFrom().item(player);
+        emitter.send(player);
     }
 
     public Integer getCountOfPlayersWaiting() {

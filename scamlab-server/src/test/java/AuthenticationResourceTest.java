@@ -1,7 +1,7 @@
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import model.dto.PlayerDto.GetNewPlayerDto;
-import repository.PlayerRepository;
+import service.AuthenticationService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -14,10 +14,10 @@ import static io.restassured.RestAssured.given;
 
 
 @QuarkusTest
-public class PlayerResourceTest {
+public class AuthenticationResourceTest {
 
     @Inject
-    PlayerRepository repository;
+    AuthenticationService service; 
 
     @Test
     public void testRegistrationSystem() {
@@ -30,7 +30,7 @@ public class PlayerResourceTest {
             .extract()
             .as(GetNewPlayerDto.class);
         
-        var playerFromDb = repository.find("secondaryId", UUID.fromString(player.secondaryId())).firstResult();
+        var playerFromDb = service.findUserBySecondaryId(UUID.fromString(player.secondaryId()));
 
         assertEquals(player.systemRole(), playerFromDb.getSystemRole().toString());
         assertNotNull(player.jwtToken());
@@ -58,7 +58,7 @@ public class PlayerResourceTest {
           .extract()
           .as(GetNewPlayerDto.class);
       
-        playerFromDb = repository.find("secondaryId", UUID.fromString(player.secondaryId())).firstResult();
+        playerFromDb = service.findUserBySecondaryId(UUID.fromString(player.secondaryId()));
 
         assertEquals(player.systemRole(), playerFromDb.getSystemRole().toString());
         assertNotNull(player.jwtToken());
