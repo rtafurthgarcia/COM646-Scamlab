@@ -1,6 +1,6 @@
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
-import model.dto.PlayerDto.GetNewPlayerDto;
+import model.dto.AuthenticationDto.GetNewPlayerDto;
 import service.AuthenticationService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -19,6 +19,7 @@ public class AuthenticationResourceTest {
     @Inject
     AuthenticationService service; 
 
+    // Corresponds to the first bit of S1 in the architectural documentation
     @Test
     public void testRegistrationSystem() {
         // register

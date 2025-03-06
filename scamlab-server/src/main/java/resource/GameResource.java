@@ -11,18 +11,17 @@ import org.jboss.logging.Logger;
 import io.quarkus.security.Authenticated;
 import io.quarkus.websockets.next.runtime.ConnectionManager;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
-import model.dto.PlayerDto.GetNewPlayerDto;
-import service.ConversationService;
+import model.dto.AuthenticationDto.GetNewPlayerDto;
+import service.GameService;
 import service.AuthenticationService;
 
-@Path("conversations")
-public class ConversationResource {
+@Path("games")
+public class GameResource {
      @Inject
     Logger logger;
 
@@ -33,7 +32,7 @@ public class ConversationResource {
     AuthenticationService authenticationService;
 
     @Inject
-    ConversationService conversationService;
+    GameService conversationService;
 
     @Inject
     ConnectionManager connectionManager;
@@ -43,7 +42,7 @@ public class ConversationResource {
     @APIResponses(value = {
         @APIResponse(
             responseCode = "201",
-            description = "New conversation successfully registered", 
+            description = "New game successfully registered", 
             content = @Content(
                 mediaType = "application/json", 
                 schema = @Schema(implementation = GetNewPlayerDto.class)

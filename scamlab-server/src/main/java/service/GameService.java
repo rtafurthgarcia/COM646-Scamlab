@@ -1,5 +1,6 @@
 package service;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.jboss.logging.Logger;
@@ -10,6 +11,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import model.dto.GameDto.WaitingLobbyStatisticsDto;
 import model.entity.Conversation;
 import model.entity.Player;
 import model.entity.State;
@@ -18,12 +20,16 @@ import model.entity.TestingScenario;
 
 @ApplicationScoped
 @Transactional
-public class ConversationService {
+public class GameService {
     @Inject
     EntityManager entityManager; 
 
     @Inject
     Logger logger;
+
+    @Inject
+    @ConfigProperty(name = "scamlab.max-lobbies")
+    Integer maxOngoingGamesCount;
 
     @Inject
     @Channel("player-joined-waiting-lobby")
@@ -59,7 +65,23 @@ public class ConversationService {
         emitter.send(player);
     }
 
-    public Integer getCountOfPlayersWaiting() {
-        throw new UnsupportedOperationException();
+    public WaitingLobbyStatisticsDto getWaitingLobbyStatistics() {
+        var waitingPlayersCount = entityManager.createQuery(
+            """
+                SELECT COUNT(p) FROM conversations c
+                JOIN c.participations p
+                WHERE c.state = :State
+                    """, Integer.class)
+            .setParameter(0, DefaultKeyValues.StateValue.WAITING.value)
+            .getSingleResult();
+        var ongoingGamesCount = entityManager.createQuery(
+            """
+                SELECT COUNT(c) FROM conversations c
+                WHERE c.state = :State
+                    """, Integer.class)
+            .setParameter(0, DefaultKeyValues.StateValue.WAITING.value)
+            .getSingleResult();
+
+        return new WaitingLobbyStatisticsDto(waitingPlayersCount, ongoingGamesCount, maxOngoingGamesCount);
     }
 }
