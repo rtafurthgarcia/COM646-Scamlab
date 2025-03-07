@@ -22,9 +22,6 @@ import service.AuthenticationService;
 
 @Path("games")
 public class GameResource {
-     @Inject
-    Logger logger;
-
     @Context
     SecurityContext securityContext;
 
