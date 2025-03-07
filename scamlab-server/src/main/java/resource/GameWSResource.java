@@ -11,6 +11,7 @@ import io.quarkus.websockets.next.WebSocketConnection;
 import io.quarkus.websockets.next.runtime.ConnectionManager;
 import jakarta.inject.Inject;
 import model.dto.GameDto;
+import model.dto.GameDto.WaitingLobbyStatisticsMessageDto;
 import service.GameService;
 
 @Authenticated
@@ -32,7 +33,7 @@ public class GameWSResource {
     GameService service;
 
     @OnOpen
-    public GameDto.WaitingLobbyStatisticsDto onOpen() {
+    public WaitingLobbyStatisticsMessageDto onOpen() {
         logger.info(securityIdentity.getPrincipal().getName() + " successfully authenticated");
         logger.info("New player waiting to join a game: " + connection.endpointId());
 
