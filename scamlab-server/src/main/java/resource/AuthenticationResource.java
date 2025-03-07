@@ -29,9 +29,6 @@ import service.AuthenticationService;
 @PermitAll
 public class AuthenticationResource {
     @Inject
-    Logger logger;
-
-    @Inject
     AuthenticationService service;
 
     @Inject 

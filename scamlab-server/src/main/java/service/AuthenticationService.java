@@ -9,6 +9,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import model.entity.Player;
 import model.entity.SystemRole;
+import io.quarkus.logging.Log;
 import io.smallrye.jwt.build.Jwt;
 
 import java.util.Arrays;
@@ -27,9 +28,6 @@ public class AuthenticationService {
     @Inject
     @ConfigProperty(name = "mp.jwt.verify.issuer")
     String issuer;
-
-    @Inject
-    Logger logger;
 
     public Player registerNewPlayer(String ipAddress) {
         var isPlayerAlreadyAssignedToken = ! entityManager.createQuery(
@@ -83,10 +81,10 @@ public class AuthenticationService {
                 .expiresIn(TOKEN_EXPIRATION_SECONDS)
                 .sign();
 
-            logger.info("TOKEN generated: " + token);
+            Log.info("TOKEN generated: " + token);
             return token;
         } catch (Exception e) {
-            logger.error("Error generating JWT", e);
+            Log.error("Error generating JWT", e);
             throw new RuntimeException(e);
         }
     }
