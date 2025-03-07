@@ -40,7 +40,7 @@ public class AuthenticationResourceTest {
         given()
             .when().get("/api/players/new")
             .then()
-            .statusCode(409);
+            .statusCode(409);       
 
         // then unregister
         given()

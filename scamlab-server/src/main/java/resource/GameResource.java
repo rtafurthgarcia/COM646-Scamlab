@@ -49,7 +49,6 @@ public class GameResource {
             )
         )
     })
-    
     @Authenticated
     public Response join() {
         var player = authenticationService.findUserBySecondaryId(UUID.fromString(securityContext.getUserPrincipal().getName()));        
