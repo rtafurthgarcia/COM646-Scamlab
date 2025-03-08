@@ -1,40 +1,45 @@
+import io.quarkus.logging.Log;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.websockets.next.OnError;
+import io.quarkus.websockets.next.OnTextMessage;
+import io.quarkus.websockets.next.WebSocketClient;
+import io.quarkus.websockets.next.WebSocketClientConnection;
+import io.quarkus.websockets.next.WebSocketConnector;
+import jakarta.inject.Inject;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
-import jakarta.websocket.ClientEndpoint;
-import jakarta.websocket.Endpoint;
-import jakarta.websocket.EndpointConfig;
-import jakarta.websocket.MessageHandler;
-import jakarta.websocket.OnMessage;
-import jakarta.websocket.OnOpen;
-import jakarta.websocket.ClientEndpointConfig;
-import jakarta.websocket.ContainerProvider;
-import jakarta.websocket.DecodeException;
-import jakarta.websocket.Decoder;
-import jakarta.websocket.Session;
+import jakarta.json.JsonReaderFactory;
+import model.dto.GameMapper;
 import model.dto.AuthenticationDto.GetNewPlayerDto;
+import model.dto.GameDto.StartMenuStatisticsMessageDto;
 
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
+import java.util.Collections;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
 import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 public class StartMenuWSResourceTest {
     private static final LinkedBlockingDeque<JsonObject> MESSAGES = new LinkedBlockingDeque<>();
 
-    @TestHTTPResource("/ws/start-menu")
+    @TestHTTPResource("/")
     URI uri;
+
+    @Inject
+    WebSocketConnector<ClientEndpoint> connector; 
+
+    @Inject 
+    GameMapper mapper;
 
     final static JsonObject returnJson = Json.createObjectBuilder().add("numberOfPlayersConnected", 1).build();
 
@@ -50,68 +55,32 @@ public class StartMenuWSResourceTest {
 
         var token = player.jwtToken();
 
-        // Create subprotocol with encoded authorization header
-        var headerProtocol = "quarkus-http-upgrade#Authorization#Bearer " + token;
-        var encodedProtocol = URLEncoder.encode(headerProtocol, StandardCharsets.UTF_8)
-                                          .replace("+", "%20"); // Proper URI encoding
+          // Build the subprotocol header value following the expected format.
+        var quarkusHeader = "quarkus-http-upgrade#Authorization#Bearer " + token;
+        // Encode the value to avoid any URI encoding issues.
+        var encodedHeader = URLEncoder.encode(quarkusHeader, StandardCharsets.UTF_8.toString());
 
-        // Configure client with subprotocols
-        var clientConfig = ClientEndpointConfig.Builder.create()
-            .preferredSubprotocols(List.of(
-                "bearer-token-carrier",  // Our custom protocol
-                encodedProtocol          // Quarkus header protocol
-            ))
-            .build();
+        connector
+            .baseUri(uri) 
+            .addSubprotocol("bearer-token-carrier")
+            .addSubprotocol(encodedHeader)
+            .connectAndAwait();
 
-        // Connect to WebSocket endpoint
-        try (var session = ContainerProvider.getWebSocketContainer()
-                .connectToServer(new Client(), clientConfig, uri)) {
-            Assertions.assertEquals(returnJson, MESSAGES.poll(10, TimeUnit.SECONDS));
-        }
+        var message = (StartMenuStatisticsMessageDto) GameMapper.getWSMessage(MESSAGES.poll(10, TimeUnit.SECONDS));
+        assertEquals(1, message.numberOfPlayersConnected());
     }
 
-    // A custom JSON decoder to convert incoming text messages to JsonObject
-    public static class JsonDecoder implements Decoder.Text<JsonObject> {
-        @Override
-        public JsonObject decode(String s) throws DecodeException {
-            try (StringReader reader = new StringReader(s);
-                 JsonReader jsonReader = Json.createReader(reader)) {
-                return jsonReader.readObject();
-            } catch (Exception e) {
-                throw new DecodeException(s, "Unable to decode JSON", e);
-            }
-        }
+    @WebSocketClient(path = "/ws/start-menu")
+    public static class ClientEndpoint {
 
-        @Override
-        public boolean willDecode(String s) {
-            return s != null && !s.isEmpty();
-        }
+        JsonReaderFactory factory = Json.createReaderFactory(Collections.emptyMap());
 
-        @Override
-        public void init(EndpointConfig config) {}
+        @OnTextMessage
+        void onMessage(String message, WebSocketClientConnection connection) {
+            JsonReader reader = factory.createReader(new StringReader(message));
+            JsonObject jsonObject = reader.readObject();
 
-        @Override
-        public void destroy() {}
-    }
-
-    // Annotate the client endpoint with our JSON decoder.
-    @ClientEndpoint(decoders = {JsonDecoder.class})
-    public static class Client extends Endpoint {
-        @OnOpen
-        public void onOpen(Session session, EndpointConfig config) {
-            session.addMessageHandler(JsonObject.class, (MessageHandler.Whole<JsonObject>) MESSAGES::add);
-        }
-
-        @OnMessage
-        public void onMessage(String message) {
-            System.out.println("Received: " + message);
-            try {
-                // Assuming you have a similar ChatMessage record locally:
-                //ChatMessage chatMessage = objectMapper.readValue(message, ChatMessage.class);
-                //MESSAGES.add(chatMessage.numberOfPlayersConnected());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            MESSAGES.add(jsonObject);
         }
     }
 }

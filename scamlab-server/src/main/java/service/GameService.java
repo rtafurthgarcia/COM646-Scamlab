@@ -91,7 +91,7 @@ public class GameService {
             .setParameter("state3", DefaultKeyValues.StateValue.VOTING.value)
             .getSingleResult();
 
-        return new WaitingLobbyStatisticsMessageDto(WSMessageType.NOTIFY, waitingPlayersCount, ongoingGamesCount, maxOngoingGamesCount);
+        return new WaitingLobbyStatisticsMessageDto(WSMessageType.NOTIFY_WAITING_LOBBY_STATISTICS, waitingPlayersCount, ongoingGamesCount, maxOngoingGamesCount);
     }
 
     public void prepareNewGame() {
