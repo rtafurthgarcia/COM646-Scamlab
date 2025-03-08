@@ -5,7 +5,8 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 public class GameDto {
     @RegisterForReflection
     public static enum WSMessageType {
-        NOTIFY(1);
+        NOTIFY_START_MENU_STATISTICS(1),
+        NOTIFY_WAITING_LOBBY_STATISTICS(2);
 
         public final Long value;
 
@@ -17,6 +18,12 @@ public class GameDto {
     @RegisterForReflection
     public static record WaitingLobbyStatisticsMessageDto(
         WSMessageType type, Long waitingPlayerCount, Long ongoingGamesCount, Long maxOngoingGamesCount
+    ) {
+    }
+
+    @RegisterForReflection
+    public static record StartMenuStatisticsMessageDto(
+        WSMessageType type, int numberOfPlayersConnected
     ) {
     }
 }

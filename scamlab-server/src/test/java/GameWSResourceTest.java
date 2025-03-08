@@ -2,30 +2,17 @@ import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
-import jakarta.websocket.ClientEndpoint;
-import jakarta.websocket.Endpoint;
-import jakarta.websocket.EndpointConfig;
-import jakarta.websocket.MessageHandler;
-import jakarta.websocket.ClientEndpointConfig;
-import jakarta.websocket.ContainerProvider;
-import jakarta.websocket.DecodeException;
-import jakarta.websocket.Decoder;
-import jakarta.websocket.Session;
 import model.dto.AuthenticationDto.GetNewPlayerDto;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
-import jakarta.json.JsonReader;
-
-import java.io.StringReader;
 import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.concurrent.LinkedBlockingDeque;
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
 import helper.DefaultKeyValues;
 
 //@TestInstance(Lifecycle.PER_CLASS)
@@ -35,8 +22,6 @@ public class GameWSResourceTest {
 
     @TestHTTPResource("/ws/games")
     URI uri;
-
-    ClientEndpointConfig clientConfig;
 
     String token;
 
@@ -56,25 +41,11 @@ public class GameWSResourceTest {
             .as(GetNewPlayerDto.class);
 
         token = player.jwtToken();
-
-        // Create subprotocol with encoded authorization header
-        var headerProtocol = "quarkus-http-upgrade#Authorization#Bearer " + token;
-        var encodedProtocol = URLEncoder.encode(headerProtocol, StandardCharsets.UTF_8)
-            .replace("+", "%20"); // Proper URI encoding
-
-        // Configure client with subprotocols
-        clientConfig = ClientEndpointConfig.Builder.create()
-            .preferredSubprotocols(List.of(
-                    "bearer-token-carrier", // Our custom protocol
-                    encodedProtocol // Quarkus header protocol
-            ))
-            .build();
     }
 
     // Corresponds to the last bit of S1 in the architectural documentation
     @Test
-    public void testJoiningGame() throws Exception {
-
+    public void testJoiningGame() {
         // Join a new game
         given()
             .when()
@@ -94,52 +65,5 @@ public class GameWSResourceTest {
 
         assertEquals(1, results.size());
 
-        // Connect to WebSocket endpoint
-        try (Session session = ContainerProvider.getWebSocketContainer()
-                .connectToServer(new Client(), clientConfig, uri)) {
-
-            //Assertions.assertEquals(statusJson, MESSAGES.poll(10, TimeUnit.SECONDS));
-            //MESSAGES.poll(10, TimeUnit.SECONDS)
-            //assertInstanceOf(null, session)
-            //Assertions.assertEquals("CONNECT", MESSAGES.poll(10, TimeUnit.SECONDS));
-        }
-    }
-
-    // A custom JSON decoder to convert incoming text messages to JsonObject
-    public static class JsonDecoder implements Decoder.Text<JsonObject> {
-        @Override
-        public JsonObject decode(String s) throws DecodeException {
-            try (StringReader reader = new StringReader(s);
-                 JsonReader jsonReader = Json.createReader(reader)) {
-                return jsonReader.readObject();
-            } catch (Exception e) {
-                throw new DecodeException(s, "Unable to decode JSON", e);
-            }
-        }
-
-        @Override
-        public boolean willDecode(String s) {
-            return s != null && !s.isEmpty();
-        }
-
-        @Override
-        public void init(EndpointConfig config) {}
-
-        @Override
-        public void destroy() {}
-    }
-
-    // Annotate the client endpoint with our JSON decoder.
-    @ClientEndpoint(decoders = {JsonDecoder.class})
-    public static class Client extends Endpoint {
-        @Override
-        public void onOpen(Session session, EndpointConfig config) {
-            // Immediately add a JSON message for connection confirmation.
-            //MESSAGES.add(statusJson);
-            // Register a handler that will receive JSON messages
-            session.addMessageHandler(JsonObject.class, (MessageHandler.Whole<JsonObject>) MESSAGES::add);
-            // Send a ready signal to the server (if expected)
-            //session.getAsyncRemote().sendText("_ready_");
-        }
     }
 }
