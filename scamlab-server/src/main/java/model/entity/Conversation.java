@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.NaturalId;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -129,7 +130,7 @@ public class Conversation {
         return messages;
     }
 
-    @OneToMany(mappedBy = "participationId.conversation")
+    @OneToMany(mappedBy = "participationId.conversation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Participation> participants = new ArrayList<>();
 
     public List<Participation> getParticipants() {

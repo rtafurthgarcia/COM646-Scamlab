@@ -1,7 +1,5 @@
-import io.quarkus.logging.Log;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.websockets.next.OnError;
 import io.quarkus.websockets.next.OnTextMessage;
 import io.quarkus.websockets.next.WebSocketClient;
 import io.quarkus.websockets.next.WebSocketClientConnection;
@@ -41,8 +39,6 @@ public class StartMenuWSResourceTest {
     @Inject 
     GameMapper mapper;
 
-    final static JsonObject returnJson = Json.createObjectBuilder().add("numberOfPlayersConnected", 1).build();
-
     @Test
     public void testGetCurrentCountOfConnectedUsers() throws Exception {
         // Register new player and get token
@@ -55,7 +51,7 @@ public class StartMenuWSResourceTest {
 
         var token = player.jwtToken();
 
-          // Build the subprotocol header value following the expected format.
+        // Build the subprotocol header value following the expected format.
         var quarkusHeader = "quarkus-http-upgrade#Authorization#Bearer " + token;
         // Encode the value to avoid any URI encoding issues.
         var encodedHeader = URLEncoder.encode(quarkusHeader, StandardCharsets.UTF_8.toString());
@@ -67,7 +63,7 @@ public class StartMenuWSResourceTest {
             .connectAndAwait();
 
         var message = (StartMenuStatisticsMessageDto) GameMapper.getWSMessage(MESSAGES.poll(10, TimeUnit.SECONDS));
-        assertEquals(1, message.numberOfPlayersConnected());
+        assertEquals(1, message.playersConnectedCount());
     }
 
     @WebSocketClient(path = "/ws/start-menu")

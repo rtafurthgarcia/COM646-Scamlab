@@ -1,7 +1,5 @@
 package resource;
 
-import org.jboss.logging.Logger;
-
 import io.quarkus.logging.Log;
 import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;

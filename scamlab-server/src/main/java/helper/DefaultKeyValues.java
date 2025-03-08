@@ -16,4 +16,15 @@ public class DefaultKeyValues {
             this.value = Integer.toUnsignedLong(value);
         }
     }
+
+    public enum RoleValue {
+        SCAMBAITER(1),
+        SCAMMER(2);
+
+        public final Long value;
+
+        private RoleValue(Integer value) {
+            this.value = Integer.toUnsignedLong(value);
+        }
+    }
 }
