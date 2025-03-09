@@ -9,7 +9,6 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonReaderFactory;
-import model.dto.GameMapper;
 import model.dto.AuthenticationDto.GetNewPlayerDto;
 import model.dto.GameDto.StartMenuStatisticsMessageDto;
 
@@ -28,16 +27,13 @@ import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 public class StartMenuWSResourceTest {
-    private static final LinkedBlockingDeque<JsonObject> MESSAGES = new LinkedBlockingDeque<>();
+    private static final LinkedBlockingDeque<StartMenuStatisticsMessageDto> MESSAGES = new LinkedBlockingDeque<>();
 
     @TestHTTPResource("/")
     URI uri;
 
     @Inject
     WebSocketConnector<ClientEndpoint> connector; 
-
-    @Inject 
-    GameMapper mapper;
 
     @Test
     public void testGetCurrentCountOfConnectedUsers() throws Exception {
@@ -62,21 +58,15 @@ public class StartMenuWSResourceTest {
             .addSubprotocol(encodedHeader)
             .connectAndAwait();
 
-        var message = (StartMenuStatisticsMessageDto) GameMapper.getWSMessage(MESSAGES.poll(10, TimeUnit.SECONDS));
+        var message = MESSAGES.poll(10, TimeUnit.SECONDS);
         assertEquals(1, message.playersConnectedCount());
     }
 
     @WebSocketClient(path = "/ws/start-menu")
     public static class ClientEndpoint {
-
-        JsonReaderFactory factory = Json.createReaderFactory(Collections.emptyMap());
-
         @OnTextMessage
-        void onMessage(String message, WebSocketClientConnection connection) {
-            JsonReader reader = factory.createReader(new StringReader(message));
-            JsonObject jsonObject = reader.readObject();
-
-            MESSAGES.add(jsonObject);
+        void onMessage(StartMenuStatisticsMessageDto message, WebSocketClientConnection connection) {
+            MESSAGES.add(message);
         }
     }
 }

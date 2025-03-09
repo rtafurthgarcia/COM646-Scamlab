@@ -8,6 +8,7 @@ import helper.MathHelper;
 import helper.VoteRegistry;
 import helper.DefaultKeyValues.RoleValue;
 import helper.DefaultKeyValues.StateValue;
+import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduler;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -148,7 +149,7 @@ public class GameService {
         }
     }
 
-    private record PrepareNewGameQueryResult(Conversation conversation, Integer count) {};
+    private record PrepareNewGameQueryResult(Conversation conversation, Long count) {};
 
     public void prepareNewGame(Player player) {
         var conversationsWithParticipants = entityManager.createQuery(
@@ -174,10 +175,10 @@ public class GameService {
             if (r.conversation.getTestingScenario().numberOfHumans.equals(r.count) 
             && runningOrReadyConversationsCount < maxOngoingGamesCount) {
                 r.conversation.setCurrentState(entityManager.find(State.class, StateValue.READY.value));
-                
-                scheduler.newJob(r.conversation.getId().toString())
+                Log.info("Preparing new game " + r.conversation.getSecondaryId());
+                /*scheduler.newJob(r.conversation.getId().toString())
                     .setDelayed("PT" + timeOutForWaitingLobby.toString() + "S")
-                    .setTask(t -> timeoutTriggered(r.conversation)).schedule();
+                    .setTask(t -> timeoutTriggered(r.conversation)).schedule();*/
             } else if (r.conversation.getTestingScenario().numberOfHumans < r.count) {
                 var participant = new Participation();
                 participant.setParticipationId(
@@ -189,6 +190,7 @@ public class GameService {
                         r.conversation.getParticipants().add(participant);
                 
                 entityManager.persist(participant);
+                Log.info("Adding player " + player.getSecondaryId().toString() + " to new game");
             }
             entityManager.persist(r.conversation);
             
