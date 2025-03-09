@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/lobby_ws_provider.dart';
 import 'package:scamlab/provider/startmenu_ws_provider.dart';
+import 'package:scamlab/service/game_ws_service.dart';
 import 'package:scamlab/service/startmenu_ws_service.dart';
 import 'package:scamlab/service/authentication_service.dart';
 import 'package:scamlab/theme.dart';
@@ -45,8 +46,18 @@ void main() {
           )
         ),
         ChangeNotifierProxyProvider<AuthenticationProvider, LobbyWSProvider>(
-          update: (context, authenticationProvider, lobbyWSProvider) => LobbyWSProvider(), 
-          create: (BuildContext context) => LobbyWSProvider()
+          update: (context, authenticationProvider, lobbyWSProvider) => LobbyWSProvider(
+            wsService: GameWSService(
+              wsUrl: "$wsURL/ws/games",
+              jwtToken: authenticationProvider.player?.jwtToken
+            )
+          ), 
+          create: (BuildContext context) => LobbyWSProvider(
+            wsService: GameWSService(
+              wsUrl: "$wsURL/ws/games",
+              jwtToken: null
+            )
+          )
         ),
       ],
       child: MainApp(),
