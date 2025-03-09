@@ -13,13 +13,14 @@ import io.quarkus.websockets.next.WebSocketConnection;
 import io.quarkus.websockets.next.runtime.ConnectionManager;
 import io.smallrye.common.annotation.RunOnVirtualThread;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import model.dto.GameDto;
-import model.dto.GameMapper;
 import model.dto.GameDto.WaitingLobbyStatisticsMessageDto;
 import model.entity.Conversation;
 import model.entity.Player;
 import service.GameService;
 
+@RunOnVirtualThread
 @Authenticated
 @WebSocket(path = "/ws/games")
 public class GameWSResource {
@@ -36,9 +37,6 @@ public class GameWSResource {
     PlayerConnectionRegistry registry;
 
     @Inject
-    GameMapper mapper;
-
-    @Inject
     GameService service;
 
     @OnOpen
@@ -51,7 +49,7 @@ public class GameWSResource {
     }
 
     @Incoming("player-joined-game-out")
-    @RunOnVirtualThread
+    @Transactional
     public void addPlayerToNewGame(Player player) {
         Log.info("Incoming message received for player " + player.getSecondaryId());
         connectionManager.findByConnectionId(
@@ -59,11 +57,9 @@ public class GameWSResource {
             .get().sendTextAndAwait(service.getWaitingLobbyStatistics());
 
         service.prepareNewGame(player);
-        
     }
 
     @Incoming("notify-evolution-out")
-    @RunOnVirtualThread
     public void notifyPlayersOfChange(Conversation conversation) {
         var message = service.getWaitingLobbyStatistics();
 
@@ -71,7 +67,6 @@ public class GameWSResource {
     }
 
     @Incoming("game-ready-out")
-    @RunOnVirtualThread
     public void startGame(Conversation conversation) {
         connectionManager.listAll().forEach(c -> c.broadcast().sendTextAndAwait(new GameDto.WaitingLobbyVoteToStartMessageDto()));
     }
@@ -83,4 +78,11 @@ public class GameWSResource {
         connection.broadcast().sendTextAndAwait(service.getWaitingLobbyStatistics());
     }
 
+    /*@OnTextMessage
+    @RunOnVirtualThread
+    Uni<ResponseMessage> processAsync(Message m) {
+    // Process the incoming message and send a response to the client.
+    // The method is called for each incoming message.
+    // Note that if the method returns `null`, no response will be sent to the client. The method completes when the returned Uni emits its item.
+    }*/
 }

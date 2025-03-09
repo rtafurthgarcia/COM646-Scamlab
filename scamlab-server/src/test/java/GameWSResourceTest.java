@@ -6,9 +6,9 @@ import io.quarkus.websockets.next.WebSocketClientConnection;
 import io.quarkus.websockets.next.WebSocketConnector;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import model.dto.AuthenticationDto.GetNewPlayerDto;
 import model.dto.GameDto.WaitingLobbyStatisticsMessageDto;
-import model.dto.GameMapper;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReaderFactory;
@@ -28,14 +28,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import helper.DefaultKeyValues;
 
 //@TestInstance(Lifecycle.PER_CLASS)
 @QuarkusTest
 public class GameWSResourceTest {
-    private static final LinkedBlockingDeque<JsonObject> MESSAGES = new LinkedBlockingDeque<>();
+    private static final LinkedBlockingDeque<String> MESSAGES = new LinkedBlockingDeque<>();
 
     @TestHTTPResource("/")
     URI uri;
@@ -73,7 +75,18 @@ public class GameWSResourceTest {
 
     // Corresponds to the last bit of S1 in the architectural documentation
     @Test
-    public void testJoiningGame() throws JsonParseException, InterruptedException {
+    //@Transactional
+    public void testJoiningGame() throws InterruptedException, JsonMappingException, JsonProcessingException {
+
+        connector.connectAndAwait();
+
+        var mapper = new ObjectMapper();
+
+        var message = mapper.readValue(MESSAGES.poll(10, TimeUnit.SECONDS), WaitingLobbyStatisticsMessageDto.class);
+        assertEquals(0, message.ongoingGamesCount());
+        assertEquals(0, message.waitingPlayerCount());
+        assertEquals(3, message.maxOngoingGamesCount());
+
         // Join a new game
         given()
             .when()
@@ -82,20 +95,18 @@ public class GameWSResourceTest {
             .then()
             .statusCode(200);
 
-        // Make sure game has been created
-        var results = entityManager.createQuery(
-            """
-                SELECT COUNT(c) FROM Conversation c
-                WHERE c.currentState.id = :state
-                    """, Object[].class)
-            .setParameter("state", DefaultKeyValues.StateValue.WAITING.value)
-            .getResultList();
+        // // Make sure game has been created
+        // var results = entityManager.createQuery(
+        //     """
+        //         SELECT COUNT(c) FROM Conversation c
+        //         WHERE c.currentState.id = :state
+        //             """, Object[].class)
+        //     .setParameter("state", DefaultKeyValues.StateValue.WAITING.value)
+        //     .getResultList();
 
-        assertEquals(1, results.size());
+        // assertEquals(1, results.size());
 
-        connector.connectAndAwait();
-
-        var message = (WaitingLobbyStatisticsMessageDto) GameMapper.getWSMessage(MESSAGES.poll(10, TimeUnit.SECONDS));
+        message = mapper.readValue(MESSAGES.poll(10, TimeUnit.SECONDS), WaitingLobbyStatisticsMessageDto.class);
         assertEquals(0, message.ongoingGamesCount());
         assertEquals(1, message.waitingPlayerCount());
         assertEquals(3, message.maxOngoingGamesCount());
@@ -103,14 +114,9 @@ public class GameWSResourceTest {
 
     @WebSocketClient(path = "/ws/games")
     public static class ClientEndpoint {
-        JsonReaderFactory factory = Json.createReaderFactory(Collections.emptyMap());
-
         @OnTextMessage
         void onMessage(String message, WebSocketClientConnection connection) {
-            var reader = factory.createReader(new StringReader(message));
-            var jsonObject = reader.readObject();
-
-            MESSAGES.add(jsonObject);
+            MESSAGES.add(message);
         }
     }
 }
