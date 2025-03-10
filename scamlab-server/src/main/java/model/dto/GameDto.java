@@ -107,10 +107,10 @@ public class GameDto {
 
     @RegisterForReflection
     public static record VoteAcknowledgedMessageDto(
-        WSMessageType type
+        WSMessageType type, String playerSecondaryId
     ) {
-        public VoteAcknowledgedMessageDto() {
-            this(WSMessageType.VOTE_ACKNOWLEDGED);
+        public VoteAcknowledgedMessageDto(String playerSecondaryId) {
+            this(WSMessageType.VOTE_ACKNOWLEDGED, playerSecondaryId);
         }
     }
 

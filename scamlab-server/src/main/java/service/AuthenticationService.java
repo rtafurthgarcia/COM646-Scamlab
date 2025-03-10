@@ -9,6 +9,7 @@ import jakarta.transaction.Transactional;
 import model.entity.Player;
 import model.entity.SystemRole;
 import io.quarkus.logging.Log;
+import io.quarkus.runtime.LaunchMode;
 import io.smallrye.jwt.build.Jwt;
 
 import java.util.Arrays;
@@ -25,17 +26,22 @@ public class AuthenticationService {
     static final Integer TOKEN_EXPIRATION_SECONDS = 3600;
 
     @Inject
+    LaunchMode launchMode;
+
+    @Inject
     @ConfigProperty(name = "mp.jwt.verify.issuer")
     String issuer;
 
     public Player registerNewPlayer(String ipAddress) {
-        var isPlayerAlreadyAssignedToken = ! entityManager.createQuery(
-            "SELECT p FROM Player p WHERE p.ipAddress = :ipAddress AND p.token IS NOT NULL", 
-            Player.class)
-            .setParameter("ipAddress", ipAddress).getResultList().isEmpty();
-
-        if (isPlayerAlreadyAssignedToken) {
-            throw new PlayerException("One device cannot play more than once at the same time");
+        if (! launchMode.isDevOrTest()) {
+            var isPlayerAlreadyAssignedToken = ! entityManager.createQuery(
+                "SELECT p FROM Player p WHERE p.ipAddress = :ipAddress AND p.token IS NOT NULL", 
+                Player.class)
+                .setParameter("ipAddress", ipAddress).getResultList().isEmpty();
+    
+            if (isPlayerAlreadyAssignedToken) {
+                throw new PlayerException("One device cannot play more than once at the same time");
+            }
         }
 
         var player = new Player().setIpAddress(ipAddress).setIsBot(false);
