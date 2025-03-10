@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 
-class RulesCardWidget extends StatelessWidget {
-  const RulesCardWidget({super.key, required this.title});
+class InstructionsCardWidget extends StatelessWidget {
+  const InstructionsCardWidget({ 
+    super.key, 
+    required this.title, 
+    this.text = "Join the game, chat/vote to unmask the AI bot hidden among players using scripted scenarios. Earn candy by voting correctly, or lose if the bot fools you—rate your confidence post-game. Stay anonymous: new username each round."
+  });
 
   final String title;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +27,7 @@ class RulesCardWidget extends StatelessWidget {
             padding: EdgeInsets.only(left: 16, right: 16, bottom: 16),
             alignment: Alignment.centerLeft,
             child: Text(
-              "Join the game, chat/vote to unmask the AI bot hidden among players using scripted scenarios. Earn candy by voting correctly, or lose if the bot fools you—rate your confidence post-game. Stay anonymous: new username each round.",
+              text,
               textAlign: TextAlign.justify,
             ),
           ),

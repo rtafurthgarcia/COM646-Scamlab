@@ -98,7 +98,7 @@ public class GameService {
 
     @Incoming(value = "put-players-on-waiting-list")
     @RunOnVirtualThread
-    @Lock(value = Lock.Type.WRITE, time = 1, unit = TimeUnit.SECONDS)  
+    //@Lock(value = Lock.Type.WRITE, time = 1, unit = TimeUnit.SECONDS)  
     public void putPlayerOnWaitingList(Player player) {
         makeSureGameExists();
         setupGameForPlayer(player);

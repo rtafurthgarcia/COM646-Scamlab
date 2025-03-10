@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:scamlab/model/ws_message.dart';
-import 'package:scamlab/service/startmenu_ws_service.dart';
+import 'package:scamlab/service/basic_ws_service.dart';
 
 class StartMenuWSProvider extends ChangeNotifier {
-  final StartMenuWSService wsService;
+  final BasicWSService wsService;
   StartMenuStatisticsMessage? _chatMessage;
 
   bool isReady() {
@@ -23,8 +23,8 @@ class StartMenuWSProvider extends ChangeNotifier {
     }
   }
 
-  void _onMessageReceived(StartMenuStatisticsMessage message) {
-    _chatMessage = message;
+  void _onMessageReceived(WsMessage message) {
+    _chatMessage = message as StartMenuStatisticsMessage;
     notifyListeners();
   }
 

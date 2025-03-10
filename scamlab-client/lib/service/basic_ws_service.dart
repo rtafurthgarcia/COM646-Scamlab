@@ -3,18 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-class StartMenuWSService {
+class BasicWSService {
   final String wsUrl;
   String? jwtToken;
   WebSocketChannel? _channel;
 
-  StartMenuWSService({required this.wsUrl, this.jwtToken});
+  BasicWSService({required this.wsUrl, this.jwtToken});
 
   bool isListening() {
     return _channel != null && _channel!.protocol != null;
   }
 
-  void connect(void Function(StartMenuStatisticsMessage) onMessage) {
+  void connect(void Function(WsMessage) onMessage) {
     if (jwtToken == null) {
       throw Exception("Missing JWT token for WebSocket!");
     }
@@ -36,7 +36,7 @@ class StartMenuWSService {
     _channel?.stream.listen((data) {
       // Assume the incoming data is in JSON format.
       final Map<String, dynamic> decodedData = json.decode(data);
-      final chatMessage = StartMenuStatisticsMessage.fromJson(decodedData);
+      final chatMessage = mapMessage(decodedData);
       onMessage(chatMessage);
     }, onError: (error) {
       debugPrint('WebSocket error: $error');
@@ -48,7 +48,15 @@ class StartMenuWSService {
   /// Disconnects the WebSocket.
   void disconnect() {
     if (isListening()) {
-      _channel?.sink.close();
+      _channel!.sink.close();
+    }
+  }
+
+  Future<void> voteToStart(String conversationSecondaryId) async {
+    if (isListening()) {
+      _channel!.sink.add(
+        WaitingLobbyVoteToStartMessage(conversationSecondaryId: conversationSecondaryId)
+      );
     }
   }
 }

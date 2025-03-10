@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/lobby_ws_provider.dart';
 import 'package:scamlab/provider/startmenu_ws_provider.dart';
-import 'package:scamlab/service/game_ws_service.dart';
-import 'package:scamlab/service/startmenu_ws_service.dart';
+import 'package:scamlab/service/basic_ws_service.dart';
 import 'package:scamlab/service/authentication_service.dart';
+import 'package:scamlab/service/game_service.dart';
 import 'package:scamlab/theme.dart';
 import 'package:scamlab/view/page/home_page.dart';
 import 'package:scamlab/view/page/waiting_lobby_page.dart';
@@ -33,13 +33,13 @@ void main() {
         ChangeNotifierProxyProvider<AuthenticationProvider, StartMenuWSProvider>(
           update: (context, authenticationProvider, conversationWSProvider) =>
           StartMenuWSProvider(
-            wsService: StartMenuWSService(
+            wsService: BasicWSService(
               wsUrl: "$wsURL/ws/start-menu",
               jwtToken: authenticationProvider.player?.jwtToken
             )
           ), 
           create: (BuildContext context) => StartMenuWSProvider(
-            wsService: StartMenuWSService(
+            wsService: BasicWSService(
               wsUrl: "$wsURL/ws/start-menu",
               jwtToken: null
             )
@@ -47,14 +47,22 @@ void main() {
         ),
         ChangeNotifierProxyProvider<AuthenticationProvider, LobbyWSProvider>(
           update: (context, authenticationProvider, lobbyWSProvider) => LobbyWSProvider(
-            wsService: GameWSService(
+            wsService: BasicWSService(
               wsUrl: "$wsURL/ws/games",
+              jwtToken: authenticationProvider.player?.jwtToken
+            ), 
+            gameService: GameService(
+              baseUrl: '$apiURL/api', 
               jwtToken: authenticationProvider.player?.jwtToken
             )
           ), 
           create: (BuildContext context) => LobbyWSProvider(
-            wsService: GameWSService(
+            wsService: BasicWSService(
               wsUrl: "$wsURL/ws/games",
+              jwtToken: null
+            ),
+            gameService: GameService(
+              baseUrl: '$apiURL/api', 
               jwtToken: null
             )
           )

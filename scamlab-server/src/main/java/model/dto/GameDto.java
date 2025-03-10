@@ -25,6 +25,11 @@ public class GameDto {
         private WSMessageType(Integer value) {
             this.value = Integer.toUnsignedLong(value);
         }
+
+        @Override
+        public String toString() {
+            return value.toString();
+        }
     }
 
     public static enum WSReasonForWaiting{

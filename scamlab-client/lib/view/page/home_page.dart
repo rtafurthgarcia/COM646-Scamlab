@@ -202,7 +202,7 @@ class HomePage extends StatelessWidget {
                   ],
                 ),
               ),
-              RulesCardWidget(title: "2. How to play"),
+              InstructionsCardWidget(title: "2. How to play"),
               Card(
                 child: Column(
                   children: [
