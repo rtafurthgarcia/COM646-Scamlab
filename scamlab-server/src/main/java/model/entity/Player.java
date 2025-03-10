@@ -18,6 +18,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
 
 @Entity
@@ -74,6 +75,17 @@ public class Player {
 
     public LocalDateTime getCreation() {
         return creation;
+    }
+
+    @Transient
+    transient private Boolean justAssigned = false;
+
+    public Boolean getJustAssigned() {
+        return justAssigned;
+    }
+
+    public void setJustAssigned(Boolean justAssigned) {
+        this.justAssigned = justAssigned;
     }
 
     @Version

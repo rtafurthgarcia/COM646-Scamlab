@@ -12,7 +12,7 @@ import com.thedeanda.lorem.LoremIpsum;
 
 import helper.DefaultKeyValues;
 import helper.MathHelper;
-import helper.VoteRegistry;
+import helper.VoteToStartRegistry;
 import helper.DefaultKeyValues.RoleValue;
 import helper.DefaultKeyValues.StateValue;
 import io.quarkus.logging.Log;
@@ -22,10 +22,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import model.dto.GameDto.WSMessageType;
+import model.dto.GameDto.WSReasonForWaiting;
 import model.dto.GameDto.WaitingLobbyAssignedStrategyMessageDto;
+import model.dto.GameDto.WaitingLobbyGameStartingMessageDto;
 import model.dto.GameDto.WaitingLobbyReadyToStartMessageDto;
-import model.dto.GameDto.WaitingLobbyStatisticsMessageDto;
+import model.dto.GameDto.WaitingLobbyReasonForWaitingMessageDto;
 import model.entity.Conversation;
 import model.entity.Participation;
 import model.entity.ParticipationId;
@@ -35,6 +36,7 @@ import model.entity.State;
 import model.entity.Strategy;
 import model.entity.StrategyByRole;
 import model.entity.TestingScenario;
+import model.entity.TransitionReason;
 
 @ApplicationScoped
 @Transactional
@@ -51,30 +53,30 @@ public class GameService {
     Long timeOutForWaitingLobby;
 
     @Inject
-    @Channel("notify-evolution-out")
+    @Channel("notify-evolution")
     @Broadcast
-    Emitter<WaitingLobbyStatisticsMessageDto> notifyEvolutionEmitter;
+    Emitter<WaitingLobbyReasonForWaitingMessageDto> notifyEvolutionEmitter;
 
     @Inject
-    @Channel("new-assigned-role-out")
+    @Channel("assign-new-role")
     @Broadcast
-    Emitter<WaitingLobbyAssignedStrategyMessageDto> newAssignedRoleEmitter;
+    Emitter<WaitingLobbyAssignedStrategyMessageDto> assignNewRoleEmitter;
 
     @Inject
-    @Channel("game-ready-out")
+    @Channel("notify-game-as-ready")
     @Broadcast
-    Emitter<WaitingLobbyReadyToStartMessageDto> gameReadyEmitter;
+    Emitter<WaitingLobbyReadyToStartMessageDto> notifyGameAsReadyEmitter;
 
     @Inject
-    @Channel("game-starting-out")
+    @Channel("notify-game-as-starting")
     @Broadcast
-    Emitter<Conversation> gameStartingEmitter;
+    Emitter<WaitingLobbyGameStartingMessageDto> notifyGameStarting;
 
     @Inject
     Scheduler scheduler;
 
     @Inject
-    VoteRegistry registry;
+    VoteToStartRegistry registry;
 
     Lorem lorem = LoremIpsum.getInstance();
 
@@ -90,8 +92,13 @@ public class GameService {
             .getSingleResult();   
     }
 
-    @Incoming(value = "put-players-on-waiting-list-in")
+    @Incoming(value = "put-players-on-waiting-list")
     public void putPlayerOnWaitingList(Player player) {
+        makeSureGameExists();
+        setupGameForPlayer(player);
+    }
+
+    public void makeSureGameExists() {
         var results = entityManager.createQuery(
             """
                 SELECT c.id, c.testingScenario, COUNT(p) FROM Conversation c
@@ -107,39 +114,43 @@ public class GameService {
             .setParameter("scenario2HumanCount", TestingScenario.ThreeHumans.numberOfHumans)
             .getResultList();
         
-        if (results.isEmpty()) {
-           createNewConversation();
-           entityManager.flush();
+        if (results.isEmpty()) {        
+            var strategies = entityManager.createQuery("SELECT s FROM Strategy s", Strategy.class)
+                .getResultList(); 
+                
+            var randomlyPickedStrategy = strategies.get(MathHelper.getRandomNumber(0, (int) strategies.size()-1));
+            var randomlyPickedScenario =  TestingScenario.values()[MathHelper.getRandomNumber(0, TestingScenario.values().length -1)];
+            
+            entityManager.persist(
+                new Conversation()
+                    .setCurrentState(entityManager.find(State.class, helper.DefaultKeyValues.StateValue.WAITING.value))
+                    .setStrategy(randomlyPickedStrategy)
+                    .setTestingScenario(randomlyPickedScenario)
+            );
+        }
+    }
+
+    public void sendReasonForTheWaitingIfAny(Conversation conversation) {
+        var tooLittlePlayers = ! entityManager.createQuery(
+            """
+                SELECT c.id, c.testingScenario, COUNT(p) FROM Conversation c
+                JOIN c.participants p
+                WHERE c.id = :id
+                GROUP BY c.id, c.testingScenario
+                HAVING (c.testingScenario = :scenario1 AND COUNT(p) < :scenario1HumanCount) OR (c.testingScenario = :scenario2 AND COUNT(p) < :scenario2HumanCount)
+                    """, Object[].class)
+            .setParameter("id", conversation.getId())
+            .setParameter("scenario1", TestingScenario.OneBotTwoHumans)
+            .setParameter("scenario2", TestingScenario.ThreeHumans)
+            .setParameter("scenario1HumanCount", TestingScenario.OneBotTwoHumans.numberOfHumans)
+            .setParameter("scenario2HumanCount", TestingScenario.ThreeHumans.numberOfHumans)
+            .getResultList()
+            .isEmpty();
+        
+        if (tooLittlePlayers) {
+            notifyEvolutionEmitter.send(new WaitingLobbyReasonForWaitingMessageDto(WSReasonForWaiting.NOT_ENOUGH_PLAYERS));
         }
 
-        notifyEvolutionEmitter.send(getWaitingLobbyStatistics());
-        prepareNewGame(player);
-    }
-
-    public void createNewConversation() {
-        var strategies = entityManager.createQuery("SELECT s FROM Strategy s", Strategy.class)
-            .getResultList(); 
-            
-        var randomlyPickedStrategy = strategies.get(MathHelper.getRandomNumber(0, (int) strategies.size()-1));
-        var randomlyPickedScenario =  TestingScenario.values()[MathHelper.getRandomNumber(0, TestingScenario.values().length -1)];
-        
-        entityManager.persist(
-            new Conversation()
-                .setCurrentState(entityManager.find(State.class, helper.DefaultKeyValues.StateValue.WAITING.value))
-                .setStrategy(randomlyPickedStrategy)
-                .setTestingScenario(randomlyPickedScenario)
-        );
-    }
-
-    public WaitingLobbyStatisticsMessageDto getWaitingLobbyStatistics() {
-        var waitingPlayersCount = entityManager.createQuery(
-            """
-                SELECT COUNT(p) FROM Conversation c
-                JOIN c.participants p
-                WHERE c.currentState.id = :state
-                    """, Long.class)
-            .setParameter("state", DefaultKeyValues.StateValue.WAITING.value)
-            .getSingleResult();
         var ongoingGamesCount = entityManager.createQuery(
             """
                 SELECT COUNT(c) FROM Conversation c
@@ -150,7 +161,9 @@ public class GameService {
             .setParameter("state3", DefaultKeyValues.StateValue.VOTING.value)
             .getSingleResult();
 
-        return new WaitingLobbyStatisticsMessageDto(WSMessageType.NOTIFY_WAITING_LOBBY_STATISTICS, waitingPlayersCount, ongoingGamesCount, maxOngoingGamesCount);
+        if (ongoingGamesCount == maxOngoingGamesCount) {
+            notifyEvolutionEmitter.send(new WaitingLobbyReasonForWaitingMessageDto(WSReasonForWaiting.NOT_ENOUGH_PLAYERS));
+        }
     }
 
     public Role getNextAppropriateRoleForConversation(Conversation conversation) {
@@ -182,7 +195,7 @@ public class GameService {
 
     private record PrepareNewGameQueryResult(Conversation conversation, Long count) {};
 
-    public void prepareNewGame(Player player) {
+    public void setupGameForPlayer(Player player) {
         var conversationsWithParticipants = entityManager.createQuery(
             """
                 SELECT c, COUNT(p) FROM Conversation c
@@ -203,18 +216,19 @@ public class GameService {
                 .getFirstResult();
 
         conversationsWithParticipants.forEach(r -> {
-            if (r.conversation.getTestingScenario().numberOfHumans.equals(r.count) 
+            if (r.conversation.getTestingScenario().numberOfHumans.longValue() == r.count.longValue() 
             && runningOrReadyConversationsCount < maxOngoingGamesCount) {
                 r.conversation.setCurrentState(entityManager.find(State.class, StateValue.READY.value));
 
                 Log.info("Preparing new game " + r.conversation.getSecondaryId());
                 
-                gameReadyEmitter.send(new WaitingLobbyReadyToStartMessageDto(timeOutForWaitingLobby));
+                notifyGameAsReadyEmitter.send(new WaitingLobbyReadyToStartMessageDto(timeOutForWaitingLobby, player.getSecondaryId().toString()));
 
                 scheduler.newJob(r.conversation.getId().toString())
                     .setDelayed("PT" + timeOutForWaitingLobby.toString() + "S")
                     .setTask(t -> timeoutTriggered(r.conversation)).schedule();
-            } else if (r.conversation.getTestingScenario().numberOfHumans < r.count) {
+            } else if (r.conversation.getTestingScenario().numberOfHumans < r.count
+            && ! player.getJustAssigned()) {
                 var participant = new Participation();
                 participant.setParticipationId(
                     new ParticipationId()
@@ -225,15 +239,16 @@ public class GameService {
                 
                 r.conversation.getParticipants().add(participant);
                 
+                player.setJustAssigned(true);
                 entityManager.persist(participant);
 
                 Log.info("Adding player " + player.getSecondaryId().toString() + " to new game");
 
-                newAssignedRoleEmitter.send(getPlayersAssignedStrategy(player, r.conversation));
+                assignNewRoleEmitter.send(getPlayersAssignedStrategy(player, r.conversation));
             }
             entityManager.persist(r.conversation);
             
-            notifyEvolutionEmitter.send(getWaitingLobbyStatistics());
+            sendReasonForTheWaitingIfAny(r.conversation);
         });
 
         entityManager.flush();
@@ -247,7 +262,7 @@ public class GameService {
         entityManager.persist(conversation);
         entityManager.flush();
 
-        notifyEvolutionEmitter.send(getWaitingLobbyStatistics());
+        notifyEvolutionEmitter.send(new WaitingLobbyReasonForWaitingMessageDto(WSReasonForWaiting.START_CANCELLED_TIEMOUT));
     }
 
     public WaitingLobbyAssignedStrategyMessageDto getPlayersAssignedStrategy(Player player, Conversation conversation) {
@@ -265,12 +280,13 @@ public class GameService {
         var strategy = conversation.getStrategy(); 
 
         return new WaitingLobbyAssignedStrategyMessageDto(
+            player.getSecondaryId().toString(),
+            conversation.getSecondaryId().toString(),
             playersParticipation.getParticipationId().getRole().getName(),
             strategyByRole.getScript(),
             strategyByRole.getExample(),
             strategy.getName(),
-            playersParticipation.getUserName(),
-            conversation.getSecondaryId().toString()
+            playersParticipation.getUserName()
         );
     }
 
@@ -291,7 +307,40 @@ public class GameService {
             entityManager.persist(conversation);
             entityManager.flush();
 
-            gameStartingEmitter.send(conversation);
+            notifyGameStarting.send(new WaitingLobbyGameStartingMessageDto(player.getSecondaryId().toString()));
+        }
+    }
+
+    public void cancelIfNecessary(UUID playerSecondaryId, TransitionReason reason) {
+        var anyConversationInvolvedIn = entityManager.createQuery(
+            """
+                SELECT c FROM Conversation c
+                JOIN c.participants p
+                WHERE c.currentState.id IN (:state1, :state2)
+                AND p.participationId.player.secondaryId = :secondaryId
+                    """, PrepareNewGameQueryResult.class)
+            .setParameter("state1", DefaultKeyValues.StateValue.RUNNING.value)
+            .setParameter("state2", DefaultKeyValues.StateValue.VOTING.value)
+            .setParameter("secondaryId", playerSecondaryId.toString())
+            .getResultStream()
+            .findFirst();
+
+        if (anyConversationInvolvedIn.isPresent()) {
+            var conversation = anyConversationInvolvedIn.get().conversation;
+
+            Log.info("Game "
+                + conversation.getSecondaryId() 
+                + " cancelled by player " 
+                + playerSecondaryId.toString() 
+                + " for the following reason: " 
+                + reason.name());
+
+            conversation.setCurrentState(
+                entityManager.find(State.class, DefaultKeyValues.StateValue.CANCELLED.value),
+                reason
+            );
+
+            entityManager.persist(conversation);
         }
     }
 }

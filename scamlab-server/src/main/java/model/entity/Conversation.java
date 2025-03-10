@@ -116,10 +116,22 @@ public class Conversation {
         return currentState;
     }
 
-    public Conversation setCurrentState(State currentState) {
-        this.currentState = currentState;
+    public Conversation setCurrentState(State newState, TransitionReason reason) {
+        this.currentState = newState;
+
+        this.getStates().add(
+            new StateTransition()
+                .setStateTransitionId(
+                    new StateTransitionId().setConversation(this).setState(newState)
+                )
+                .setReason(reason)
+        );
 
         return this;
+    }
+
+    public Conversation setCurrentState(State newState) {
+        return setCurrentState(newState, null);
     }
 
     @OneToMany(mappedBy = "conversation") 

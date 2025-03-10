@@ -1,14 +1,18 @@
 package model.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "state_transitions", indexes = {
-    @Index(name = "idx_state_transition_creation", columnList = "creation")
+    @Index(name = "idx_state_transition_creation", columnList = "creation"),
+    @Index(name = "idx_state_transition_reason", columnList = "reason"),
 })
 public class StateTransition {
     @EmbeddedId
@@ -24,13 +28,15 @@ public class StateTransition {
         return this;
     }
 
-    private String reason = "";
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = true)
+    private TransitionReason reason;
 
-    public String getReason() {
+    public TransitionReason getReason() {
         return reason;
     }
 
-    public StateTransition setReason(String reason) {
+    public StateTransition setReason(TransitionReason reason) {
         this.reason = reason;
 
         return this;
