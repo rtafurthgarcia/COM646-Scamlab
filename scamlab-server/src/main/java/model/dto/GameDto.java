@@ -1,6 +1,9 @@
 package model.dto;
 
+import java.util.UUID;
+
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import model.entity.TransitionReason;
 
 public class GameDto {
     @RegisterForReflection
@@ -38,10 +41,10 @@ public class GameDto {
 
     @RegisterForReflection
     public static record WaitingLobbyReasonForWaitingMessageDto(
-        WSMessageType type, String message
+        WSMessageType type, String conversationSecondaryId, String message
     ) {
-        public WaitingLobbyReasonForWaitingMessageDto(WSReasonForWaiting reason) {
-            this(WSMessageType.NOTIFY_REASON_FOR_WAITING, reason.message);
+        public WaitingLobbyReasonForWaitingMessageDto(String conversationSecondaryId, WSReasonForWaiting reason) {
+            this(WSMessageType.NOTIFY_REASON_FOR_WAITING, conversationSecondaryId, reason.message);
         }
     }
 
@@ -103,10 +106,10 @@ public class GameDto {
     }
 
     @RegisterForReflection
-    public static record WaitingLobbyVoteAcknowledgedMessageDto(
+    public static record VoteAcknowledgedMessageDto(
         WSMessageType type
     ) {
-        public WaitingLobbyVoteAcknowledgedMessageDto() {
+        public VoteAcknowledgedMessageDto() {
             this(WSMessageType.VOTE_ACKNOWLEDGED);
         }
     }
@@ -143,4 +146,16 @@ public class GameDto {
         WSMessageType type
     ) {
     }
+
+    @RegisterForReflection
+    public static record VoteStartRequestDto(
+        UUID player,
+        UUID conversation 
+    ) {};
+
+    @RegisterForReflection
+    public static record CancellationRequestDto(
+        UUID player,
+        TransitionReason reason 
+    ) {};
 }
