@@ -10,7 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped;
     Basically, keep a count of the involved players who started the game before the timeout ran out. 
  */
 @ApplicationScoped
-public class VoteRegistry {
+public class VoteToStartRegistry {
 
     // Map player's secondary ID to conversation ID
     private final ConcurrentMap<Long, Long> VoteMap = new ConcurrentHashMap<>();

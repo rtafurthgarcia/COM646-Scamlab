@@ -16,14 +16,13 @@ import io.quarkus.websockets.next.WebSocketConnection;
 import io.quarkus.websockets.next.runtime.ConnectionManager;
 import io.smallrye.common.annotation.RunOnVirtualThread;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-import model.dto.GameDto;
+import model.dto.GameDto.GameGameCancelledMessageDto;
 import model.dto.GameDto.WaitingLobbyAssignedStrategyMessageDto;
+import model.dto.GameDto.WaitingLobbyGameStartingMessageDto;
 import model.dto.GameDto.WaitingLobbyReadyToStartMessageDto;
-import model.dto.GameDto.WaitingLobbyStatisticsMessageDto;
+import model.dto.GameDto.WaitingLobbyReasonForWaitingMessageDto;
 import model.dto.GameDto.WaitingLobbyVoteToStartMessageDto;
-import model.entity.Conversation;
-import model.entity.Player;
+import model.entity.TransitionReason;
 import service.GameService;
 
 @RunOnVirtualThread
@@ -46,47 +45,57 @@ public class GameWSResource {
     GameService service;
 
     @OnOpen
-    public WaitingLobbyStatisticsMessageDto onOpen() {
+    public void onOpen() {
         Log.info(securityIdentity.getPrincipal().getName() + " successfully authenticated");
         Log.info("New player waiting to join a game: " + connection.id());
         registry.register(securityIdentity.getPrincipal().getName(), connection.id());
-
-        return service.getWaitingLobbyStatistics();
     }
 
-    @Incoming("notify-evolution-out")
-    public void notifyPlayersOfChange(WaitingLobbyStatisticsMessageDto statistics) {
+    @Incoming("notify-evolution")
+    public void notifyPlayersOfChange(WaitingLobbyReasonForWaitingMessageDto statistics) {
         connectionManager.listAll().forEach(c -> c.sendTextAndAwait(statistics));
     }
 
-    @Incoming("new-assigned-role-out")
+    @Incoming("assign-new-role")
     public void notifyOfNewlyAssignedRole(WaitingLobbyAssignedStrategyMessageDto message) {
-        connectionManager.listAll().forEach(c -> c.sendTextAndAwait(message));
+        connectionManager.findByConnectionId(
+            registry.getConnectionId(message.playerSecondaryId())
+        ).get().sendTextAndAwait(message);
+
+        Log.info("Role " 
+            + message.role()  
+            + " assigned for player " 
+            + message.playerSecondaryId() 
+            + " part of game " 
+            + message.conversationSecondaryId());
     }
 
-    @Incoming("game-ready-out")
-    public void setGameAsReady(Conversation conversation) {
-        /*connectionManager.listAll().forEach(c -> c.broadcast().sendTextAndAwait(
-            new GameDto.Wait(
+    @Incoming("notify-game-as-ready")
+    public void setGameAsReady(WaitingLobbyReadyToStartMessageDto message) {
+        connectionManager.findByConnectionId(
+            registry.getConnectionId(message.playerSecondaryId())
+        ).get().sendTextAndAwait(message);
 
-            )));*/
-        Log.info("Game ready!");
+        Log.info("Player " + message.playerSecondaryId() + " notified that their game is ready");
     }
 
-    @Incoming("game-starting-out")
-    public void startGame(Conversation conversation) {
-        /*connectionManager.listAll().forEach(c -> c.broadcast().sendTextAndAwait(
-            new GameDto.Wait(
+    @Incoming("notify-game-as-starting")
+    public void startGame(WaitingLobbyGameStartingMessageDto message) {
+        connectionManager.findByConnectionId(
+            registry.getConnectionId(message.playerSecondaryId())
+        ).get().sendTextAndAwait(message);
 
-            )));*/
-            Log.info("Game starting!");
+        Log.info("Player " + message.playerSecondaryId() + " notified that their game is starting");
     }
 
     @OnClose
     public void onClose() {
         Log.info("WS connection closed: " + connection.endpointId());
         registry.unregister(securityIdentity.getPrincipal().getName());
-        connection.broadcast().sendTextAndAwait(service.getWaitingLobbyStatistics());
+        service.cancelIfNecessary(
+            UUID.fromString(securityIdentity.getPrincipal().getName()),
+            TransitionReason.ConnectionGotTerminated
+        );
     }
 
     @OnTextMessage
@@ -99,6 +108,12 @@ public class GameWSResource {
             var conversation = service.findConversationBySecondaryId(conversationId);
 
             service.registerStartGame(conversation, player);
+        }
+
+        if (message instanceof GameGameCancelledMessageDto) {
+            var playerId = UUID.fromString(securityIdentity.getPrincipal().getName());
+
+            service.cancelIfNecessary(playerId, TransitionReason.PlayerWillingfullyCancelled);
         }
     }
 }

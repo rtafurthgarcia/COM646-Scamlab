@@ -11,7 +11,6 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 
 import io.quarkus.security.Authenticated;
 import io.quarkus.websockets.next.runtime.ConnectionManager;
-import io.smallrye.common.annotation.RunOnVirtualThread;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -20,7 +19,6 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import model.dto.AuthenticationDto.GetNewPlayerDto;
-import model.entity.Conversation;
 import model.entity.Player;
 import service.GameService;
 import service.AuthenticationService;
@@ -40,7 +38,7 @@ public class GameResource {
     ConnectionManager connectionManager;
 
     @Inject
-    @Channel("put-players-on-waiting-list-in")
+    @Channel("put-players-on-waiting-list")
     @Broadcast
     Emitter<Player> putPlayersOnWaitingListEmitter;
 

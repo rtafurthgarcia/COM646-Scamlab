@@ -6,8 +6,8 @@ public class GameDto {
     @RegisterForReflection
     public static enum WSMessageType {
         NOTIFY_START_MENU_STATISTICS(1),
-        NOTIFY_WAITING_LOBBY_STATISTICS(2),
-        NOTIFY_ASSIGNED_STRATEGY(3),
+        NOTIFY_REASON_FOR_WAITING(2),
+        STRATEGY_ASSIGNED(3),
         READY_TO_START(4),
         VOTE_TO_START(5),
         VOTE_ACKNOWLEDGED(6),
@@ -24,12 +24,24 @@ public class GameDto {
         }
     }
 
+    public static enum WSReasonForWaiting{
+        NOT_ENOUGH_PLAYERS("Waiting on other players to join..."),
+        ALL_LOBBIES_OCCUPIED("Waiting on a free lobby..."),
+        START_CANCELLED_TIEMOUT("Players didnt start the game on time...");
+
+        public final String message;
+
+        private WSReasonForWaiting(String message) {
+            this.message = message;
+        }
+    }
+
     @RegisterForReflection
-    public static record WaitingLobbyStatisticsMessageDto(
-        WSMessageType type, Long waitingPlayerCount, Long ongoingGamesCount, Long maxOngoingGamesCount
+    public static record WaitingLobbyReasonForWaitingMessageDto(
+        WSMessageType type, String message
     ) {
-        public WaitingLobbyStatisticsMessageDto(Long waitingPlayerCount, Long ongoingGamesCount, Long maxOngoingGamesCount) {
-            this(WSMessageType.NOTIFY_WAITING_LOBBY_STATISTICS, waitingPlayerCount, ongoingGamesCount, maxOngoingGamesCount);
+        public WaitingLobbyReasonForWaitingMessageDto(WSReasonForWaiting reason) {
+            this(WSMessageType.NOTIFY_REASON_FOR_WAITING, reason.message);
         }
     }
 
@@ -44,25 +56,40 @@ public class GameDto {
 
     @RegisterForReflection
     public static record WaitingLobbyAssignedStrategyMessageDto(
-        WSMessageType type, String role, String script, String example, String strategy, String username, String conversationSecondaryId
+        WSMessageType type, 
+        String playerSecondaryId, 
+        String conversationSecondaryId, 
+        String role, 
+        String script, 
+        String example, 
+        String strategy, 
+        String username
     ) {
         public WaitingLobbyAssignedStrategyMessageDto(
+            String playerSecondaryId,
+            String conversationSecondaryId, 
             String role, 
             String script, 
             String example, 
             String strategy, 
-            String username, 
-            String conversationSecondaryId) {
-                this(WSMessageType.NOTIFY_ASSIGNED_STRATEGY, role, script, example, strategy, username, conversationSecondaryId);
+            String username) {
+                this(WSMessageType.STRATEGY_ASSIGNED, 
+                playerSecondaryId,
+                conversationSecondaryId, 
+                role, 
+                script, 
+                example, 
+                strategy, 
+                username);
         }
     }
 
     @RegisterForReflection
     public static record WaitingLobbyReadyToStartMessageDto(
-        WSMessageType type, Long voteTimeout
+        WSMessageType type, Long voteTimeout, String playerSecondaryId
     ) {
-        public WaitingLobbyReadyToStartMessageDto(Long voteTimeout) {
-            this(WSMessageType.READY_TO_START, voteTimeout);
+        public WaitingLobbyReadyToStartMessageDto(Long voteTimeout, String playerSecondaryId) {
+            this(WSMessageType.READY_TO_START, voteTimeout, playerSecondaryId);
         }
     }
 
@@ -86,8 +113,11 @@ public class GameDto {
 
     @RegisterForReflection
     public static record WaitingLobbyGameStartingMessageDto(
-        WSMessageType type
+        WSMessageType type, String playerSecondaryId
     ) {
+        public WaitingLobbyGameStartingMessageDto(String playerSecondaryId) {
+            this(WSMessageType.GAME_STARTING, playerSecondaryId);
+        }
     }
 
     @RegisterForReflection

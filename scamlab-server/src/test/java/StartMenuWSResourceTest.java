@@ -5,18 +5,12 @@ import io.quarkus.websockets.next.WebSocketClient;
 import io.quarkus.websockets.next.WebSocketClientConnection;
 import io.quarkus.websockets.next.WebSocketConnector;
 import jakarta.inject.Inject;
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonReader;
-import jakarta.json.JsonReaderFactory;
 import model.dto.AuthenticationDto.GetNewPlayerDto;
 import model.dto.GameDto.StartMenuStatisticsMessageDto;
 
-import java.io.StringReader;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
