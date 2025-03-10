@@ -11,6 +11,7 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 
 import io.quarkus.security.Authenticated;
 import io.quarkus.websockets.next.runtime.ConnectionManager;
+import io.smallrye.common.annotation.RunOnVirtualThread;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -55,6 +56,7 @@ public class GameResource {
         )
     })
     @Authenticated
+    @RunOnVirtualThread
     public Response join() {
         var player = authenticationService.findUserBySecondaryId(UUID.fromString(securityContext.getUserPrincipal().getName()));        
 

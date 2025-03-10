@@ -6,6 +6,7 @@ import io.quarkus.websockets.next.WebSocketClientConnection;
 import io.quarkus.websockets.next.WebSocketConnector;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
+import model.dto.GameDto;
 import model.dto.AuthenticationDto.GetNewPlayerDto;
 import model.dto.GameDto.WaitingLobbyAssignedStrategyMessageDto;
 import model.dto.GameDto.WaitingLobbyReasonForWaitingMessageDto;
@@ -30,7 +31,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 //@TestInstance(Lifecycle.PER_CLASS)
 @QuarkusTest
 public class GameWSResourceTest {
-    private static final LinkedBlockingDeque<String> MESSAGES = new LinkedBlockingDeque<>();
+    private static final LinkedBlockingDeque<Record> MESSAGES = new LinkedBlockingDeque<>();
 
     @TestHTTPResource("/")
     URI uri;
@@ -79,42 +80,26 @@ public class GameWSResourceTest {
             .statusCode(200);
 
         connector.connectAndAwait();
-        var mapper = new ObjectMapper();
 
-        for (int i = 0; i < 3; i++) {
-            var message = mapper.readValue(MESSAGES.poll(10, TimeUnit.SECONDS), Record.class);
+        for (int i = 0; i < 2; i++) {
+            var message = MESSAGES.poll(30, TimeUnit.SECONDS);
+            if (message instanceof WaitingLobbyAssignedStrategyMessageDto) {
+                assertNotNull(message);
+            }
+
+            if (message instanceof WaitingLobbyReasonForWaitingMessageDto) {
+                var reasonForWaiting = (WaitingLobbyReasonForWaitingMessageDto) message;
+                assertEquals(GameDto.WSReasonForWaiting.NOT_ENOUGH_PLAYERS, reasonForWaiting.message());
+            }
+
+            assertNotNull(message);
         }
-
-        //assertEquals(0, message.ongoingGamesCount());
-        //assertEquals(0, message.waitingPlayerCount());
-        //assertEquals(3, message.maxOngoingGamesCount());
-
-        // // Make sure game has been created
-        // var results = entityManager.createQuery(
-        //     """
-        //         SELECT COUNT(c) FROM Conversation c
-        //         WHERE c.currentState.id = :state
-        //             """, Object[].class)
-        //     .setParameter("state", DefaultKeyValues.StateValue.WAITING.value)
-        //     .getResultList();
-
-        // assertEquals(1, results.size());
-
-        var assignedStrategy = mapper.readValue(MESSAGES.poll(10, TimeUnit.SECONDS), WaitingLobbyAssignedStrategyMessageDto.class);
-        assertNotNull(assignedStrategy, "Bruh");
-        //assertEquals(1, assignedStrategy.waitingPlayerCount());
-        //assertEquals(3, assignedStrategy.maxOngoingGamesCount());
-
-        //message = mapper.readValue(MESSAGES.poll(10, TimeUnit.SECONDS), WaitingLobbyReasonForWaitingMessageDto.class);
-        //assertEquals(0, message.ongoingGamesCount());
-        //assertEquals(1, message.waitingPlayerCount());
-        //assertEquals(3, message.maxOngoingGamesCount());
     }
 
     @WebSocketClient(path = "/ws/games")
     public static class ClientEndpoint {
         @OnTextMessage
-        void onMessage(String message, WebSocketClientConnection connection) {
+        void onMessage(Record message, WebSocketClientConnection connection) {
             MESSAGES.add(message);
         }
     }

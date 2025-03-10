@@ -77,17 +77,6 @@ public class Player {
         return creation;
     }
 
-    @Transient
-    transient private Boolean justAssigned = false;
-
-    public Boolean getJustAssigned() {
-        return justAssigned;
-    }
-
-    public void setJustAssigned(Boolean justAssigned) {
-        this.justAssigned = justAssigned;
-    }
-
     @Version
     private Long version;
 

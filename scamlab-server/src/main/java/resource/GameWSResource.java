@@ -2,6 +2,8 @@ package resource;
 
 import java.util.UUID;
 
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
 import helper.PlayerConnectionRegistry;
@@ -15,18 +17,20 @@ import io.quarkus.websockets.next.WebSocket;
 import io.quarkus.websockets.next.WebSocketConnection;
 import io.quarkus.websockets.next.runtime.ConnectionManager;
 import io.smallrye.common.annotation.RunOnVirtualThread;
+import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.inject.Inject;
+import model.dto.GameDto.CancellationRequestDto;
 import model.dto.GameDto.GameGameCancelledMessageDto;
+import model.dto.GameDto.VoteStartRequestDto;
 import model.dto.GameDto.WaitingLobbyAssignedStrategyMessageDto;
 import model.dto.GameDto.WaitingLobbyGameStartingMessageDto;
 import model.dto.GameDto.WaitingLobbyReadyToStartMessageDto;
 import model.dto.GameDto.WaitingLobbyReasonForWaitingMessageDto;
 import model.dto.GameDto.WaitingLobbyVoteToStartMessageDto;
 import model.entity.TransitionReason;
-import service.GameService;
 
-@RunOnVirtualThread
 @Authenticated
+@RunOnVirtualThread
 @WebSocket(path = "/ws/games")
 public class GameWSResource {
     @Inject
@@ -42,7 +46,14 @@ public class GameWSResource {
     PlayerConnectionRegistry registry;
 
     @Inject
-    GameService service;
+    @Channel("register-start-game")
+    @Broadcast
+    Emitter<VoteStartRequestDto> registerStartGameEmitter;
+
+    @Inject
+    @Channel("cancel-if-necessary")
+    @Broadcast
+    Emitter<CancellationRequestDto> cancelEmitter;
 
     @OnOpen
     public void onOpen() {
@@ -92,28 +103,37 @@ public class GameWSResource {
     public void onClose() {
         Log.info("WS connection closed: " + connection.endpointId());
         registry.unregister(securityIdentity.getPrincipal().getName());
-        service.cancelIfNecessary(
-            UUID.fromString(securityIdentity.getPrincipal().getName()),
-            TransitionReason.ConnectionGotTerminated
+        cancelEmitter.send(
+            new CancellationRequestDto(
+                UUID.fromString(securityIdentity.getPrincipal().getName()),
+                TransitionReason.ConnectionGotTerminated
+            )
         );
     }
 
     @OnTextMessage
-    @RunOnVirtualThread
     public void processAsync(Record message) {
         if (message instanceof WaitingLobbyVoteToStartMessageDto) {
             var conversationId = UUID.fromString(((WaitingLobbyVoteToStartMessageDto) message).conversationSecondaryId());
             var playerId = UUID.fromString(securityIdentity.getPrincipal().getName());
-            var player = service.findUserBySecondaryId(playerId);
-            var conversation = service.findConversationBySecondaryId(conversationId);
 
-            service.registerStartGame(conversation, player);
+            registerStartGameEmitter.send(
+                new VoteStartRequestDto(
+                    playerId, 
+                    conversationId
+                )
+            );
         }
 
         if (message instanceof GameGameCancelledMessageDto) {
             var playerId = UUID.fromString(securityIdentity.getPrincipal().getName());
 
-            service.cancelIfNecessary(playerId, TransitionReason.PlayerWillingfullyCancelled);
+            cancelEmitter.send(
+                new CancellationRequestDto(
+                    playerId,
+                    TransitionReason.PlayerWillingfullyCancelled
+                )
+            );
         }
     }
 }
