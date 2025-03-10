@@ -8,6 +8,7 @@ import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import model.dto.AuthenticationDto.GetNewPlayerDto;
+import model.dto.GameDto.WaitingLobbyAssignedStrategyMessageDto;
 import model.dto.GameDto.WaitingLobbyStatisticsMessageDto;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -24,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -77,16 +79,6 @@ public class GameWSResourceTest {
     @Test
     //@Transactional
     public void testJoiningGame() throws InterruptedException, JsonMappingException, JsonProcessingException {
-
-        connector.connectAndAwait();
-
-        var mapper = new ObjectMapper();
-
-        var message = mapper.readValue(MESSAGES.poll(10, TimeUnit.SECONDS), WaitingLobbyStatisticsMessageDto.class);
-        assertEquals(0, message.ongoingGamesCount());
-        assertEquals(0, message.waitingPlayerCount());
-        assertEquals(3, message.maxOngoingGamesCount());
-
         // Join a new game
         given()
             .when()
@@ -94,6 +86,14 @@ public class GameWSResourceTest {
             .get("/api/games/join")
             .then()
             .statusCode(200);
+
+        connector.connectAndAwait();
+
+        var mapper = new ObjectMapper();
+        var message = mapper.readValue(MESSAGES.poll(10, TimeUnit.SECONDS), WaitingLobbyStatisticsMessageDto.class);
+        assertEquals(0, message.ongoingGamesCount());
+        assertEquals(0, message.waitingPlayerCount());
+        assertEquals(3, message.maxOngoingGamesCount());
 
         // // Make sure game has been created
         // var results = entityManager.createQuery(
@@ -105,6 +105,11 @@ public class GameWSResourceTest {
         //     .getResultList();
 
         // assertEquals(1, results.size());
+
+        var assignedStrategy = mapper.readValue(MESSAGES.poll(10, TimeUnit.SECONDS), WaitingLobbyAssignedStrategyMessageDto.class);
+        assertNotNull(assignedStrategy, "Bruh");
+        //assertEquals(1, assignedStrategy.waitingPlayerCount());
+        //assertEquals(3, assignedStrategy.maxOngoingGamesCount());
 
         message = mapper.readValue(MESSAGES.poll(10, TimeUnit.SECONDS), WaitingLobbyStatisticsMessageDto.class);
         assertEquals(0, message.ongoingGamesCount());

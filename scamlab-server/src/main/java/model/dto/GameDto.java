@@ -7,13 +7,15 @@ public class GameDto {
     public static enum WSMessageType {
         NOTIFY_START_MENU_STATISTICS(1),
         NOTIFY_WAITING_LOBBY_STATISTICS(2),
-        VOTE_TO_START(3),
-        VOTE_ACKNOWLEDGED(4),
-        GAME_STARTING(5),
-        GAME_CANCELLED(6),
-        CALL_TO_VOTE(7),
-        CAST_VOTE(8),
-        GAME_FINISHED(9);
+        NOTIFY_ASSIGNED_STRATEGY(3),
+        READY_TO_START(4),
+        VOTE_TO_START(5),
+        VOTE_ACKNOWLEDGED(6),
+        GAME_STARTING(7),
+        GAME_CANCELLED(8),
+        CALL_TO_VOTE(9),
+        CAST_VOTE(10),
+        GAME_FINISHED(11);
 
         public final Long value;
 
@@ -41,11 +43,35 @@ public class GameDto {
     }
 
     @RegisterForReflection
-    public static record WaitingLobbyVoteToStartMessageDto(
-        WSMessageType type
+    public static record WaitingLobbyAssignedStrategyMessageDto(
+        WSMessageType type, String role, String script, String example, String strategy, String username, String conversationSecondaryId
     ) {
-        public WaitingLobbyVoteToStartMessageDto() {
-            this(WSMessageType.VOTE_TO_START);
+        public WaitingLobbyAssignedStrategyMessageDto(
+            String role, 
+            String script, 
+            String example, 
+            String strategy, 
+            String username, 
+            String conversationSecondaryId) {
+                this(WSMessageType.NOTIFY_ASSIGNED_STRATEGY, role, script, example, strategy, username, conversationSecondaryId);
+        }
+    }
+
+    @RegisterForReflection
+    public static record WaitingLobbyReadyToStartMessageDto(
+        WSMessageType type, Long voteTimeout
+    ) {
+        public WaitingLobbyReadyToStartMessageDto(Long voteTimeout) {
+            this(WSMessageType.READY_TO_START, voteTimeout);
+        }
+    }
+
+    @RegisterForReflection
+    public static record WaitingLobbyVoteToStartMessageDto(
+        WSMessageType type, String conversationSecondaryId
+    ) {
+        public WaitingLobbyVoteToStartMessageDto(String conversationSecondaryId) {
+            this(WSMessageType.VOTE_TO_START, conversationSecondaryId);
         }
     }
 
