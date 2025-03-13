@@ -341,7 +341,7 @@ public class GameService {
             .setParameter("state2", DefaultKeyValues.StateValue.VOTING.value)
             .setParameter("state3", DefaultKeyValues.StateValue.WAITING.value)
             .setParameter("state4", DefaultKeyValues.StateValue.READY.value)
-            .setParameter("secondaryId", request.player().toString())
+            .setParameter("secondaryId", request.player())
             .getResultStream()
             .findFirst();
 
@@ -367,7 +367,7 @@ public class GameService {
                     entityManager.find(State.class, DefaultKeyValues.StateValue.WAITING.value),
                     request.reason()
                 );
-                conversation.getParticipants().removeIf(p -> p.getParticipationId().getPlayer().getSecondaryId().toString().equals(request.player().toString()));
+                conversation.getParticipants().removeIf(p -> p.getParticipationId().getPlayer().getSecondaryId().equals(request.player()));
             }
 
             entityManager.persist(conversation);

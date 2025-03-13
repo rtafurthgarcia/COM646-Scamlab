@@ -23,7 +23,8 @@ class LobbyWSProvider extends ChangeNotifier {
 
   bool isListening() => wsService.isListening();
 
-  void reset() {
+  void stopListening() {
+    wsService.disconnect();
     _lastMessages.clear();
     _mayStillStart = false;
     notifyListeners();

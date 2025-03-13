@@ -19,6 +19,12 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
   }
 
   @override
+  void deactivate() {
+    Provider.of<LobbyWSProvider>(context, listen: false).stopListening(); 
+    super.deactivate();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
