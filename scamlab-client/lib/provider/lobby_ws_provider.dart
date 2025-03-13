@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -10,7 +11,7 @@ import 'package:scamlab/service/game_service.dart';
 class LobbyWSProvider extends ChangeNotifier {
   final BasicWSService wsService;
   final GameService gameService;
-  final PriorityQueue<WsMessage> _lastMessages = PriorityQueue((p0, p1) => p1.receivedOn.compareTo(p0.receivedOn));
+  final SplayTreeSet<WsMessage> _lastMessages = SplayTreeSet((m0, m1) => m0.receivedOn.compareTo(m1.receivedOn));
   bool dontWaitNextTime = false;
   bool _mayStillStart = false;
   late Timer _timer;
@@ -37,13 +38,12 @@ class LobbyWSProvider extends ChangeNotifier {
 
   T? getLastMessageOfType<T extends WsMessage>() {
     return _lastMessages
-      .toSet()
       .whereType<T>()
       .lastOrNull;
   }
 
   WsMessage? getLastMessage() {
-    return _lastMessages.toSet().lastOrNull;
+    return _lastMessages.lastOrNull;
   }
 
   LobbyWSProvider({required this.gameService, required this.wsService}) {

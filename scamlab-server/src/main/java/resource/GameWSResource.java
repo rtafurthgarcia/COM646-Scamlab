@@ -17,6 +17,7 @@ import io.quarkus.websockets.next.WebSocket;
 import io.quarkus.websockets.next.WebSocketConnection;
 import io.quarkus.websockets.next.runtime.ConnectionManager;
 import io.smallrye.common.annotation.Blocking;
+import io.smallrye.common.annotation.RunOnVirtualThread;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.inject.Inject;
 import model.dto.GameDto.LeaveRequestDto;
@@ -62,7 +63,7 @@ public class GameWSResource {
     }
 
     @Incoming("notify-evolution")
-    @Blocking
+    @RunOnVirtualThread
     public void notifyPlayersOfChange(WaitingLobbyReasonForWaitingMessageDto statistics) {
         connectionManager.findByConnectionId(
             registry.getConnectionId(statistics.playerSecondaryId())
@@ -75,7 +76,7 @@ public class GameWSResource {
     }
 
     @Incoming("assign-new-role")
-    @Blocking
+    @RunOnVirtualThread
     public void notifyOfNewlyAssignedRole(WaitingLobbyAssignedStrategyMessageDto message) {
         connectionManager.findByConnectionId(
             registry.getConnectionId(message.playerSecondaryId())
@@ -90,7 +91,7 @@ public class GameWSResource {
     }
 
     @Incoming("notify-game-as-ready")
-    @Blocking
+    @RunOnVirtualThread
     public void setGameAsReady(WaitingLobbyReadyToStartMessageDto message) {
         connectionManager.findByConnectionId(
             registry.getConnectionId(message.playerSecondaryId())
@@ -100,7 +101,7 @@ public class GameWSResource {
     }
 
     @Incoming("notify-game-as-starting")
-    @Blocking
+    @RunOnVirtualThread
     public void startGame(WaitingLobbyGameStartingMessageDto message) {
         connectionManager.findByConnectionId(
             registry.getConnectionId(message.playerSecondaryId())
