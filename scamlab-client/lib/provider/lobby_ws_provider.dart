@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/service/basic_ws_service.dart';
@@ -20,9 +21,11 @@ class LobbyWSProvider extends ChangeNotifier {
     return wsService.jwtToken != null;
   }
 
+  bool isListening() => wsService.isListening();
+
   void reset() {
     _lastMessages.clear();
-    dontWaitNextTime = false;
+    _mayStillStart = false;
     notifyListeners();
   }
 
@@ -43,7 +46,7 @@ class LobbyWSProvider extends ChangeNotifier {
   }
 
   LobbyWSProvider({required this.gameService, required this.wsService}) {
-    connect();
+    //connect();
   }
 
   void voteToStart() {
@@ -52,7 +55,7 @@ class LobbyWSProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> connect() async {
+  Future<void> startListening() async {
     // Start the connection when this provider is instantiated.
     if (isReady()) {
       await gameService.joinNewGame();
@@ -62,7 +65,7 @@ class LobbyWSProvider extends ChangeNotifier {
 
   void _onMessageReceived(WsMessage message) {
     _lastMessages.add(message);
-
+  
     if (message is WaitingLobbyReadyToStartMessage) {
       _mayStillStart = true;
       _timer = Timer(

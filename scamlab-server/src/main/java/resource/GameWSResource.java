@@ -16,10 +16,10 @@ import io.quarkus.websockets.next.OnTextMessage;
 import io.quarkus.websockets.next.WebSocket;
 import io.quarkus.websockets.next.WebSocketConnection;
 import io.quarkus.websockets.next.runtime.ConnectionManager;
-import io.smallrye.common.annotation.RunOnVirtualThread;
+import io.smallrye.common.annotation.Blocking;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.inject.Inject;
-import model.dto.GameDto.CancellationRequestDto;
+import model.dto.GameDto.LeaveRequestDto;
 import model.dto.GameDto.GameGameCancelledMessageDto;
 import model.dto.GameDto.VoteStartRequestDto;
 import model.dto.GameDto.WaitingLobbyAssignedStrategyMessageDto;
@@ -30,7 +30,6 @@ import model.dto.GameDto.WaitingLobbyVoteToStartMessageDto;
 import model.entity.TransitionReason;
 
 @Authenticated
-@RunOnVirtualThread
 @WebSocket(path = "/ws/games")
 public class GameWSResource {
     @Inject
@@ -51,9 +50,9 @@ public class GameWSResource {
     Emitter<VoteStartRequestDto> registerStartGameEmitter;
 
     @Inject
-    @Channel("cancel-if-necessary")
+    @Channel("handle-player-leaving")
     @Broadcast
-    Emitter<CancellationRequestDto> cancelEmitter;
+    Emitter<LeaveRequestDto> leaveEmitter;
 
     @OnOpen
     public void onOpen() {
@@ -63,11 +62,20 @@ public class GameWSResource {
     }
 
     @Incoming("notify-evolution")
+    @Blocking
     public void notifyPlayersOfChange(WaitingLobbyReasonForWaitingMessageDto statistics) {
-        connectionManager.listAll().forEach(c -> c.sendTextAndAwait(statistics));
+        connectionManager.findByConnectionId(
+            registry.getConnectionId(statistics.playerSecondaryId())
+        ).get().sendTextAndAwait(statistics);
+
+        Log.info("Notified player " 
+            + statistics.playerSecondaryId() 
+            + " about the reasons why they are waiting: " 
+            + String.join(", ", statistics.reasons()));
     }
 
     @Incoming("assign-new-role")
+    @Blocking
     public void notifyOfNewlyAssignedRole(WaitingLobbyAssignedStrategyMessageDto message) {
         connectionManager.findByConnectionId(
             registry.getConnectionId(message.playerSecondaryId())
@@ -82,6 +90,7 @@ public class GameWSResource {
     }
 
     @Incoming("notify-game-as-ready")
+    @Blocking
     public void setGameAsReady(WaitingLobbyReadyToStartMessageDto message) {
         connectionManager.findByConnectionId(
             registry.getConnectionId(message.playerSecondaryId())
@@ -91,6 +100,7 @@ public class GameWSResource {
     }
 
     @Incoming("notify-game-as-starting")
+    @Blocking
     public void startGame(WaitingLobbyGameStartingMessageDto message) {
         connectionManager.findByConnectionId(
             registry.getConnectionId(message.playerSecondaryId())
@@ -103,8 +113,8 @@ public class GameWSResource {
     public void onClose() {
         Log.info("WS connection closed: " + connection.endpointId());
         registry.unregister(securityIdentity.getPrincipal().getName());
-        cancelEmitter.send(
-            new CancellationRequestDto(
+        leaveEmitter.send(
+            new LeaveRequestDto(
                 UUID.fromString(securityIdentity.getPrincipal().getName()),
                 TransitionReason.ConnectionGotTerminated
             )
@@ -128,8 +138,8 @@ public class GameWSResource {
         if (message instanceof GameGameCancelledMessageDto) {
             var playerId = UUID.fromString(securityIdentity.getPrincipal().getName());
 
-            cancelEmitter.send(
-                new CancellationRequestDto(
+            leaveEmitter.send(
+                new LeaveRequestDto(
                     playerId,
                     TransitionReason.PlayerWillingfullyCancelled
                 )

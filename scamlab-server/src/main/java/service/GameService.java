@@ -1,5 +1,9 @@
 package service;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -25,7 +29,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import model.dto.GameDto.CancellationRequestDto;
+import model.dto.GameDto.LeaveRequestDto;
 import model.dto.GameDto.VoteStartRequestDto;
 import model.dto.GameDto.WSReasonForWaiting;
 import model.dto.GameDto.WaitingLobbyAssignedStrategyMessageDto;
@@ -137,29 +141,12 @@ public class GameService {
     }
 
     public void sendReasonForTheWaitingIfAny(Conversation conversation) {
-        var tooLittlePlayers = ! entityManager.createQuery(
-            """
-                SELECT c.id, c.testingScenario, COUNT(p) FROM Conversation c
-                JOIN c.participants p
-                WHERE c.id = :id
-                GROUP BY c.id, c.testingScenario
-                HAVING (c.testingScenario = :scenario1 AND COUNT(p) < :scenario1HumanCount) OR (c.testingScenario = :scenario2 AND COUNT(p) < :scenario2HumanCount)
-                    """, Object[].class)
-            .setParameter("id", conversation.getId())
-            .setParameter("scenario1", TestingScenario.OneBotTwoHumans)
-            .setParameter("scenario2", TestingScenario.ThreeHumans)
-            .setParameter("scenario1HumanCount", TestingScenario.OneBotTwoHumans.numberOfHumans)
-            .setParameter("scenario2HumanCount", TestingScenario.ThreeHumans.numberOfHumans)
-            .getResultList()
-            .isEmpty();
-        
+        List<WSReasonForWaiting> reasonsList = new ArrayList<>();
+
+        var tooLittlePlayers = conversation.getParticipants().size() != conversation.getTestingScenario().numberOfHumans;
+
         if (tooLittlePlayers) {
-            notifyEvolutionEmitter.send(
-                new WaitingLobbyReasonForWaitingMessageDto(
-                    conversation.getSecondaryId().toString(),
-                    WSReasonForWaiting.NOT_ENOUGH_PLAYERS
-                )
-            );
+            reasonsList.add(WSReasonForWaiting.NOT_ENOUGH_PLAYERS);
         }
 
         var ongoingGamesCount = entityManager.createQuery(
@@ -173,10 +160,14 @@ public class GameService {
             .getSingleResult();
 
         if (ongoingGamesCount == maxOngoingGamesCount) {
+            reasonsList.add(WSReasonForWaiting.ALL_LOBBIES_OCCUPIED);
+        }
+
+        for (var player: conversation.getParticipants()) {
             notifyEvolutionEmitter.send(
                 new WaitingLobbyReasonForWaitingMessageDto(
-                    conversation.getSecondaryId().toString(),
-                    WSReasonForWaiting.NOT_ENOUGH_PLAYERS
+                    player.getParticipationId().getPlayer().getSecondaryId().toString(),
+                    reasonsList
                 )
             );
         }
@@ -248,7 +239,7 @@ public class GameService {
                         .setConversation(conversation)
                         .setPlayer(player)
                         .setRole(this.getNextAppropriateRoleForConversation(conversation)))
-                    .setUserName(lorem.getName());
+                    .setUserName(lorem.getFirstName());
                 
                 conversation.getParticipants().add(participant);
                 
@@ -268,18 +259,21 @@ public class GameService {
     }
 
     private void timeoutTriggered(Conversation conversation) {
-        conversation.getParticipants().forEach(p -> registry.unregister(p.getParticipationId().getPlayer().getId()));
+        conversation.getParticipants().forEach(p -> {
+            notifyEvolutionEmitter.send(
+                new WaitingLobbyReasonForWaitingMessageDto
+                (
+                    conversation.getSecondaryId().toString(), 
+                    Arrays.asList(WSReasonForWaiting.START_CANCELLED_TIEMOUT)
+                )
+            );
+            //registry.unregister(p.getParticipationId().getPlayer().getId());
+        });
         conversation.getParticipants().clear();
         conversation.setCurrentState(entityManager.find(State.class, StateValue.WAITING.value));
 
         entityManager.persist(conversation);
         entityManager.flush();
-
-        notifyEvolutionEmitter.send(
-            new WaitingLobbyReasonForWaitingMessageDto(
-                conversation.getSecondaryId().toString(), 
-                WSReasonForWaiting.START_CANCELLED_TIEMOUT)
-            );
     }
 
     public WaitingLobbyAssignedStrategyMessageDto getPlayersAssignedStrategy(Player player, Conversation conversation) {
@@ -333,18 +327,20 @@ public class GameService {
         }
     }
 
-    @Incoming(value = "cancel-if-necessary")
+    @Incoming(value = "handle-player-leaving")
     @RunOnVirtualThread
-    public void cancelIfNecessary(CancellationRequestDto request) {
+    public void handlePlayerLeavingConversation(LeaveRequestDto request) {
         var anyConversationInvolvedIn = entityManager.createQuery(
             """
                 SELECT c FROM Conversation c
                 JOIN c.participants p
-                WHERE c.currentState.id IN (:state1, :state2)
+                WHERE c.currentState.id IN (:state1, :state2, :state3, :state4)
                 AND p.participationId.player.secondaryId = :secondaryId
                     """, Conversation.class)
             .setParameter("state1", DefaultKeyValues.StateValue.RUNNING.value)
             .setParameter("state2", DefaultKeyValues.StateValue.VOTING.value)
+            .setParameter("state3", DefaultKeyValues.StateValue.WAITING.value)
+            .setParameter("state4", DefaultKeyValues.StateValue.READY.value)
             .setParameter("secondaryId", request.player().toString())
             .getResultStream()
             .findFirst();
@@ -354,18 +350,28 @@ public class GameService {
 
             Log.info("Game "
                 + conversation.getSecondaryId() 
-                + " cancelled by player " 
+                + " left by player " 
                 + request.player().toString()
                 + " for the following reason: " 
                 + request.reason().name()
             );
 
-            conversation.setCurrentState(
-                entityManager.find(State.class, DefaultKeyValues.StateValue.CANCELLED.value),
-                request.reason()
-            );
+            if (conversation.getCurrentState().getId().equals(DefaultKeyValues.StateValue.RUNNING.value) 
+            || conversation.getCurrentState().getId().equals(DefaultKeyValues.StateValue.VOTING.value)) {
+                conversation.setCurrentState(
+                    entityManager.find(State.class, DefaultKeyValues.StateValue.CANCELLED.value),
+                    request.reason()
+                );
+            } else {
+                conversation.setCurrentState(
+                    entityManager.find(State.class, DefaultKeyValues.StateValue.WAITING.value),
+                    request.reason()
+                );
+                conversation.getParticipants().removeIf(p -> p.getParticipationId().getPlayer().getSecondaryId().toString().equals(request.player().toString()));
+            }
 
             entityManager.persist(conversation);
+            sendReasonForTheWaitingIfAny(conversation);
         }
     }
 }

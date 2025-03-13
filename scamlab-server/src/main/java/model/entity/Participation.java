@@ -36,43 +36,4 @@ public class Participation {
 
         return this;
     }
-
-    @Column(name = "rate_of_confidence", nullable = true)
-    private Integer rateOfConfidence;
-
-    public Integer getRateOfConfidence() {
-        return rateOfConfidence;
-    }
-
-    public Participation setRateOfConfidence(Integer rateOfConfidence) {
-        this.rateOfConfidence = rateOfConfidence;
-
-        return this;
-    }
-
-    @Column(name = "rate_of_experience", nullable = true)
-    private Integer rateOfExperience;
-
-    public Integer getRateOfExperience() {
-        return rateOfExperience;
-    }
-
-    public Participation setRateOfExperience(Integer rateOfExperience) {
-        this.rateOfExperience = rateOfExperience;
-
-        return this;
-    }
-
-    @Column(name = "giveaway", nullable = true)
-    private String giveaway;
-
-    public String getGiveaway() {
-        return giveaway;
-    }
-
-    public Participation setGiveaway(String giveaway) {
-        this.giveaway = giveaway;
-
-        return this;
-    }
 }

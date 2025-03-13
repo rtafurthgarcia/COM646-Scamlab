@@ -4,8 +4,19 @@ import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/lobby_ws_provider.dart';
 import 'package:scamlab/view/widget/rules_card_widget.dart';
 
-class WaitingLobbyPage extends StatelessWidget {
+class WaitingLobbyPage extends StatefulWidget {
   const WaitingLobbyPage({super.key});
+
+  @override
+  State<WaitingLobbyPage> createState() => _WaitingLobbyPageState();
+}
+
+class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
+  @override
+  void initState() {
+    super.initState();
+    Provider.of<LobbyWSProvider>(context, listen: false).startListening(); 
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +44,7 @@ class WaitingLobbyPage extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 600),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min, // Constrain the height to the content
             spacing: 16,
             children: [
               Consumer<LobbyWSProvider>(
@@ -47,7 +59,9 @@ class WaitingLobbyPage extends StatelessWidget {
                   }
 
                   if (lastMessage is WaitingLobbyReasonForWaitingMessage) {
-                    children.add(Text((lastMessage).message));
+                    for (var reason in lastMessage.reasons) {
+                      children.add(Text(reason));
+                    }
                   }
 
                   return Row(
@@ -61,16 +75,23 @@ class WaitingLobbyPage extends StatelessWidget {
                 builder: (context, provider, child) {
                   var assignedStrategy = provider.getLastMessageOfType<WaitingLobbyAssignedStrategyMessage>();
                   if (assignedStrategy != null) {
-                    return Row(
+                    return Column(
                       children: [
                         InstructionsCardWidget(title: "This game's scenario:", text: assignedStrategy.script),
-                        InstructionsCardWidget(title: "Your role as a player:", text: assignedStrategy.role),
-                        InstructionsCardWidget(title: "Example:", text: assignedStrategy.example),
+                        InstructionsCardWidget(
+                          title: "Your role as a player:", 
+                          text: assignedStrategy.role.replaceFirst(assignedStrategy.role[0], assignedStrategy.role[0].toUpperCase())
+                        ),
+                        InstructionsCardWidget(title: "Example of what you can say:", text: "\"${assignedStrategy.example}\""),
                       ],
                     );
                   } else {
-                    return InstructionsCardWidget(
-                      title: "Rules reminder:",
+                    return Column(
+                      children: [
+                        InstructionsCardWidget(
+                          title: "Rules reminder:",
+                        ),
+                      ],
                     );
                   }
 
@@ -118,5 +139,4 @@ class WaitingLobbyPage extends StatelessWidget {
       ),
     );
   }
-
 }

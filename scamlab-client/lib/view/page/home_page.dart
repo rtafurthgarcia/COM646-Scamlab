@@ -156,7 +156,7 @@ class HomePage extends StatelessWidget {
                         child: Consumer<StartMenuWSProvider>(
                           builder: (context, conversationWSProvider, child) {
                             return Text(
-                              "Players online: ${conversationWSProvider.chatMessage == null ? "-" : conversationWSProvider.chatMessage?.numberOfPlayersConnected}",
+                              "Players online: ${conversationWSProvider.chatMessage == null ? "-" : conversationWSProvider.chatMessage?.playersConnectedCount}",
                             );
                           },
                         ),

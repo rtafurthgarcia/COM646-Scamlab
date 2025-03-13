@@ -93,7 +93,7 @@ class MainApp extends StatelessWidget {
           message: "Couldn't get a new identity",
           child: const HomePage(),
         ),
-        '/lobby': (BuildContext context) => const WaitingLobbyPage(),
+        '/lobby': (BuildContext context) => const WaitingLobbyPage()
       },
     );
   }

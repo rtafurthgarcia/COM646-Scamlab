@@ -24,8 +24,10 @@ class StartMenuWSProvider extends ChangeNotifier {
   }
 
   void _onMessageReceived(WsMessage message) {
-    _chatMessage = message as StartMenuStatisticsMessage;
-    notifyListeners();
+    if (message is StartMenuStatisticsMessage) {
+      _chatMessage = message;
+      notifyListeners();
+    }
   }
 
   @override

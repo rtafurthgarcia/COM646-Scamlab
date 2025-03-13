@@ -1,6 +1,10 @@
 package model.dto;
 
+import java.util.List;
 import java.util.UUID;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import model.entity.TransitionReason;
@@ -26,9 +30,19 @@ public class GameDto {
             this.value = Integer.toUnsignedLong(value);
         }
 
-        @Override
-        public String toString() {
-            return value.toString();
+        @JsonValue
+        public Long getValue() {
+            return this.value;
+        }
+
+        @JsonCreator
+        public static WSMessageType fromValue(Long value) {
+            for (WSMessageType type : WSMessageType.values()) {
+                if (type.value.equals(value)) {
+                    return type;
+                }
+            }
+            throw new IllegalArgumentException("Invalid WSMessageType value: " + value);
         }
     }
 
@@ -46,10 +60,10 @@ public class GameDto {
 
     @RegisterForReflection
     public static record WaitingLobbyReasonForWaitingMessageDto(
-        WSMessageType type, String conversationSecondaryId, String message
+        WSMessageType type, String playerSecondaryId, List<String> reasons
     ) {
-        public WaitingLobbyReasonForWaitingMessageDto(String conversationSecondaryId, WSReasonForWaiting reason) {
-            this(WSMessageType.NOTIFY_REASON_FOR_WAITING, conversationSecondaryId, reason.message);
+        public WaitingLobbyReasonForWaitingMessageDto(String playerSecondaryId, List<WSReasonForWaiting> reasons) {
+            this(WSMessageType.NOTIFY_REASON_FOR_WAITING, playerSecondaryId, reasons.stream().map(r -> r.message).toList());
         }
     }
 
@@ -159,7 +173,7 @@ public class GameDto {
     ) {};
 
     @RegisterForReflection
-    public static record CancellationRequestDto(
+    public static record LeaveRequestDto(
         UUID player,
         TransitionReason reason 
     ) {};
