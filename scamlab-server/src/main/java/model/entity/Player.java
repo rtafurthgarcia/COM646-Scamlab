@@ -18,7 +18,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
 
 @Entity
@@ -115,7 +114,10 @@ public class Player {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
+        result = prime * result + ((systemRole == null) ? 0 : systemRole.hashCode());
         result = prime * result + ((ipAddress == null) ? 0 : ipAddress.hashCode());
+        result = prime * result + ((isBot == null) ? 0 : isBot.hashCode());
+        result = prime * result + ((token == null) ? 0 : token.hashCode());
         return result;
     }
 
@@ -128,10 +130,22 @@ public class Player {
         if (getClass() != obj.getClass())
             return false;
         Player other = (Player) obj;
+        if (systemRole != other.systemRole)
+            return false;
         if (ipAddress == null) {
             if (other.ipAddress != null)
                 return false;
         } else if (!ipAddress.equals(other.ipAddress))
+            return false;
+        if (isBot == null) {
+            if (other.isBot != null)
+                return false;
+        } else if (!isBot.equals(other.isBot))
+            return false;
+        if (token == null) {
+            if (other.token != null)
+                return false;
+        } else if (!token.equals(other.token))
             return false;
         return true;
     }

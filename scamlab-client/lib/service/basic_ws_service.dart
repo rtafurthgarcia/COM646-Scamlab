@@ -1,14 +1,13 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-class BasicWSService {
+class LobbyWSService {
   final String wsUrl;
   String? jwtToken;
   WebSocketChannel? _channel;
 
-  BasicWSService({required this.wsUrl, this.jwtToken});
+  LobbyWSService({required this.wsUrl, this.jwtToken});
 
   bool isListening() {
     return _channel != null && _channel!.protocol != null;
@@ -39,10 +38,10 @@ class BasicWSService {
       final chatMessage = mapMessage(decodedData);
       onMessage(chatMessage);
     }, onError: (error) {
-      debugPrint('WebSocket error: $error');
+      //exception = error;
     }, onDone: () {
-      debugPrint('WebSocket connection closed');
-    });
+      //debugPrint('WebSocket connection closed');
+    }, cancelOnError: true);
   }
 
   /// Disconnects the WebSocket.
@@ -59,4 +58,5 @@ class BasicWSService {
       );
     }
   }
+  
 }

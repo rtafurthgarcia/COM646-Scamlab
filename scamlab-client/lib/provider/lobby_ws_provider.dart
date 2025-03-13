@@ -2,21 +2,40 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:collection/collection.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:scamlab/model/ws_message.dart';
+import 'package:scamlab/provider/retryable_provider.dart';
 import 'package:scamlab/service/basic_ws_service.dart';
 import 'package:scamlab/service/game_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class LobbyWSProvider extends ChangeNotifier {
-  final BasicWSService wsService;
+class LobbyWSProvider extends RetryableProvider {
+  final LobbyWSService wsService;
   final GameService gameService;
   final SplayTreeSet<WsMessage> _lastMessages = SplayTreeSet((m0, m1) => m0.receivedOn.compareTo(m1.receivedOn));
-  bool dontWaitNextTime = false;
+  bool _dontWaitNextTime = false;
+  bool get dontWaitNextTime => _dontWaitNextTime;
+  late final SharedPreferences _settings;
+
+  set dontWaitNextTime(bool newValue) {
+    _dontWaitNextTime = newValue;
+    _settings.setBool('dontwaitnexttime', newValue);
+    notifyListeners();
+  }
+
   bool _mayStillStart = false;
   late Timer _timer;
 
   bool get mayStillStart => _mayStillStart;
+
+  LobbyWSProvider({required this.gameService, required this.wsService}) {
+    loadSettings();
+  }
+
+  Future<void> loadSettings() async {
+    _settings = await SharedPreferences.getInstance();
+    _dontWaitNextTime = _settings.getBool('dontwaitnexttime') ?? false;
+    notifyListeners();
+  }
 
   bool isReady() {
     return wsService.jwtToken != null;
@@ -46,9 +65,6 @@ class LobbyWSProvider extends ChangeNotifier {
     return _lastMessages.lastOrNull;
   }
 
-  LobbyWSProvider({required this.gameService, required this.wsService}) {
-    //connect();
-  }
 
   void voteToStart() {
     if (_mayStillStart) {
@@ -85,7 +101,13 @@ class LobbyWSProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    wsService.disconnect();
+    stopListening();
     super.dispose();
+  }
+  
+  @override
+  Future<void> tryAgain() async {
+    stopListening();
+    await startListening();
   }
 }

@@ -2,11 +2,8 @@ package service;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
@@ -20,9 +17,9 @@ import helper.MathHelper;
 import helper.VoteToStartRegistry;
 import helper.DefaultKeyValues.RoleValue;
 import helper.DefaultKeyValues.StateValue;
-import io.quarkus.arc.Lock;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduler;
+import io.quarkus.scheduler.Scheduled.ConcurrentExecution;
 import io.smallrye.common.annotation.RunOnVirtualThread;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -229,7 +226,8 @@ public class GameService {
                 notifyGameAsReadyEmitter.send(new WaitingLobbyReadyToStartMessageDto(timeOutForWaitingLobby, player.getSecondaryId().toString()));
 
                 scheduler.newJob(conversation.getId().toString())
-                    .setDelayed("PT" + timeOutForWaitingLobby.toString() + "S")
+                    .setInterval("PT" + timeOutForWaitingLobby.toString() + "S")
+                    .setConcurrentExecution(ConcurrentExecution.SKIP)
                     .setTask(t -> timeoutTriggered(conversation)).schedule();
             } else if (conversation.getTestingScenario().numberOfHumans > conversation.getParticipants().size()
             && ! playerAssigned) {

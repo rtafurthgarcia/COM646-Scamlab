@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-abstract class ClearableProvider with ChangeNotifier {
+abstract class RetryableProvider with ChangeNotifier {
   bool isLoading = false;
 
   Exception? exception;

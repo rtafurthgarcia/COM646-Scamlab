@@ -3,7 +3,7 @@ import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/service/basic_ws_service.dart';
 
 class StartMenuWSProvider extends ChangeNotifier {
-  final BasicWSService wsService;
+  final LobbyWSService wsService;
   StartMenuStatisticsMessage? _chatMessage;
 
   bool isReady() {

@@ -1,8 +1,8 @@
 import 'package:scamlab/model/player.dart';
-import 'package:scamlab/provider/clearable_provider.dart';
+import 'package:scamlab/provider/retryable_provider.dart';
 import 'package:scamlab/service/authentication_service.dart';
 
-class AuthenticationProvider extends ClearableProvider {
+class AuthenticationProvider extends RetryableProvider {
   final AuthenticationService _authenticationService;
 
   Player? _player;

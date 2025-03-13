@@ -4,11 +4,13 @@ class InstructionsCardWidget extends StatelessWidget {
   const InstructionsCardWidget({ 
     super.key, 
     required this.title, 
+    required this.icon,
     this.text = "Join the game, chat/vote to unmask the AI bot hidden among players using scripted scenarios. Earn candy by voting correctly, or lose if the bot fools you—rate your confidence post-game. Stay anonymous: new username each round."
   });
 
   final String title;
   final String text;
+  final Icon icon;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +22,7 @@ class InstructionsCardWidget extends StatelessWidget {
               color: Theme.of(context).colorScheme.primary, // Use primary color
             ),
             visualDensity: VisualDensity.comfortable,
-            leading: const Icon(Icons.menu_book),
+            leading: icon,
             title: Text(title),
           ),
           Container(

@@ -33,13 +33,13 @@ void main() {
         ChangeNotifierProxyProvider<AuthenticationProvider, StartMenuWSProvider>(
           update: (context, authenticationProvider, conversationWSProvider) =>
           StartMenuWSProvider(
-            wsService: BasicWSService(
+            wsService: LobbyWSService(
               wsUrl: "$wsURL/ws/start-menu",
               jwtToken: authenticationProvider.player?.jwtToken
             )
           ), 
           create: (BuildContext context) => StartMenuWSProvider(
-            wsService: BasicWSService(
+            wsService: LobbyWSService(
               wsUrl: "$wsURL/ws/start-menu",
               jwtToken: null
             )
@@ -47,7 +47,7 @@ void main() {
         ),
         ChangeNotifierProxyProvider<AuthenticationProvider, LobbyWSProvider>(
           update: (context, authenticationProvider, lobbyWSProvider) => LobbyWSProvider(
-            wsService: BasicWSService(
+            wsService: LobbyWSService(
               wsUrl: "$wsURL/ws/games",
               jwtToken: authenticationProvider.player?.jwtToken
             ), 
@@ -57,7 +57,7 @@ void main() {
             )
           ), 
           create: (BuildContext context) => LobbyWSProvider(
-            wsService: BasicWSService(
+            wsService: LobbyWSService(
               wsUrl: "$wsURL/ws/games",
               jwtToken: null
             ),
@@ -90,10 +90,13 @@ class MainApp extends StatelessWidget {
       initialRoute: '/',
       routes: <String, WidgetBuilder>{
         '/': (BuildContext context) => ClearableExceptionListener<AuthenticationProvider>(
-          message: "Couldn't get a new identity",
+          message: "Couldn't get a new identity.",
           child: const HomePage(),
         ),
-        '/lobby': (BuildContext context) => const WaitingLobbyPage()
+        '/lobby': (BuildContext context) => ClearableExceptionListener<LobbyWSProvider>(
+          message: "Couldn't join a new game.",
+          child: const WaitingLobbyPage()
+        )
       },
     );
   }

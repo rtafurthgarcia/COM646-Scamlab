@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:scamlab/provider/clearable_provider.dart';
+import 'package:scamlab/provider/retryable_provider.dart';
 
-class ClearableExceptionListener<T extends ClearableProvider> extends StatelessWidget {
+class ClearableExceptionListener<T extends RetryableProvider> extends StatelessWidget {
   const ClearableExceptionListener({
     super.key, required this.child, required this.message
   });
