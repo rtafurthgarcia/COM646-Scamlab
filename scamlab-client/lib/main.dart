@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/lobby_ws_provider.dart';
 import 'package:scamlab/provider/startmenu_ws_provider.dart';
+import 'package:scamlab/provider/state_machine_provider.dart';
 import 'package:scamlab/service/lobby_ws_service.dart';
 import 'package:scamlab/service/authentication_service.dart';
 import 'package:scamlab/service/game_service.dart';
@@ -30,42 +31,51 @@ void main() {
                 authenticationService: AuthenticationService(baseUrl: '$apiURL/api'),
               ),
         ),
+        ChangeNotifierProvider(
+          create:
+              (_) => StateMachineProvider(),
+        ),
         ChangeNotifierProxyProvider<AuthenticationProvider, StartMenuWSProvider>(
-          update: (context, authenticationProvider, conversationWSProvider) =>
-          StartMenuWSProvider(
-            wsService: LobbyWSService(
-              wsUrl: "$wsURL/ws/start-menu",
-              jwtToken: authenticationProvider.player?.jwtToken
-            )
-          ), 
+          update: (context, authenticationProvider, startMenuWSProvider) {
+            if (authenticationProvider.player != null) {
+              startMenuWSProvider!.wsService.jwtToken = authenticationProvider.player!.jwtToken;
+              startMenuWSProvider.startListening();
+            } else {
+              startMenuWSProvider!.wsService.jwtToken = null;
+              startMenuWSProvider.stopListening();
+            }
+            return startMenuWSProvider;
+          }, 
           create: (BuildContext context) => StartMenuWSProvider(
             wsService: LobbyWSService(
-              wsUrl: "$wsURL/ws/start-menu",
-              jwtToken: null
+              wsUrl: "$wsURL/ws/start-menu"
             )
           )
         ),
         ChangeNotifierProxyProvider<AuthenticationProvider, LobbyWSProvider>(
-          update: (context, authenticationProvider, lobbyWSProvider) => LobbyWSProvider(
-            wsService: LobbyWSService(
-              wsUrl: "$wsURL/ws/games",
-              jwtToken: authenticationProvider.player?.jwtToken
-            ), 
-            gameService: GameService(
-              baseUrl: '$apiURL/api', 
-              jwtToken: authenticationProvider.player?.jwtToken
-            )
-          ), 
+          update: (context, authenticationProvider, lobbyWSProvider) {
+            if (authenticationProvider.player != null) {
+              lobbyWSProvider!.gameService.jwtToken = authenticationProvider.player!.jwtToken;
+              lobbyWSProvider.wsService.jwtToken = authenticationProvider.player!.jwtToken;
+            } else {
+              lobbyWSProvider!.gameService.jwtToken = null;
+              lobbyWSProvider.wsService.jwtToken = null;
+              lobbyWSProvider.stopListening();
+            }
+            return lobbyWSProvider;
+          }, 
           create: (BuildContext context) => LobbyWSProvider(
             wsService: LobbyWSService(
-              wsUrl: "$wsURL/ws/games",
-              jwtToken: null
+              wsUrl: "$wsURL/ws/games"
             ),
             gameService: GameService(
-              baseUrl: '$apiURL/api', 
-              jwtToken: null
+              baseUrl: '$apiURL/api'
             )
           )
+        ),
+        ChangeNotifierProxyProvider<AuthenticationProvider, StateMachineProvider>(
+          update: (context, authenticationProvider, stateMachineProvider) => StateMachineProvider(),
+          create: (BuildContext context) => StateMachineProvider()
         ),
       ],
       child: MainApp(),

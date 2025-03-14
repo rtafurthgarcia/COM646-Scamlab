@@ -71,8 +71,8 @@ public class Conversation {
     public boolean isInvalidated() {
         return invalidated;
     }
-    public Conversation setInvalidated(boolean invalidated) {
-        this.invalidated = invalidated;
+    public Conversation setInvalidated(boolean invalidatedOrNot) {
+        this.invalidated = invalidatedOrNot;
 
         return this;
     }
@@ -165,6 +165,18 @@ public class Conversation {
     }
     public Conversation setStrategy(Strategy strategy) {
         this.strategy = strategy;
+
+        return this;
+    }
+
+    @Column(nullable = true)
+    private Boolean botHasBeenUnmasked = null;
+
+    public Boolean getBotHasBeenUnmasked() {
+        return botHasBeenUnmasked;
+    }
+    public Conversation setBotHasBeenUnmasked(Boolean unmaskedOrNot) {
+        this.botHasBeenUnmasked = unmaskedOrNot;
 
         return this;
     }

@@ -6,9 +6,8 @@ public class DefaultKeyValues {
         READY(2),
         RUNNING(3),
         VOTING(4),
-        FINISHED_UNMASKED(5),
-        FINISHED_MASKED(6),
-        CANCELLED(7);
+        FINISHED(5),
+        CANCELLED(6);
 
         public final Long value;
 

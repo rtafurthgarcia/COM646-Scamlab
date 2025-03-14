@@ -11,22 +11,22 @@ class HomePage extends StatelessWidget {
   List<Widget> buildButtons(BuildContext context) {
     return [
       Consumer<AuthenticationProvider>(
-        builder: (context, authenticationProvider, child) {
+        builder: (context, provider, child) {
           return ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.secondary,
               foregroundColor: Theme.of(context).colorScheme.onSecondary,
               iconColor: Theme.of(context).colorScheme.onSecondary,
             ),
-            onPressed: () => authenticationProvider.player != null ? Navigator.pushNamed(context, '/lobby') : null,
+            onPressed: () => provider.player != null ? Navigator.pushNamed(context, '/lobby') : null,
             icon: Icon(Icons.videogame_asset),
             label: Text('New game'),
           );
         },
       ),
       Consumer<AuthenticationProvider>(
-        builder: (context, authenticationProvider, child) {
-          if (authenticationProvider.player?.systemRole == "USER") {
+        builder: (context, provider, child) {
+          if (provider.player?.systemRole == "USER") {
             return ElevatedButton.icon(
               onPressed: null,
               style: ElevatedButton.styleFrom(
@@ -39,7 +39,7 @@ class HomePage extends StatelessWidget {
             );
           } else {
             return ElevatedButton.icon(
-              onPressed: () => authenticationProvider.player != null ? Navigator.pushNamed(context, '/lobby') : null,
+              onPressed: () => provider.player != null ? Navigator.pushNamed(context, '/lobby') : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.secondary,
                 foregroundColor: Theme.of(context).colorScheme.onSecondary,
@@ -61,11 +61,11 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Consumer<AuthenticationProvider>(
-          builder: (context, authenticationProvider, child) {
-            if (!authenticationProvider.isLoading) {
+          builder: (context, provider, child) {
+            if (!provider.isLoading) {
               String titleSuffix =
-                  authenticationProvider.player != null
-                      ? authenticationProvider.player!.secondaryId
+                  provider.player != null
+                      ? provider.player!.secondaryId
                       : "-";
               // Shorten the ID if on mobile and if it's long enough.
               String displayedId = titleSuffix;
@@ -98,7 +98,7 @@ class HomePage extends StatelessWidget {
                       : SelectableText(titleSuffix),
                   IconButton(
                     onPressed:
-                        authenticationProvider.isLoading
+                        provider.isLoading
                             ? null
                             : () async {
                               final bool? confirm = await showDialog<bool>(
@@ -125,7 +125,7 @@ class HomePage extends StatelessWidget {
                                 },
                               );
                               if (confirm == true) {
-                                authenticationProvider.tryAgain();
+                                provider.tryAgain();
                               }
                             },
                     icon: const Icon(Icons.refresh_sharp),
@@ -154,9 +154,9 @@ class HomePage extends StatelessWidget {
                       width: 150,
                       child: Center(
                         child: Consumer<StartMenuWSProvider>(
-                          builder: (context, conversationWSProvider, child) {
+                          builder: (context, provider, child) {
                             return Text(
-                              "Players online: ${conversationWSProvider.chatMessage == null ? "-" : conversationWSProvider.chatMessage?.playersConnectedCount}",
+                              "Players online: ${provider.chatMessage == null ? "-" : provider.chatMessage?.playersConnectedCount}",
                             );
                           },
                         ),

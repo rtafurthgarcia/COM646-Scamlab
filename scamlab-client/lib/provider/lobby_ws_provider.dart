@@ -11,8 +11,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class LobbyWSProvider extends RetryableProvider {
   final LobbyWSService wsService;
   final GameService gameService;
-  final SplayTreeSet<WsMessage> _lastMessages = SplayTreeSet((m0, m1) => m0.sequence.compareTo(m1.sequence));
-  bool _dontWaitNextTime = false;
+  final SplayTreeMap<int, WsMessage> _bufferedMessages = SplayTreeMap();  bool _dontWaitNextTime = false;
+  int _lastProcessedSequence = 0; // Track the last processed sequence number.
   bool get dontWaitNextTime => _dontWaitNextTime;
   late final SharedPreferences _settings;
 
@@ -43,38 +43,35 @@ class LobbyWSProvider extends RetryableProvider {
   }
 
   bool isListening() => wsService.isListening();
-
   void stopListening() {
     wsService.disconnect();
-    _lastMessages.clear();
+    _bufferedMessages.clear();
     _mayStillStart = false;
     notifyListeners();
   }
 
   void clearMessages() {
-    _lastMessages.clear();
+    _bufferedMessages.clear();
     notifyListeners();
   }
 
   T? getLastMessageOfType<T extends WsMessage>() {
-    return _lastMessages
-      .whereType<T>()
-      .lastOrNull;
+    // As _bufferedMessages is keyed by sequence, iterate its values.
+    return _bufferedMessages.values.whereType<T>().lastOrNull;
   }
 
   WsMessage? getLastMessage() {
-    return _lastMessages.lastOrNull;
+    return _bufferedMessages.isNotEmpty ? _bufferedMessages.values.last : null;
   }
 
-
-  void voteToStart() {
-    if (_mayStillStart) {
-      wsService.voteToStart(getLastMessageOfType<WaitingLobbyAssignedStrategyMessage>()!.conversationSecondaryId);
+    void voteToStart() {
+    final assignedMsg = getLastMessageOfType<WaitingLobbyAssignedStrategyMessage>();
+    if (_mayStillStart && assignedMsg != null) {
+      wsService.voteToStart(assignedMsg.conversationSecondaryId);
     }
   }
 
   Future<void> startListening() async {
-    // Start the connection when this provider is instantiated.
     if (isReady()) {
       await gameService.joinNewGame();
       wsService.connect(_onMessageReceived, _onErrorReceived);
@@ -82,8 +79,23 @@ class LobbyWSProvider extends RetryableProvider {
   }
 
   void _onMessageReceived(WsMessage message) {
-    _lastMessages.add(message);
-  
+    // Insert the incoming message keyed by its sequence.
+    _bufferedMessages[message.sequence] = message;
+    _processBufferedMessages();
+    notifyListeners();
+  }
+
+  void _processBufferedMessages() {
+    // Process messages in order starting from lastProcessedSequence + 1.
+    while (_bufferedMessages.containsKey(_lastProcessedSequence + 1)) {
+      final nextMessage = _bufferedMessages.remove(_lastProcessedSequence + 1)!;
+      _applyMessage(nextMessage);
+      _lastProcessedSequence++;
+    }
+  }
+
+  void _applyMessage(WsMessage message) {
+    // Handle the message according to its type.
     if (message is WaitingLobbyReadyToStartMessage) {
       _mayStillStart = true;
       _timeout = message.voteTimeout;
@@ -92,8 +104,7 @@ class LobbyWSProvider extends RetryableProvider {
         () => triggerTimeout(),
       );
     }
-
-    notifyListeners();
+    // You can add additional type-specific processing here.
   }
 
    void _onErrorReceived(dynamic error) {

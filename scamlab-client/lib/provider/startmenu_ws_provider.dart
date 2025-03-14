@@ -12,11 +12,15 @@ class StartMenuWSProvider extends ChangeNotifier {
 
   StartMenuStatisticsMessage? get chatMessage => _chatMessage;
 
-  StartMenuWSProvider({required this.wsService}) {
-    connect();
+  StartMenuWSProvider({required this.wsService});
+
+  bool isListening() => wsService.isListening();
+  void stopListening() {
+    wsService.disconnect();
+    notifyListeners();
   }
 
-  void connect() {
+  void startListening() {
     // Start the connection when this provider is instantiated.
     if (isReady()) {
       wsService.connect(_onMessageReceived, _onErrorReceived);

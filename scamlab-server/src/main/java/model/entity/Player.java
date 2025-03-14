@@ -90,8 +90,8 @@ public class Player {
         return isBot;
     }
 
-    public Player setIsBot(Boolean isBot) {
-        this.isBot = isBot;
+    public Player setIsBot(Boolean isBotOrNot) {
+        this.isBot = isBotOrNot;
 
         return this;
     }
