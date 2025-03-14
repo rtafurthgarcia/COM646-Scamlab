@@ -6,10 +6,10 @@ import io.quarkus.websockets.next.WebSocketClientConnection;
 import io.quarkus.websockets.next.WebSocketConnector;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
-import model.dto.GameDto;
-import model.dto.AuthenticationDto.GetNewPlayerDto;
-import model.dto.GameDto.WaitingLobbyAssignedStrategyMessageDto;
-import model.dto.GameDto.WaitingLobbyReasonForWaitingMessageDto;
+import model.dto.GameDTO;
+import model.dto.AuthenticationDTO.GetNewPlayerDTO;
+import model.dto.GameDTO.WaitingLobbyAssignedStrategyMessageDTO;
+import model.dto.GameDTO.WaitingLobbyReasonForWaitingMessageDTO;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -26,9 +26,6 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-//@TestInstance(Lifecycle.PER_CLASS)
 @QuarkusTest
 public class GameWSResourceTest {
     private static final LinkedBlockingDeque<Record> MESSAGES = new LinkedBlockingDeque<>();
@@ -52,7 +49,7 @@ public class GameWSResourceTest {
             .then()
             .statusCode(201)
             .extract()
-            .as(GetNewPlayerDto.class);
+            .as(GetNewPlayerDTO.class);
 
         token = player.jwtToken();
 
@@ -83,13 +80,13 @@ public class GameWSResourceTest {
 
         for (int i = 0; i < 2; i++) {
             var message = MESSAGES.poll(30, TimeUnit.SECONDS);
-            if (message instanceof WaitingLobbyAssignedStrategyMessageDto) {
+            if (message instanceof WaitingLobbyAssignedStrategyMessageDTO) {
                 assertNotNull(message);
             }
 
-            if (message instanceof WaitingLobbyReasonForWaitingMessageDto) {
-                var reasonForWaiting = (WaitingLobbyReasonForWaitingMessageDto) message;
-                assertEquals(GameDto.WSReasonForWaiting.NOT_ENOUGH_PLAYERS, reasonForWaiting.reasons());
+            if (message instanceof WaitingLobbyReasonForWaitingMessageDTO) {
+                var reasonForWaiting = (WaitingLobbyReasonForWaitingMessageDTO) message;
+                assertEquals(GameDTO.WSReasonForWaiting.NOT_ENOUGH_PLAYERS, reasonForWaiting.reasons());
             }
 
             assertNotNull(message);

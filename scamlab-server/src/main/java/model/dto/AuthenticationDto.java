@@ -2,9 +2,9 @@ package model.dto;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
-public abstract class AuthenticationDto {
+public abstract class AuthenticationDTO {
     @RegisterForReflection
-    public static record GetNewPlayerDto(
+    public static record GetNewPlayerDTO(
         String secondaryId, String systemRole, String jwtToken
     ) {
     }

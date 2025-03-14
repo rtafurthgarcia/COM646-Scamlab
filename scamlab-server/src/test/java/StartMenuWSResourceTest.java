@@ -5,8 +5,8 @@ import io.quarkus.websockets.next.WebSocketClient;
 import io.quarkus.websockets.next.WebSocketClientConnection;
 import io.quarkus.websockets.next.WebSocketConnector;
 import jakarta.inject.Inject;
-import model.dto.AuthenticationDto.GetNewPlayerDto;
-import model.dto.GameDto.StartMenuStatisticsMessageDto;
+import model.dto.AuthenticationDTO.GetNewPlayerDTO;
+import model.dto.GameDTO.StartMenuStatisticsMessageDTO;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 public class StartMenuWSResourceTest {
-    private static final LinkedBlockingDeque<StartMenuStatisticsMessageDto> MESSAGES = new LinkedBlockingDeque<>();
+    private static final LinkedBlockingDeque<StartMenuStatisticsMessageDTO> MESSAGES = new LinkedBlockingDeque<>();
 
     @TestHTTPResource("/")
     URI uri;
@@ -37,7 +37,7 @@ public class StartMenuWSResourceTest {
             .then()
             .statusCode(201)
             .extract()
-            .as(GetNewPlayerDto.class);
+            .as(GetNewPlayerDTO.class);
 
         var token = player.jwtToken();
 
@@ -59,7 +59,7 @@ public class StartMenuWSResourceTest {
     @WebSocketClient(path = "/ws/start-menu")
     public static class ClientEndpoint {
         @OnTextMessage
-        void onMessage(StartMenuStatisticsMessageDto message, WebSocketClientConnection connection) {
+        void onMessage(StartMenuStatisticsMessageDTO message, WebSocketClientConnection connection) {
             MESSAGES.add(message);
         }
     }

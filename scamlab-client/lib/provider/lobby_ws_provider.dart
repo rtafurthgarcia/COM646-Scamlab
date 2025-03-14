@@ -11,7 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class LobbyWSProvider extends RetryableProvider {
   final LobbyWSService wsService;
   final GameService gameService;
-  final SplayTreeSet<WsMessage> _lastMessages = SplayTreeSet((m0, m1) => m0.receivedOn.compareTo(m1.receivedOn));
+  final SplayTreeSet<WsMessage> _lastMessages = SplayTreeSet((m0, m1) => m0.sequence.compareTo(m1.sequence));
   bool _dontWaitNextTime = false;
   bool get dontWaitNextTime => _dontWaitNextTime;
   late final SharedPreferences _settings;

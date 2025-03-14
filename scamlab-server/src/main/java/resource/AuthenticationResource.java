@@ -20,7 +20,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
 import model.dto.AuthenticationMapper;
-import model.dto.AuthenticationDto.GetNewPlayerDto;
+import model.dto.AuthenticationDTO.GetNewPlayerDTO;
 import service.AuthenticationService;
 
 @Path("players")
@@ -46,7 +46,7 @@ public class AuthenticationResource {
             description = "New player successfully registered", 
             content = @Content(
                 mediaType = "application/json", 
-                schema = @Schema(implementation = GetNewPlayerDto.class)
+                schema = @Schema(implementation = GetNewPlayerDTO.class)
             )
         )
     })
@@ -57,7 +57,7 @@ public class AuthenticationResource {
 
         return Response
             .status(Status.CREATED)
-            .entity(mapper.toGetNewPlayerDto(player))
+            .entity(mapper.toGetNewPlayerDTO(player))
             .build();
     }
 

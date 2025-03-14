@@ -12,23 +12,30 @@ enum WsMessageType {
   gameFinished(value: 11);
 
   const WsMessageType({required this.value});
-
   final int value;
 }
 
 class WsMessage {
   final WsMessageType type;
-  final DateTime receivedOn;
+  final int sequence;
 
-  WsMessage({required this.type}): receivedOn = DateTime.now();
+  WsMessage({required this.type, required this.sequence});
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is WsMessage && runtimeType == other.runtimeType && type == other.type);
+      (other is WsMessage &&
+          runtimeType == other.runtimeType &&
+          type == other.type &&
+          sequence == other.sequence);
 
   @override
-  int get hashCode => type.hashCode;
+  int get hashCode => type.hashCode ^ sequence.hashCode;
+
+  @override
+  String toString() {
+    return "$sequence - $type";
+  }
 }
 
 WsMessageType wsMessageTypeFromInt(int value) {
@@ -70,12 +77,15 @@ WsMessage mapMessage(Map<String, dynamic> json) {
 class StartMenuStatisticsMessage extends WsMessage {
   final int playersConnectedCount;
 
-  StartMenuStatisticsMessage({required this.playersConnectedCount})
-      : super(type: WsMessageType.notifyStartMenuStatistics);
+  StartMenuStatisticsMessage({
+    required this.playersConnectedCount,
+    required super.sequence,
+  }) : super(type: WsMessageType.notifyStartMenuStatistics);
 
   factory StartMenuStatisticsMessage.fromJson(Map<String, dynamic> json) {
     return StartMenuStatisticsMessage(
       playersConnectedCount: json['playersConnectedCount'] as int,
+      sequence: json['sequence'] as int,
     );
   }
 }
@@ -84,13 +94,17 @@ class WaitingLobbyReasonForWaitingMessage extends WsMessage {
   final String playerSecondaryId;
   final List<String> reasons;
 
-  WaitingLobbyReasonForWaitingMessage({ required this.playerSecondaryId, required this.reasons })
-    : super(type: WsMessageType.notifyReasonForWaiting);
+  WaitingLobbyReasonForWaitingMessage({
+    required this.playerSecondaryId,
+    required this.reasons,
+    required super.sequence,
+  }) : super(type: WsMessageType.notifyReasonForWaiting);
 
   factory WaitingLobbyReasonForWaitingMessage.fromJson(Map<String, dynamic> json) {
     return WaitingLobbyReasonForWaitingMessage(
       playerSecondaryId: json['playerSecondaryId'] as String,
-      reasons: List<String>.from(json['reasons'])
+      reasons: List<String>.from(json['reasons']),
+      sequence: json['sequence'] as int,
     );
   }
 }
@@ -99,20 +113,21 @@ class WaitingLobbyAssignedStrategyMessage extends WsMessage {
   final String playerSecondaryId;
   final String conversationSecondaryId;
   final String role;
-  final String script; 
-  final String example; 
-  final String strategy; 
+  final String script;
+  final String example;
+  final String strategy;
   final String username;
 
   WaitingLobbyAssignedStrategyMessage({
-    required this.playerSecondaryId, 
-    required this.conversationSecondaryId, 
-    required this.role, 
-    required this.script, 
-    required this.example, 
-    required this.strategy, 
-    required this.username })
-    : super(type: WsMessageType.strategyAssigned);
+    required this.playerSecondaryId,
+    required this.conversationSecondaryId,
+    required this.role,
+    required this.script,
+    required this.example,
+    required this.strategy,
+    required this.username,
+    required super.sequence,
+  }) : super(type: WsMessageType.strategyAssigned);
 
   factory WaitingLobbyAssignedStrategyMessage.fromJson(Map<String, dynamic> json) {
     return WaitingLobbyAssignedStrategyMessage(
@@ -122,76 +137,97 @@ class WaitingLobbyAssignedStrategyMessage extends WsMessage {
       script: json['script'] as String,
       example: json['example'] as String,
       strategy: json['strategy'] as String,
-      username: json['username'] as String
+      username: json['username'] as String,
+      sequence: json['sequence'] as int,
     );
   }
 }
 
 class WaitingLobbyReadyToStartMessage extends WsMessage {
-  final int voteTimeout; 
-  final String playerSecondaryId; 
+  final int voteTimeout;
+  final String playerSecondaryId;
 
-  WaitingLobbyReadyToStartMessage({required this.voteTimeout, required this.playerSecondaryId})
-    : super(type: WsMessageType.readyToStart);
+  WaitingLobbyReadyToStartMessage({
+    required this.voteTimeout,
+    required this.playerSecondaryId,
+    required super.sequence,
+  }) : super(type: WsMessageType.readyToStart);
 
   factory WaitingLobbyReadyToStartMessage.fromJson(Map<String, dynamic> json) {
     return WaitingLobbyReadyToStartMessage(
       voteTimeout: json['voteTimeout'] as int,
-      playerSecondaryId: json['playerSecondaryId'] as String
+      playerSecondaryId: json['playerSecondaryId'] as String,
+      sequence: json['sequence'] as int,
     );
   }
 }
 
-
 class WaitingLobbyVoteToStartMessage extends WsMessage {
   final String conversationSecondaryId;
 
-  WaitingLobbyVoteToStartMessage({ required this.conversationSecondaryId }) : super(type: WsMessageType.voteToStart);
+  WaitingLobbyVoteToStartMessage({
+    required this.conversationSecondaryId,
+    required super.sequence,
+  }) : super(type: WsMessageType.voteToStart);
 
   factory WaitingLobbyVoteToStartMessage.fromJson(Map<String, dynamic> json) {
     return WaitingLobbyVoteToStartMessage(
-      conversationSecondaryId: json['conversationSecondaryId'] as String
+      conversationSecondaryId: json['conversationSecondaryId'] as String,
+      sequence: json['sequence'] as int,
     );
   }
 }
 
 class WaitingLobbyVoteAcknowledgedMessage extends WsMessage {
-  final String playerSecondaryId; 
+  final String playerSecondaryId;
 
-  WaitingLobbyVoteAcknowledgedMessage({ required this.playerSecondaryId }) : super(type: WsMessageType.voteAcknowledged);
+  WaitingLobbyVoteAcknowledgedMessage({
+    required this.playerSecondaryId,
+    required super.sequence,
+  }) : super(type: WsMessageType.voteAcknowledged);
 
   factory WaitingLobbyVoteAcknowledgedMessage.fromJson(Map<String, dynamic> json) {
     return WaitingLobbyVoteAcknowledgedMessage(
-      playerSecondaryId: json['playerSecondaryId'] as String
+      playerSecondaryId: json['playerSecondaryId'] as String,
+      sequence: json['sequence'] as int,
     );
   }
 }
 
 class WaitingLobbyGameStartingMessage extends WsMessage {
-  WaitingLobbyGameStartingMessage() : super(type: WsMessageType.gameStarting);
+  WaitingLobbyGameStartingMessage({required super.sequence})
+      : super(type: WsMessageType.gameStarting);
 
   factory WaitingLobbyGameStartingMessage.fromJson(Map<String, dynamic> json) {
-    return WaitingLobbyGameStartingMessage();
+    return WaitingLobbyGameStartingMessage(
+      sequence: json['sequence'] as int,
+    );
   }
 }
 
 class GameCancelledMessage extends WsMessage {
-  GameCancelledMessage() : super(type: WsMessageType.gameCancelled);
+  GameCancelledMessage({required super.sequence})
+      : super(type: WsMessageType.gameCancelled);
 
   factory GameCancelledMessage.fromJson(Map<String, dynamic> json) {
-    return GameCancelledMessage();
+    return GameCancelledMessage(
+      sequence: json['sequence'] as int,
+    );
   }
 }
 
 class GameCallToVoteMessage extends WsMessage {
   final int voteTimeout;
 
-  GameCallToVoteMessage({required this.voteTimeout})
-      : super(type: WsMessageType.callToVote);
+  GameCallToVoteMessage({
+    required this.voteTimeout,
+    required super.sequence,
+  }) : super(type: WsMessageType.callToVote);
 
   factory GameCallToVoteMessage.fromJson(Map<String, dynamic> json) {
     return GameCallToVoteMessage(
       voteTimeout: json['voteTimeout'] as int,
+      sequence: json['sequence'] as int,
     );
   }
 }
@@ -199,20 +235,26 @@ class GameCallToVoteMessage extends WsMessage {
 class GameCastVoteMessage extends WsMessage {
   final String playerSecondaryId;
 
-  GameCastVoteMessage({required this.playerSecondaryId})
-      : super(type: WsMessageType.castVote);
+  GameCastVoteMessage({
+    required this.playerSecondaryId,
+    required super.sequence,
+  }) : super(type: WsMessageType.castVote);
 
   factory GameCastVoteMessage.fromJson(Map<String, dynamic> json) {
     return GameCastVoteMessage(
       playerSecondaryId: json['playerSecondaryId'] as String,
+      sequence: json['sequence'] as int,
     );
   }
 }
 
 class GameFinishedMessage extends WsMessage {
-  GameFinishedMessage() : super(type: WsMessageType.gameFinished);
+  GameFinishedMessage({required super.sequence})
+      : super(type: WsMessageType.gameFinished);
 
   factory GameFinishedMessage.fromJson(Map<String, dynamic> json) {
-    return GameFinishedMessage();
+    return GameFinishedMessage(
+      sequence: json['sequence'] as int,
+    );
   }
 }

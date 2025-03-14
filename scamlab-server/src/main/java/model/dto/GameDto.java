@@ -2,51 +2,15 @@ package model.dto;
 
 import java.util.List;
 import java.util.UUID;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
+import java.util.concurrent.atomic.AtomicLong;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import model.entity.TransitionReason;
 
-public class GameDto {
-    @RegisterForReflection
-    public static enum WSMessageType {
-        NOTIFY_START_MENU_STATISTICS(1),
-        NOTIFY_REASON_FOR_WAITING(2),
-        STRATEGY_ASSIGNED(3),
-        READY_TO_START(4),
-        VOTE_TO_START(5),
-        VOTE_ACKNOWLEDGED(6),
-        GAME_STARTING(7),
-        GAME_CANCELLED(8),
-        CALL_TO_VOTE(9),
-        CAST_VOTE(10),
-        GAME_FINISHED(11);
+public class GameDTO {
+    private static final AtomicLong counter = new AtomicLong(0);
 
-        public final Long value;
-
-        private WSMessageType(Integer value) {
-            this.value = Integer.toUnsignedLong(value);
-        }
-
-        @JsonValue
-        public Long getValue() {
-            return this.value;
-        }
-
-        @JsonCreator
-        public static WSMessageType fromValue(Long value) {
-            for (WSMessageType type : WSMessageType.values()) {
-                if (type.value.equals(value)) {
-                    return type;
-                }
-            }
-            throw new IllegalArgumentException("Invalid WSMessageType value: " + value);
-        }
-    }
-
-    public static enum WSReasonForWaiting{
+    public static enum WSReasonForWaiting {
         NOT_ENOUGH_PLAYERS("Waiting on other players to join..."),
         ALL_LOBBIES_OCCUPIED("Waiting on a free lobby..."),
         START_CANCELLED_TIEMOUT("Players didnt start the game on time...");
@@ -58,123 +22,265 @@ public class GameDto {
         }
     }
 
-    @RegisterForReflection
-    public static record WaitingLobbyReasonForWaitingMessageDto(
-        WSMessageType type, String playerSecondaryId, List<String> reasons
-    ) {
-        public WaitingLobbyReasonForWaitingMessageDto(String playerSecondaryId, List<WSReasonForWaiting> reasons) {
-            this(WSMessageType.NOTIFY_REASON_FOR_WAITING, playerSecondaryId, reasons.stream().map(r -> r.message).toList());
-        }
+    // Helper method to get the next sequence number from the CDI bean.
+    private static Long autoSequence() {
+        return counter.incrementAndGet();
     }
 
     @RegisterForReflection
-    public static record StartMenuStatisticsMessageDto(
-        WSMessageType type, int playersConnectedCount
-    ) {
-        public StartMenuStatisticsMessageDto(int playersConnectedCount) {
-            this(WSMessageType.NOTIFY_START_MENU_STATISTICS, playersConnectedCount);
-        }
-    }
-
-    @RegisterForReflection
-    public static record WaitingLobbyAssignedStrategyMessageDto(
-        WSMessageType type, 
-        String playerSecondaryId, 
-        String conversationSecondaryId, 
-        String role, 
-        String script, 
-        String example, 
-        String strategy, 
-        String username
-    ) {
-        public WaitingLobbyAssignedStrategyMessageDto(
+    public static record WaitingLobbyReasonForWaitingMessageDTO(
+            WSMessageType type,
             String playerSecondaryId,
-            String conversationSecondaryId, 
-            String role, 
-            String script, 
-            String example, 
-            String strategy, 
-            String username) {
-                this(WSMessageType.STRATEGY_ASSIGNED, 
-                playerSecondaryId,
-                conversationSecondaryId, 
-                role, 
-                script, 
-                example, 
-                strategy, 
-                username);
+            List<String> reasons,
+            Long sequence) implements MessageDTO {
+        public WaitingLobbyReasonForWaitingMessageDTO(String playerSecondaryId, List<WSReasonForWaiting> reasons) {
+            this(WSMessageType.NOTIFY_REASON_FOR_WAITING,
+                    playerSecondaryId,
+                    reasons.stream().map(r -> r.message).toList(),
+                    autoSequence());
+        }
+
+        @Override
+        public WSMessageType getType() {
+            return type;
+        }
+
+        @Override
+        public Long getSequence() {
+            return sequence;
         }
     }
 
     @RegisterForReflection
-    public static record WaitingLobbyReadyToStartMessageDto(
-        WSMessageType type, Long voteTimeout, String playerSecondaryId
-    ) {
-        public WaitingLobbyReadyToStartMessageDto(Long voteTimeout, String playerSecondaryId) {
-            this(WSMessageType.READY_TO_START, voteTimeout, playerSecondaryId);
+    public static record StartMenuStatisticsMessageDTO(
+            WSMessageType type,
+            int playersConnectedCount,
+            Long sequence) implements MessageDTO {
+        public StartMenuStatisticsMessageDTO(int playersConnectedCount) {
+            this(WSMessageType.NOTIFY_START_MENU_STATISTICS, playersConnectedCount, autoSequence());
+        }
+
+        @Override
+        public WSMessageType getType() {
+            return type;
+        }
+
+        @Override
+        public Long getSequence() {
+            return sequence;
         }
     }
 
     @RegisterForReflection
-    public static record WaitingLobbyVoteToStartMessageDto(
-        WSMessageType type, String conversationSecondaryId
-    ) {
-        public WaitingLobbyVoteToStartMessageDto(String conversationSecondaryId) {
-            this(WSMessageType.VOTE_TO_START, conversationSecondaryId);
+    public static record WaitingLobbyAssignedStrategyMessageDTO(
+            WSMessageType type,
+            String playerSecondaryId,
+            String conversationSecondaryId,
+            String role,
+            String script,
+            String example,
+            String strategy,
+            String username,
+            Long sequence) implements MessageDTO {
+        public WaitingLobbyAssignedStrategyMessageDTO(
+                String playerSecondaryId,
+                String conversationSecondaryId,
+                String role,
+                String script,
+                String example,
+                String strategy,
+                String username) {
+            this(WSMessageType.STRATEGY_ASSIGNED,
+                    playerSecondaryId,
+                    conversationSecondaryId,
+                    role,
+                    script,
+                    example,
+                    strategy,
+                    username,
+                    autoSequence());
+        }
+
+        @Override
+        public WSMessageType getType() {
+            return type;
+        }
+
+        @Override
+        public Long getSequence() {
+            return sequence;
         }
     }
 
     @RegisterForReflection
-    public static record VoteAcknowledgedMessageDto(
-        WSMessageType type, String playerSecondaryId
-    ) {
-        public VoteAcknowledgedMessageDto(String playerSecondaryId) {
-            this(WSMessageType.VOTE_ACKNOWLEDGED, playerSecondaryId);
+    public static record WaitingLobbyReadyToStartMessageDTO(
+            WSMessageType type,
+            Long voteTimeout,
+            String playerSecondaryId,
+            Long sequence) implements MessageDTO {
+        public WaitingLobbyReadyToStartMessageDTO(Long voteTimeout, String playerSecondaryId) {
+            this(WSMessageType.READY_TO_START, voteTimeout, playerSecondaryId, autoSequence());
+        }
+
+        @Override
+        public WSMessageType getType() {
+            return type;
+        }
+
+        @Override
+        public Long getSequence() {
+            return sequence;
         }
     }
 
     @RegisterForReflection
-    public static record WaitingLobbyGameStartingMessageDto(
-        WSMessageType type, String playerSecondaryId
-    ) {
-        public WaitingLobbyGameStartingMessageDto(String playerSecondaryId) {
-            this(WSMessageType.GAME_STARTING, playerSecondaryId);
+    public static record WaitingLobbyVoteToStartMessageDTO(
+            WSMessageType type,
+            String conversationSecondaryId,
+            Long sequence) implements MessageDTO {
+        public WaitingLobbyVoteToStartMessageDTO(String conversationSecondaryId) {
+            this(WSMessageType.VOTE_TO_START, conversationSecondaryId, autoSequence());
+        }
+
+        @Override
+        public WSMessageType getType() {
+            return type;
+        }
+
+        @Override
+        public Long getSequence() {
+            return sequence;
         }
     }
 
     @RegisterForReflection
-    public static record GameGameCancelledMessageDto(
-        WSMessageType type
-    ) {
+    public static record VoteAcknowledgedMessageDTO(
+            WSMessageType type,
+            String playerSecondaryId,
+            Long sequence) implements MessageDTO {
+        public VoteAcknowledgedMessageDTO(String playerSecondaryId) {
+            this(WSMessageType.VOTE_ACKNOWLEDGED, playerSecondaryId, autoSequence());
+        }
+
+        @Override
+        public WSMessageType getType() {
+            return type;
+        }
+
+        @Override
+        public Long getSequence() {
+            return sequence;
+        }
     }
 
     @RegisterForReflection
-    public static record GameCallToVoteMessageDto(
-        WSMessageType type, Long voteTimeout 
-    ) {
+    public static record WaitingLobbyGameStartingMessageDTO(
+            WSMessageType type,
+            String playerSecondaryId,
+            Long sequence) implements MessageDTO {
+        public WaitingLobbyGameStartingMessageDTO(String playerSecondaryId) {
+            this(WSMessageType.GAME_STARTING, playerSecondaryId, autoSequence());
+        }
+
+        @Override
+        public WSMessageType getType() {
+            return type;
+        }
+
+        @Override
+        public Long getSequence() {
+            return sequence;
+        }
     }
 
     @RegisterForReflection
-    public static record GameCastVoteMessageDto(
-        WSMessageType type, String playerSecondaryId
-    ) {
+    public static record GameGameCancelledMessageDTO(
+            WSMessageType type,
+            Long sequence) implements MessageDTO {
+        public GameGameCancelledMessageDTO() {
+            this(WSMessageType.GAME_CANCELLED, autoSequence());
+        }
+
+        @Override
+        public WSMessageType getType() {
+            return type;
+        }
+
+        @Override
+        public Long getSequence() {
+            return sequence;
+        }
     }
 
     @RegisterForReflection
-    public static record GameFinishedMessageDto(
-        WSMessageType type
-    ) {
+    public static record GameCallToVoteMessageDTO(
+            WSMessageType type,
+            Long voteTimeout,
+            Long sequence) implements MessageDTO {
+        public GameCallToVoteMessageDTO(Long voteTimeout) {
+            this(WSMessageType.CALL_TO_VOTE, voteTimeout, autoSequence());
+        }
+
+        @Override
+        public WSMessageType getType() {
+            return type;
+        }
+
+        @Override
+        public Long getSequence() {
+            return sequence;
+        }
     }
 
     @RegisterForReflection
-    public static record VoteStartRequestDto(
-        UUID player,
-        UUID conversation 
-    ) {};
+    public static record GameCastVoteMessageDTO(
+            WSMessageType type,
+            String playerSecondaryId,
+            Long sequence) implements MessageDTO {
+        public GameCastVoteMessageDTO(String playerSecondaryId) {
+            this(WSMessageType.CAST_VOTE, playerSecondaryId, autoSequence());
+        }
+
+        @Override
+        public WSMessageType getType() {
+            return type;
+        }
+
+        @Override
+        public Long getSequence() {
+            return sequence;
+        }
+    }
 
     @RegisterForReflection
-    public static record LeaveRequestDto(
-        UUID player,
-        TransitionReason reason 
-    ) {};
+    public static record GameFinishedMessageDTO(
+            WSMessageType type,
+            Long sequence) implements MessageDTO {
+        public GameFinishedMessageDTO() {
+            this(WSMessageType.GAME_FINISHED, autoSequence());
+        }
+
+        @Override
+        public WSMessageType getType() {
+            return type;
+        }
+
+        @Override
+        public Long getSequence() {
+            return sequence;
+        }
+    }
+
+    // The following request DTOs remain unchanged
+    @RegisterForReflection
+    public static record VoteStartRequestDTO(
+            UUID player,
+            UUID conversation) {
+    }
+
+    @RegisterForReflection
+    public static record LeaveRequestDTO(
+            UUID player,
+            TransitionReason reason) {
+    }
 }

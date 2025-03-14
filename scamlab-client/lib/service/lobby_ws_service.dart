@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'dart:developer' as developer;
 
 class LobbyWSService {
   final String wsUrl;
@@ -39,8 +40,10 @@ class LobbyWSService {
       final chatMessage = mapMessage(decodedData);
 
       onMessage(chatMessage);
+      developer.log(chatMessage.toString(), name: 'scamlab.websockets');
     }, onError: (error) {
       onError(error);
+      developer.log(error.toString(), name: 'scamlab.websockets');
     }, onDone: () {
       // per WebSocket https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.5
       if (_channel?.closeCode != null && _channel?.closeCode != 1000 ) {
@@ -59,7 +62,7 @@ class LobbyWSService {
   Future<void> voteToStart(String conversationSecondaryId) async {
     if (isListening()) {
       _channel!.sink.add(
-        WaitingLobbyVoteToStartMessage(conversationSecondaryId: conversationSecondaryId)
+        WaitingLobbyVoteToStartMessage(sequence: 0, conversationSecondaryId: conversationSecondaryId)
       );
     }
   }

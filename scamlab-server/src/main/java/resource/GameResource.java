@@ -19,7 +19,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
-import model.dto.AuthenticationDto.GetNewPlayerDto;
+import model.dto.AuthenticationDTO.GetNewPlayerDTO;
 import model.entity.Player;
 import service.GameService;
 import service.AuthenticationService;
@@ -51,7 +51,7 @@ public class GameResource {
             description = "New game successfully registered", 
             content = @Content(
                 mediaType = "application/json", 
-                schema = @Schema(implementation = GetNewPlayerDto.class)
+                schema = @Schema(implementation = GetNewPlayerDTO.class)
             )
         )
     })

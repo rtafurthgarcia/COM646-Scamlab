@@ -1,6 +1,6 @@
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
-import model.dto.AuthenticationDto.GetNewPlayerDto;
+import model.dto.AuthenticationDTO.GetNewPlayerDTO;
 import service.AuthenticationService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,7 +29,7 @@ public class AuthenticationResourceTest {
             .statusCode(201)
             .and()
             .extract()
-            .as(GetNewPlayerDto.class);
+            .as(GetNewPlayerDTO.class);
         
         var playerFromDb = service.findUserBySecondaryId(UUID.fromString(player.secondaryId()));
 
@@ -57,7 +57,7 @@ public class AuthenticationResourceTest {
           .statusCode(201)
           .and()
           .extract()
-          .as(GetNewPlayerDto.class);
+          .as(GetNewPlayerDTO.class);
       
         playerFromDb = service.findUserBySecondaryId(UUID.fromString(player.secondaryId()));
 

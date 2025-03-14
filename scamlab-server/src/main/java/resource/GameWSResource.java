@@ -19,14 +19,14 @@ import io.quarkus.websockets.next.runtime.ConnectionManager;
 import io.smallrye.common.annotation.RunOnVirtualThread;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.inject.Inject;
-import model.dto.GameDto.LeaveRequestDto;
-import model.dto.GameDto.GameGameCancelledMessageDto;
-import model.dto.GameDto.VoteStartRequestDto;
-import model.dto.GameDto.WaitingLobbyAssignedStrategyMessageDto;
-import model.dto.GameDto.WaitingLobbyGameStartingMessageDto;
-import model.dto.GameDto.WaitingLobbyReadyToStartMessageDto;
-import model.dto.GameDto.WaitingLobbyReasonForWaitingMessageDto;
-import model.dto.GameDto.WaitingLobbyVoteToStartMessageDto;
+import model.dto.GameDTO.GameGameCancelledMessageDTO;
+import model.dto.GameDTO.LeaveRequestDTO;
+import model.dto.GameDTO.VoteStartRequestDTO;
+import model.dto.GameDTO.WaitingLobbyAssignedStrategyMessageDTO;
+import model.dto.GameDTO.WaitingLobbyGameStartingMessageDTO;
+import model.dto.GameDTO.WaitingLobbyReadyToStartMessageDTO;
+import model.dto.GameDTO.WaitingLobbyReasonForWaitingMessageDTO;
+import model.dto.GameDTO.WaitingLobbyVoteToStartMessageDTO;
 import model.entity.TransitionReason;
 
 @Authenticated
@@ -47,12 +47,12 @@ public class GameWSResource {
     @Inject
     @Channel("register-start-game")
     @Broadcast
-    Emitter<VoteStartRequestDto> registerStartGameEmitter;
+    Emitter<VoteStartRequestDTO> registerStartGameEmitter;
 
     @Inject
     @Channel("handle-player-leaving")
     @Broadcast
-    Emitter<LeaveRequestDto> leaveEmitter;
+    Emitter<LeaveRequestDTO> leaveEmitter;
 
     @OnOpen
     public void onOpen() {
@@ -63,7 +63,7 @@ public class GameWSResource {
 
     @Incoming("notify-evolution")
     @RunOnVirtualThread
-    public void notifyPlayersOfChange(WaitingLobbyReasonForWaitingMessageDto statistics) {
+    public void notifyPlayersOfChange(WaitingLobbyReasonForWaitingMessageDTO statistics) {
         connectionManager.findByConnectionId(
             registry.getConnectionId(statistics.playerSecondaryId())
         ).get().sendTextAndAwait(statistics);
@@ -76,7 +76,7 @@ public class GameWSResource {
 
     @Incoming("assign-new-role")
     @RunOnVirtualThread
-    public void notifyOfNewlyAssignedRole(WaitingLobbyAssignedStrategyMessageDto message) {
+    public void notifyOfNewlyAssignedRole(WaitingLobbyAssignedStrategyMessageDTO message) {
         connectionManager.findByConnectionId(
             registry.getConnectionId(message.playerSecondaryId())
         ).get().sendTextAndAwait(message);
@@ -91,7 +91,7 @@ public class GameWSResource {
 
     @Incoming("notify-game-as-ready")
     @RunOnVirtualThread
-    public void setGameAsReady(WaitingLobbyReadyToStartMessageDto message) {
+    public void setGameAsReady(WaitingLobbyReadyToStartMessageDTO message) {
         connectionManager.findByConnectionId(
             registry.getConnectionId(message.playerSecondaryId())
         ).get().sendTextAndAwait(message);
@@ -101,7 +101,7 @@ public class GameWSResource {
 
     @Incoming("notify-game-as-starting")
     @RunOnVirtualThread
-    public void startGame(WaitingLobbyGameStartingMessageDto message) {
+    public void startGame(WaitingLobbyGameStartingMessageDTO message) {
         connectionManager.findByConnectionId(
             registry.getConnectionId(message.playerSecondaryId())
         ).get().sendTextAndAwait(message);
@@ -114,7 +114,7 @@ public class GameWSResource {
         Log.info("WS connection closed: " + connection.endpointId());
         registry.unregister(securityIdentity.getPrincipal().getName());
         leaveEmitter.send(
-            new LeaveRequestDto(
+            new LeaveRequestDTO(
                 UUID.fromString(securityIdentity.getPrincipal().getName()),
                 TransitionReason.ConnectionGotTerminated
             )
@@ -123,23 +123,23 @@ public class GameWSResource {
 
     @OnTextMessage
     public void processAsync(Record message) {
-        if (message instanceof WaitingLobbyVoteToStartMessageDto) {
-            var conversationId = UUID.fromString(((WaitingLobbyVoteToStartMessageDto) message).conversationSecondaryId());
+        if (message instanceof WaitingLobbyVoteToStartMessageDTO) {
+            var conversationId = UUID.fromString(((WaitingLobbyVoteToStartMessageDTO) message).conversationSecondaryId());
             var playerId = UUID.fromString(securityIdentity.getPrincipal().getName());
 
             registerStartGameEmitter.send(
-                new VoteStartRequestDto(
+                new VoteStartRequestDTO(
                     playerId, 
                     conversationId
                 )
             );
         }
 
-        if (message instanceof GameGameCancelledMessageDto) {
+        if (message instanceof GameGameCancelledMessageDTO) {
             var playerId = UUID.fromString(securityIdentity.getPrincipal().getName());
 
             leaveEmitter.send(
-                new LeaveRequestDto(
+                new LeaveRequestDTO(
                     playerId,
                     TransitionReason.PlayerWillingfullyCancelled
                 )

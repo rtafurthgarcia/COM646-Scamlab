@@ -26,13 +26,13 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import model.dto.GameDto.LeaveRequestDto;
-import model.dto.GameDto.VoteStartRequestDto;
-import model.dto.GameDto.WSReasonForWaiting;
-import model.dto.GameDto.WaitingLobbyAssignedStrategyMessageDto;
-import model.dto.GameDto.WaitingLobbyGameStartingMessageDto;
-import model.dto.GameDto.WaitingLobbyReadyToStartMessageDto;
-import model.dto.GameDto.WaitingLobbyReasonForWaitingMessageDto;
+import model.dto.GameDTO.LeaveRequestDTO;
+import model.dto.GameDTO.VoteStartRequestDTO;
+import model.dto.GameDTO.WSReasonForWaiting;
+import model.dto.GameDTO.WaitingLobbyAssignedStrategyMessageDTO;
+import model.dto.GameDTO.WaitingLobbyGameStartingMessageDTO;
+import model.dto.GameDTO.WaitingLobbyReadyToStartMessageDTO;
+import model.dto.GameDTO.WaitingLobbyReasonForWaitingMessageDTO;
 import model.entity.Conversation;
 import model.entity.Participation;
 import model.entity.ParticipationId;
@@ -60,22 +60,22 @@ public class GameService {
     @Inject
     @Channel("notify-evolution")
     @Broadcast
-    Emitter<WaitingLobbyReasonForWaitingMessageDto> notifyEvolutionEmitter;
+    Emitter<WaitingLobbyReasonForWaitingMessageDTO> notifyEvolutionEmitter;
 
     @Inject
     @Channel("assign-new-role")
     @Broadcast
-    Emitter<WaitingLobbyAssignedStrategyMessageDto> assignNewRoleEmitter;
+    Emitter<WaitingLobbyAssignedStrategyMessageDTO> assignNewRoleEmitter;
 
     @Inject
     @Channel("notify-game-as-ready")
     @Broadcast
-    Emitter<WaitingLobbyReadyToStartMessageDto> notifyGameAsReadyEmitter;
+    Emitter<WaitingLobbyReadyToStartMessageDTO> notifyGameAsReadyEmitter;
 
     @Inject
     @Channel("notify-game-as-starting")
     @Broadcast
-    Emitter<WaitingLobbyGameStartingMessageDto> notifyGameStarting;
+    Emitter<WaitingLobbyGameStartingMessageDTO> notifyGameStarting;
 
     @Inject
     Scheduler scheduler;
@@ -162,7 +162,7 @@ public class GameService {
 
         for (var player: conversation.getParticipants()) {
             notifyEvolutionEmitter.send(
-                new WaitingLobbyReasonForWaitingMessageDto(
+                new WaitingLobbyReasonForWaitingMessageDTO(
                     player.getParticipationId().getPlayer().getSecondaryId().toString(),
                     reasonsList
                 )
@@ -247,7 +247,7 @@ public class GameService {
                 
                 conversation.getParticipants().forEach(p -> {
                     notifyGameAsReadyEmitter.send(
-                        new WaitingLobbyReadyToStartMessageDto(
+                        new WaitingLobbyReadyToStartMessageDTO(
                             timeOutForWaitingLobby, 
                             p.getParticipationId().getPlayer().getSecondaryId().toString()
                         )
@@ -271,7 +271,7 @@ public class GameService {
         var conversation = entityManager.find(Conversation.class, conversationId);
         conversation.getParticipants().forEach(p -> {
             notifyEvolutionEmitter.send(
-                new WaitingLobbyReasonForWaitingMessageDto
+                new WaitingLobbyReasonForWaitingMessageDTO
                 (
                     p.getParticipationId().getPlayer().getSecondaryId().toString(), 
                     Arrays.asList(WSReasonForWaiting.START_CANCELLED_TIEMOUT)
@@ -294,7 +294,7 @@ public class GameService {
         players.forEach(p -> putPlayerOnWaitingList(p));
     }
 
-    public WaitingLobbyAssignedStrategyMessageDto getPlayersAssignedStrategy(Player player, Conversation conversation) {
+    public WaitingLobbyAssignedStrategyMessageDTO getPlayersAssignedStrategy(Player player, Conversation conversation) {
         Participation playersParticipation = conversation.getParticipants().stream().filter(p -> p.getParticipationId().getPlayer().equals(player)).findFirst().get();
         var role = playersParticipation.getParticipationId().getRole();
         var strategyByRole = entityManager.createQuery(
@@ -308,7 +308,7 @@ public class GameService {
             .getSingleResult();
         var strategy = conversation.getStrategy(); 
 
-        return new WaitingLobbyAssignedStrategyMessageDto(
+        return new WaitingLobbyAssignedStrategyMessageDTO(
             player.getSecondaryId().toString(),
             conversation.getSecondaryId().toString(),
             playersParticipation.getParticipationId().getRole().getName(),
@@ -321,7 +321,7 @@ public class GameService {
 
     @Incoming(value = "register-start-game")
     @RunOnVirtualThread
-    public void registerStartGame(VoteStartRequestDto request) {
+    public void registerStartGame(VoteStartRequestDTO request) {
         var conversation = findConversationBySecondaryId(request.conversation());
         var player = findPlayerBySecondaryId(request.player());
 
@@ -341,13 +341,13 @@ public class GameService {
             entityManager.persist(conversation);
             entityManager.flush();
 
-            notifyGameStarting.send(new WaitingLobbyGameStartingMessageDto(player.getSecondaryId().toString()));
+            notifyGameStarting.send(new WaitingLobbyGameStartingMessageDTO(player.getSecondaryId().toString()));
         }
     }
 
     @Incoming(value = "handle-player-leaving")
     @RunOnVirtualThread
-    public void handlePlayerLeavingConversation(LeaveRequestDto request) {
+    public void handlePlayerLeavingConversation(LeaveRequestDTO request) {
         var anyConversationInvolvedIn = entityManager.createQuery(
             """
                 SELECT c FROM Conversation c

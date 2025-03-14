@@ -9,8 +9,7 @@ import io.quarkus.websockets.next.WebSocket;
 import io.quarkus.websockets.next.WebSocketConnection;
 import io.quarkus.websockets.next.runtime.ConnectionManager;
 import jakarta.inject.Inject;
-import model.dto.GameDto.StartMenuStatisticsMessageDto;
-import model.dto.GameDto.WSMessageType;
+import model.dto.GameDTO.StartMenuStatisticsMessageDTO;
 
 @Authenticated
 @WebSocket(path = "/ws/start-menu")
@@ -25,15 +24,15 @@ public class StartMenuWSResource {
     SecurityIdentity securityIdentity;
 
     @OnOpen
-    public StartMenuStatisticsMessageDto onOpen() {
+    public StartMenuStatisticsMessageDTO onOpen() {
         Log.info(securityIdentity.getPrincipal().getName() + " successfully authenticated");
         Log.info("New WS connection: " + connection.endpointId());
-        return new StartMenuStatisticsMessageDto(WSMessageType.NOTIFY_START_MENU_STATISTICS, connectionManager.listAll().size());
+        return new StartMenuStatisticsMessageDTO(connectionManager.listAll().size());
     }
 
     @OnClose
     public void onClose() {
         Log.info("WS connection closed: " + connection.endpointId());
-        connection.broadcast().sendTextAndAwait(new StartMenuStatisticsMessageDto(WSMessageType.NOTIFY_START_MENU_STATISTICS, connectionManager.listAll().size()));
+        connection.broadcast().sendTextAndAwait(new StartMenuStatisticsMessageDTO(connectionManager.listAll().size()));
     }
 }
