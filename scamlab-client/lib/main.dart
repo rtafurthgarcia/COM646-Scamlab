@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/lobby_ws_provider.dart';
 import 'package:scamlab/provider/startmenu_ws_provider.dart';
-import 'package:scamlab/service/basic_ws_service.dart';
+import 'package:scamlab/service/lobby_ws_service.dart';
 import 'package:scamlab/service/authentication_service.dart';
 import 'package:scamlab/service/game_service.dart';
 import 'package:scamlab/theme.dart';

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -13,7 +14,7 @@ class LobbyWSService {
     return _channel != null && _channel!.protocol != null;
   }
 
-  void connect(void Function(WsMessage) onMessage) {
+  void connect(void Function(WsMessage) onMessage, void Function(dynamic) onError) {
     if (jwtToken == null) {
       throw Exception("Missing JWT token for WebSocket!");
     }
@@ -36,12 +37,16 @@ class LobbyWSService {
       // Assume the incoming data is in JSON format.
       final Map<String, dynamic> decodedData = json.decode(data);
       final chatMessage = mapMessage(decodedData);
+
       onMessage(chatMessage);
     }, onError: (error) {
-      //exception = error;
+      onError(error);
     }, onDone: () {
-      //debugPrint('WebSocket connection closed');
-    }, cancelOnError: true);
+      // per WebSocket https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.5
+      if (_channel?.closeCode != null && _channel?.closeCode != 1000 ) {
+        onError(WebSocketException("Connection not closed properly", _channel?.closeCode));
+      }
+    });
   }
 
   /// Disconnects the WebSocket.

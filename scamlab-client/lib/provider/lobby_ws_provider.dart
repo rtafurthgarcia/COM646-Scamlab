@@ -4,7 +4,7 @@ import 'dart:collection';
 import 'package:collection/collection.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/retryable_provider.dart';
-import 'package:scamlab/service/basic_ws_service.dart';
+import 'package:scamlab/service/lobby_ws_service.dart';
 import 'package:scamlab/service/game_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -23,9 +23,10 @@ class LobbyWSProvider extends RetryableProvider {
   }
 
   bool _mayStillStart = false;
-  late Timer _timer;
-
   bool get mayStillStart => _mayStillStart;
+
+  int? _timeout;
+  int? get timeout => _timeout;
 
   LobbyWSProvider({required this.gameService, required this.wsService}) {
     loadSettings();
@@ -76,7 +77,7 @@ class LobbyWSProvider extends RetryableProvider {
     // Start the connection when this provider is instantiated.
     if (isReady()) {
       await gameService.joinNewGame();
-      wsService.connect(_onMessageReceived);
+      wsService.connect(_onMessageReceived, _onErrorReceived);
     }
   }
 
@@ -85,7 +86,8 @@ class LobbyWSProvider extends RetryableProvider {
   
     if (message is WaitingLobbyReadyToStartMessage) {
       _mayStillStart = true;
-      _timer = Timer(
+      _timeout = message.voteTimeout;
+      Timer(
         Duration(seconds: message.voteTimeout),
         () => triggerTimeout(),
       );
@@ -94,8 +96,15 @@ class LobbyWSProvider extends RetryableProvider {
     notifyListeners();
   }
 
+   void _onErrorReceived(dynamic error) {
+    exception = error;
+
+    notifyListeners();
+  }
+
   void triggerTimeout() {
     _mayStillStart = false;
+    _timeout = null;
     notifyListeners();
   }
 

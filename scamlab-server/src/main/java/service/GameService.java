@@ -217,19 +217,7 @@ public class GameService {
 
         var playerAssigned = false;
         for (Conversation conversation : conversationsWithParticipants) {
-            if (conversation.getTestingScenario().numberOfHumans == conversation.getParticipants().size() 
-            && runningOrReadyConversationsCount < maxOngoingGamesCount) {
-                conversation.setCurrentState(entityManager.find(State.class, StateValue.READY.value));
-
-                Log.info("Preparing new game " + conversation.getSecondaryId());
-                
-                notifyGameAsReadyEmitter.send(new WaitingLobbyReadyToStartMessageDto(timeOutForWaitingLobby, player.getSecondaryId().toString()));
-
-                scheduler.newJob(conversation.getId().toString())
-                    .setInterval("PT" + timeOutForWaitingLobby.toString() + "S")
-                    .setConcurrentExecution(ConcurrentExecution.SKIP)
-                    .setTask(t -> timeoutTriggered(conversation)).schedule();
-            } else if (conversation.getTestingScenario().numberOfHumans > conversation.getParticipants().size()
+            if (conversation.getTestingScenario().numberOfHumans > conversation.getParticipants().size()
             && ! playerAssigned) {
                 var participant = new Participation();
                 participant.setParticipationId(
@@ -247,31 +235,63 @@ public class GameService {
                 Log.info("Adding player " + player.getSecondaryId().toString() + " to new game");
 
                 assignNewRoleEmitter.send(getPlayersAssignedStrategy(player, conversation));
+
+                sendReasonForTheWaitingIfAny(conversation);
             }
-            entityManager.persist(conversation);
-            
-            sendReasonForTheWaitingIfAny(conversation);
+
+            if (conversation.getTestingScenario().numberOfHumans == conversation.getParticipants().size() 
+            && runningOrReadyConversationsCount < maxOngoingGamesCount) {
+                conversation.setCurrentState(entityManager.find(State.class, StateValue.READY.value));
+
+                Log.info("Preparing new game " + conversation.getSecondaryId());
+                
+                conversation.getParticipants().forEach(p -> {
+                    notifyGameAsReadyEmitter.send(
+                        new WaitingLobbyReadyToStartMessageDto(
+                            timeOutForWaitingLobby, 
+                            p.getParticipationId().getPlayer().getSecondaryId().toString()
+                        )
+                    );
+                });
+
+                scheduler.newJob(conversation.getId().toString())
+                    .setInterval("PT" + timeOutForWaitingLobby.toString() + "S")
+                    .setDelayed("PT" + timeOutForWaitingLobby.toString() + "S")
+                    .setConcurrentExecution(ConcurrentExecution.SKIP)
+                    .setTask(t -> timeoutTriggered(conversation.getId())).schedule();
+            }
+
+            entityManager.persist(conversation);            
         }
 
         entityManager.flush();
     }
 
-    private void timeoutTriggered(Conversation conversation) {
+    void timeoutTriggered(Long conversationId) {
+        var conversation = entityManager.find(Conversation.class, conversationId);
         conversation.getParticipants().forEach(p -> {
             notifyEvolutionEmitter.send(
                 new WaitingLobbyReasonForWaitingMessageDto
                 (
-                    conversation.getSecondaryId().toString(), 
+                    p.getParticipationId().getPlayer().getSecondaryId().toString(), 
                     Arrays.asList(WSReasonForWaiting.START_CANCELLED_TIEMOUT)
                 )
             );
             //registry.unregister(p.getParticipationId().getPlayer().getId());
         });
+        var players = conversation.getParticipants().stream()
+            .map(p -> p.getParticipationId().getPlayer()).toList();
+
         conversation.getParticipants().clear();
         conversation.setCurrentState(entityManager.find(State.class, StateValue.WAITING.value));
 
         entityManager.persist(conversation);
         entityManager.flush();
+
+        scheduler.unscheduleJob(conversationId.toString());
+
+        // put players back on the queue
+        players.forEach(p -> putPlayerOnWaitingList(p));
     }
 
     public WaitingLobbyAssignedStrategyMessageDto getPlayersAssignedStrategy(Player player, Conversation conversation) {

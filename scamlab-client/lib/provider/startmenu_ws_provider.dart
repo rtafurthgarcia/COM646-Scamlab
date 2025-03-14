@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:scamlab/model/ws_message.dart';
-import 'package:scamlab/service/basic_ws_service.dart';
+import 'package:scamlab/service/lobby_ws_service.dart';
 
 class StartMenuWSProvider extends ChangeNotifier {
   final LobbyWSService wsService;
@@ -19,7 +19,7 @@ class StartMenuWSProvider extends ChangeNotifier {
   void connect() {
     // Start the connection when this provider is instantiated.
     if (isReady()) {
-      wsService.connect(_onMessageReceived);
+      wsService.connect(_onMessageReceived, _onErrorReceived);
     }
   }
 
@@ -28,6 +28,10 @@ class StartMenuWSProvider extends ChangeNotifier {
       _chatMessage = message;
       notifyListeners();
     }
+  }
+
+  void _onErrorReceived(dynamic exception) {
+    notifyListeners();
   }
 
   @override

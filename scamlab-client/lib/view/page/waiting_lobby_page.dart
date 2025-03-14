@@ -3,9 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/lobby_ws_provider.dart';
-import 'package:scamlab/service/basic_ws_service.dart';
+import 'package:scamlab/service/lobby_ws_service.dart';
 import 'package:scamlab/service/game_service.dart';
 import 'package:scamlab/view/widget/rules_card_widget.dart';
+import 'package:scamlab/view/widget/timout_timer_widget.dart';
 
 class WaitingLobbyPage extends StatefulWidget {
   const WaitingLobbyPage({super.key});
@@ -15,12 +16,6 @@ class WaitingLobbyPage extends StatefulWidget {
 }
 
 class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
-  /*@override
-  void initState() {
-    super.initState();
-    Provider.of<LobbyWSProvider>(context, listen: false).startListening();
-  }*/
-
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
@@ -58,11 +53,11 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
                   Text("Scamlab - Player's username: "),
                   SelectableText(
                     provider
-                            .getLastMessageOfType<
-                              WaitingLobbyAssignedStrategyMessage
-                            >()
-                            ?.username ??
-                        "-",
+                      .getLastMessageOfType<
+                        WaitingLobbyAssignedStrategyMessage
+                      >()
+                      ?.username ??
+                      "-",
                   ),
                 ],
               );
@@ -87,6 +82,10 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
                         lastMessage is WaitingLobbyAssignedStrategyMessage ||
                         lastMessage == null) {
                       children.add(CircularProgressIndicator());
+                    }
+
+                    if (lastMessage == null) {
+                      children.add(const Text("Loading the new gameplay's strategy and role"));
                     }
 
                     if (lastMessage is WaitingLobbyReasonForWaitingMessage) {
@@ -166,6 +165,12 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
                         );
                       },
                     ),
+                    SizedBox.square(dimension: 8.0,),
+                    Consumer<LobbyWSProvider>(
+                      builder: (context, provider, child) {
+                        return provider.timeout != null ? TimoutTimerWidget(duration: Duration(seconds: provider.timeout ?? 0)) 
+                          : SizedBox.shrink();
+                      }),
                     Spacer(),
                     Consumer<LobbyWSProvider>(
                       builder: (context, lobbyWSProvider, child) {
