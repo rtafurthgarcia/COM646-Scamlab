@@ -24,10 +24,10 @@ public class StartMenuWSResource {
     SecurityIdentity securityIdentity;
 
     @OnOpen
-    public StartMenuStatisticsMessageDTO onOpen() {
+    public void onOpen() {
         Log.info(securityIdentity.getPrincipal().getName() + " successfully authenticated");
         Log.info("New WS connection: " + connection.endpointId());
-        return new StartMenuStatisticsMessageDTO(connectionManager.listAll().size());
+        connection.broadcast().sendTextAndAwait(new StartMenuStatisticsMessageDTO(connectionManager.listAll().size()));
     }
 
     @OnClose

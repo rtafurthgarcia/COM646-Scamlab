@@ -9,8 +9,9 @@ import 'package:scamlab/service/game_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LobbyWSProvider extends RetryableProvider {
-  final LobbyWSService wsService;
+  final LobbyWsService wsService;
   final GameService gameService;
+
   final SplayTreeMap<int, WsMessage> _bufferedMessages = SplayTreeMap();  bool _dontWaitNextTime = false;
   int _lastProcessedSequence = 0; // Track the last processed sequence number.
   bool get dontWaitNextTime => _dontWaitNextTime;
@@ -64,10 +65,13 @@ class LobbyWSProvider extends RetryableProvider {
     return _bufferedMessages.isNotEmpty ? _bufferedMessages.values.last : null;
   }
 
-    void voteToStart() {
+  void voteToStart() {
     final assignedMsg = getLastMessageOfType<WaitingLobbyAssignedStrategyMessage>();
     if (_mayStillStart && assignedMsg != null) {
-      wsService.voteToStart(assignedMsg.conversationSecondaryId);
+      wsService.sendMessage(WaitingLobbyVoteToStartMessage(
+        conversationSecondaryId: assignedMsg.conversationSecondaryId, 
+        sequence: _lastProcessedSequence) 
+      );
     }
   }
 
@@ -104,7 +108,6 @@ class LobbyWSProvider extends RetryableProvider {
         () => triggerTimeout(),
       );
     }
-    // You can add additional type-specific processing here.
   }
 
    void _onErrorReceived(dynamic error) {
