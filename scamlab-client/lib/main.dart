@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:scamlab/model/game.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/lobby_ws_provider.dart';
-import 'package:scamlab/provider/startmenu_ws_provider.dart';
-import 'package:scamlab/model/game_state_machine.dart';
 import 'package:scamlab/service/lobby_ws_service.dart';
 import 'package:scamlab/service/startmenu_ws_service.dart';
-import 'package:scamlab/service/ws_service.dart';
 import 'package:scamlab/service/authentication_service.dart';
 import 'package:scamlab/service/game_service.dart';
 import 'package:scamlab/theme.dart';
@@ -31,22 +29,10 @@ void main() {
         Provider(create: (context) => GameService(baseUrl: '$apiURL/api')),
         Provider(create: (context) => StartmenuWsService(wsUrl: "$wsURL/ws/start-menu")),
         Provider(create: (context) => LobbyWsService(wsUrl: "$wsURL/ws/games")),
+        Provider(create: (context) => Game()),
         ChangeNotifierProvider(create: (context) => AuthenticationProvider(
           authenticationService: context.read()
         )),
-        ChangeNotifierProxyProvider<AuthenticationProvider, StartMenuWSProvider>(
-          update: (context, authenticationProvider, startMenuWSProvider) {
-            if (authenticationProvider.player != null) {
-              startMenuWSProvider!.wsService.jwtToken = authenticationProvider.player!.jwtToken;
-              startMenuWSProvider.startListening();
-            } else {
-              startMenuWSProvider!.wsService.jwtToken = null;
-              startMenuWSProvider.stopListening();
-            }
-            return startMenuWSProvider;
-          }, 
-          create: (BuildContext context) => StartMenuWSProvider(wsService: context.read())
-        ),
         ChangeNotifierProxyProvider<AuthenticationProvider, LobbyWSProvider>(
           update: (context, authenticationProvider, lobbyWSProvider) {
             if (authenticationProvider.player != null) {
@@ -61,7 +47,8 @@ void main() {
           }, 
           create: (BuildContext context) => LobbyWSProvider(
             wsService: context.read(),
-            gameService: context.read()
+            gameService: context.read(),
+            game: context.read()
           )
         ),
       ],

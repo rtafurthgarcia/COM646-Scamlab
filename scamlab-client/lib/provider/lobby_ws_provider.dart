@@ -2,15 +2,18 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:collection/collection.dart';
+import 'package:scamlab/model/game.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/retryable_provider.dart';
 import 'package:scamlab/service/lobby_ws_service.dart';
 import 'package:scamlab/service/game_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:developer' as developer;
 
 class LobbyWSProvider extends RetryableProvider {
   final LobbyWsService wsService;
   final GameService gameService;
+  final Game game;
 
   final SplayTreeMap<int, WsMessage> _bufferedMessages = SplayTreeMap();  bool _dontWaitNextTime = false;
   int _lastProcessedSequence = 0; // Track the last processed sequence number.
@@ -23,13 +26,7 @@ class LobbyWSProvider extends RetryableProvider {
     notifyListeners();
   }
 
-  bool _mayStillStart = false;
-  bool get mayStillStart => _mayStillStart;
-
-  int? _timeout;
-  int? get timeout => _timeout;
-
-  LobbyWSProvider({required this.gameService, required this.wsService}) {
+  LobbyWSProvider({required this.gameService, required this.wsService, required this.game}) {
     loadSettings();
   }
 
@@ -47,7 +44,6 @@ class LobbyWSProvider extends RetryableProvider {
   void stopListening() {
     wsService.disconnect();
     _bufferedMessages.clear();
-    _mayStillStart = false;
     notifyListeners();
   }
 
@@ -67,7 +63,7 @@ class LobbyWSProvider extends RetryableProvider {
 
   void voteToStart() {
     final assignedMsg = getLastMessageOfType<WaitingLobbyAssignedStrategyMessage>();
-    if (_mayStillStart && assignedMsg != null) {
+    if (game.stateMachine.current == game.isWaiting && assignedMsg != null) {
       wsService.sendMessage(WaitingLobbyVoteToStartMessage(
         conversationSecondaryId: assignedMsg.conversationSecondaryId, 
         sequence: _lastProcessedSequence) 
@@ -78,6 +74,11 @@ class LobbyWSProvider extends RetryableProvider {
   Future<void> startListening() async {
     if (isReady()) {
       await gameService.joinNewGame();
+      game.stateMachine.start(game.isWaiting);
+      game.stateMachine.onStateChange.listen((event) {
+        developer.log("${game.stateMachine.name} went from ${event.from.name} to ${event.to.name}");
+        notifyListeners();
+      });
       wsService.connect(_onMessageReceived, _onErrorReceived);
     }
   }
@@ -99,14 +100,25 @@ class LobbyWSProvider extends RetryableProvider {
   }
 
   void _applyMessage(WsMessage message) {
-    // Handle the message according to its type.
+    if (message is WaitingLobbyAssignedStrategyMessage) {
+      game.conversationId = message.conversationSecondaryId;
+    }
+
+    if (message is WaitingLobbyReasonForWaitingMessage && game.conditionsNotMetAnymore.canCall()) {
+      game.conditionsNotMetAnymore();
+    }
+
     if (message is WaitingLobbyReadyToStartMessage) {
-      _mayStillStart = true;
-      _timeout = message.voteTimeout;
       Timer(
         Duration(seconds: message.voteTimeout),
         () => triggerTimeout(),
       );
+
+      game.conditionsMetForStart();
+    }
+
+    if (message is WaitingLobbyVoteAcknowledgedMessage) {
+      game.playersClickedStart();
     }
   }
 
@@ -117,14 +129,16 @@ class LobbyWSProvider extends RetryableProvider {
   }
 
   void triggerTimeout() {
-    _mayStillStart = false;
-    _timeout = null;
-    notifyListeners();
+    if (game.startTimedOut.canCall()) {
+      game.startTimedOut();
+      notifyListeners();
+    }
   }
 
   @override
   void dispose() {
     stopListening();
+    game.reset();
     super.dispose();
   }
   

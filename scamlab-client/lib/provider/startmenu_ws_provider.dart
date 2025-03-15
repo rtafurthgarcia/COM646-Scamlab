@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:scamlab/model/ws_message.dart';
-import 'package:scamlab/service/lobby_ws_service.dart';
+import 'package:scamlab/service/startmenu_ws_service.dart';
 
 class StartMenuWSProvider extends ChangeNotifier {
-  final LobbyWsService wsService;
-  StartMenuStatisticsMessage? _chatMessage;
+  final StartmenuWsService wsService;
+  int? _playersCount;
 
   bool isReady() {
     return wsService.jwtToken != null;
   }
 
-  StartMenuStatisticsMessage? get chatMessage => _chatMessage;
+  int? get playersCount => _playersCount;
 
   StartMenuWSProvider({required this.wsService});
 
@@ -24,12 +24,13 @@ class StartMenuWSProvider extends ChangeNotifier {
     // Start the connection when this provider is instantiated.
     if (isReady()) {
       wsService.connect(_onMessageReceived, _onErrorReceived);
+      notifyListeners();
     }
   }
 
   void _onMessageReceived(WsMessage message) {
     if (message is StartMenuStatisticsMessage) {
-      _chatMessage = message;
+      _playersCount = message.playersConnectedCount;
       notifyListeners();
     }
   }
