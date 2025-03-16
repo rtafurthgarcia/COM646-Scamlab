@@ -95,7 +95,7 @@ public class GameService {
     }
 
     public Conversation findConversationBySecondaryId(UUID secondaryId) {
-        return entityManager.createQuery("SELECT c FROM Conversation p WHERE secondaryId = :secondaryId", Conversation.class)
+        return entityManager.createQuery("SELECT c FROM Conversation c WHERE secondaryId = :secondaryId", Conversation.class)
             .setParameter("secondaryId", secondaryId)
             .getSingleResult();   
     }

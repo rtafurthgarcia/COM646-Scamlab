@@ -19,6 +19,7 @@ import io.quarkus.websockets.next.runtime.ConnectionManager;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.inject.Inject;
+import model.dto.MessageDTODecoder;
 import model.dto.GameDTO.GameGameCancelledMessageDTO;
 import model.dto.GameDTO.LeaveRequestDTO;
 import model.dto.GameDTO.VoteStartRequestDTO;
@@ -118,7 +119,7 @@ public class GameWSResource {
         registry.unregister(securityIdentity.getPrincipal().getName());
     }
 
-    @OnTextMessage
+    @OnTextMessage(codec = MessageDTODecoder.class)
     public void processAsync(Record message) {
         if (message instanceof WaitingLobbyVoteToStartMessageDTO) {
             var conversationId = UUID.fromString(((WaitingLobbyVoteToStartMessageDTO) message).conversationSecondaryId());

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 enum WsMessageType {
   notifyStartMenuStatistics(value: 1),
   notifyReasonForWaiting(value: 2),
@@ -45,7 +47,7 @@ WsMessageType wsMessageTypeFromInt(int value) {
   );
 }
 
-WsMessage mapMessage({required Map<String, dynamic> json, required int sequence}) {
+WsMessage deserialiseMessage({required Map<String, dynamic> json, required int sequence}) {
   final type = wsMessageTypeFromInt(json['type'] as int);
 
   switch (type) {
@@ -57,8 +59,6 @@ WsMessage mapMessage({required Map<String, dynamic> json, required int sequence}
       return WaitingLobbyAssignedStrategyMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.readyToStart:
       return WaitingLobbyReadyToStartMessage.fromJson(json: json, sequence: sequence);
-    case WsMessageType.voteToStart:
-      return WaitingLobbyVoteToStartMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.voteAcknowledged:
       return WaitingLobbyVoteAcknowledgedMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.gameStarting:
@@ -71,6 +71,17 @@ WsMessage mapMessage({required Map<String, dynamic> json, required int sequence}
       return GameFinishedMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.gameCancelled:
       return GameCancelledMessage.fromJson(json: json, sequence: sequence);
+    default:
+      throw JsonUnsupportedObjectError(type);
+  }
+}
+
+String serialiseMessage({required WsMessage message}) {
+  switch (message) {
+    case WaitingLobbyVoteToStartMessage m:
+      return m.toJsonString();
+    default: 
+      throw JsonUnsupportedObjectError(message);
   }
 }
 
@@ -167,14 +178,14 @@ class WaitingLobbyVoteToStartMessage extends WsMessage {
 
   WaitingLobbyVoteToStartMessage({
     required this.conversationSecondaryId,
-    required super.sequence,
+    required super.sequence
   }) : super(type: WsMessageType.voteToStart);
 
-  factory WaitingLobbyVoteToStartMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
-    return WaitingLobbyVoteToStartMessage(
-      conversationSecondaryId: json['conversationSecondaryId'] as String,
-      sequence: sequence
-    );
+  String toJsonString() {
+    return json.encode({
+      'type': super.type.value,
+      'conversationSecondaryId': conversationSecondaryId
+    });
   }
 }
 

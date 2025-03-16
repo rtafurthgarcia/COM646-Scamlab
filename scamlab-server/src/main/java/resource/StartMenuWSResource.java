@@ -5,9 +5,9 @@ import io.quarkus.security.Authenticated;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.websockets.next.OnClose;
 import io.quarkus.websockets.next.OnOpen;
+import io.quarkus.websockets.next.OpenConnections;
 import io.quarkus.websockets.next.WebSocket;
 import io.quarkus.websockets.next.WebSocketConnection;
-import io.quarkus.websockets.next.runtime.ConnectionManager;
 import jakarta.inject.Inject;
 import model.dto.GameDTO.StartMenuStatisticsMessageDTO;
 
@@ -18,7 +18,8 @@ public class StartMenuWSResource {
     WebSocketConnection connection;
 
     @Inject
-    ConnectionManager connectionManager;
+    OpenConnections connections;
+
 
     @Inject
     SecurityIdentity securityIdentity;
@@ -27,12 +28,12 @@ public class StartMenuWSResource {
     public void onOpen() {
         Log.info(securityIdentity.getPrincipal().getName() + " successfully authenticated");
         Log.info("New WS connection: " + connection.endpointId());
-        connection.broadcast().sendTextAndAwait(new StartMenuStatisticsMessageDTO(connectionManager.listAll().size()));
+        connection.broadcast().sendTextAndAwait(new StartMenuStatisticsMessageDTO(connections.listAll().size()));
     }
 
     @OnClose
     public void onClose() {
         Log.info("WS connection closed: " + connection.endpointId());
-        connection.broadcast().sendTextAndAwait(new StartMenuStatisticsMessageDTO(connectionManager.listAll().size()));
+        connection.broadcast().sendTextAndAwait(new StartMenuStatisticsMessageDTO(connections.listAll().size()));
     }
 }

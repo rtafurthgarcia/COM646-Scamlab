@@ -38,7 +38,7 @@ abstract class WSService {
     _channel?.stream.listen((data) {
       // Assume the incoming data is in JSON format.
       final Map<String, dynamic> decodedData = json.decode(data);
-      final chatMessage = mapMessage(json: decodedData, sequence: _sequence);
+      final chatMessage = deserialiseMessage(json: decodedData, sequence: _sequence);
       _sequence++;
 
       onMessage(chatMessage);
@@ -64,7 +64,7 @@ abstract class WSService {
 
   Future<void> sendMessage(WsMessage message) async {
     if (isListening()) {
-      _channel!.sink.add(message);
+      _channel!.sink.add(serialiseMessage(message: message));
     }
   }
   

@@ -2,7 +2,9 @@ package helper;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
+import io.quarkus.arc.Lock;
 import jakarta.enterprise.context.ApplicationScoped;
 
 /*
@@ -10,6 +12,7 @@ import jakarta.enterprise.context.ApplicationScoped;
     Basically, keep a count of the involved players who started the game before the timeout ran out. 
  */
 @ApplicationScoped
+@Lock
 public class VoteToStartRegistry {
 
     // Map player's secondary ID to conversation ID
@@ -31,6 +34,7 @@ public class VoteToStartRegistry {
      * @param playerId The player's primary identifier.
      * @return The corresponding conversation's primary identifier., or null if not found.
      */
+    @Lock(value = Lock.Type.READ, time = 1, unit = TimeUnit.SECONDS)
     public Boolean hasVoted(Long playerId) {
         return VoteMap.containsKey(playerId);
     }
