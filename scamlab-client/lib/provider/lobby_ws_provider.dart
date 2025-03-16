@@ -15,8 +15,8 @@ class LobbyWSProvider extends RetryableProvider {
   final GameService gameService;
   final Game game;
 
-  final SplayTreeMap<int, WsMessage> _bufferedMessages = SplayTreeMap();  bool _dontWaitNextTime = false;
-  int _lastProcessedSequence = 0; // Track the last processed sequence number.
+  final SplayTreeSet<WsMessage> _messages = SplayTreeSet((m1, m2) => m1.sequence.compareTo(m2.sequence));
+  bool _dontWaitNextTime = false;
   bool get dontWaitNextTime => _dontWaitNextTime;
   late final SharedPreferences _settings;
 
@@ -43,22 +43,22 @@ class LobbyWSProvider extends RetryableProvider {
   bool isListening() => wsService.isListening();
   void stopListening() {
     wsService.disconnect();
-    _bufferedMessages.clear();
+    _messages.clear();
     notifyListeners();
   }
 
   void clearMessages() {
-    _bufferedMessages.clear();
+    _messages.clear();
     notifyListeners();
   }
 
   T? getLastMessageOfType<T extends WsMessage>() {
     // As _bufferedMessages is keyed by sequence, iterate its values.
-    return _bufferedMessages.values.whereType<T>().lastOrNull;
+    return _messages.whereType<T>().lastOrNull;
   }
 
   WsMessage? getLastMessage() {
-    return _bufferedMessages.isNotEmpty ? _bufferedMessages.values.last : null;
+    return _messages.isNotEmpty ? _messages.last : null;
   }
 
   void voteToStart() {
@@ -66,7 +66,7 @@ class LobbyWSProvider extends RetryableProvider {
     if (game.stateMachine.current == game.isWaiting && assignedMsg != null) {
       wsService.sendMessage(WaitingLobbyVoteToStartMessage(
         conversationSecondaryId: assignedMsg.conversationSecondaryId, 
-        sequence: _lastProcessedSequence) 
+        sequence: 0) 
       );
     }
   }
@@ -85,21 +85,12 @@ class LobbyWSProvider extends RetryableProvider {
 
   void _onMessageReceived(WsMessage message) {
     // Insert the incoming message keyed by its sequence.
-    _bufferedMessages[message.sequence] = message;
-    _processBufferedMessages();
+    _messages.add(message);
+    _processMessage(message);
     notifyListeners();
   }
 
-  void _processBufferedMessages() {
-    // Process messages in order starting from lastProcessedSequence + 1.
-    while (_bufferedMessages.containsKey(_lastProcessedSequence + 1)) {
-      final nextMessage = _bufferedMessages.remove(_lastProcessedSequence + 1)!;
-      _applyMessage(nextMessage);
-      _lastProcessedSequence++;
-    }
-  }
-
-  void _applyMessage(WsMessage message) {
+  void _processMessage(WsMessage message) {
     if (message is WaitingLobbyAssignedStrategyMessage) {
       game.conversationId = message.conversationSecondaryId;
     }

@@ -112,13 +112,13 @@ public class GameWSResource {
     @OnClose
     public void onClose() {
         Log.info("WS connection closed: " + connection.endpointId());
-        registry.unregister(securityIdentity.getPrincipal().getName());
         leaveEmitter.send(
             new LeaveRequestDTO(
                 UUID.fromString(securityIdentity.getPrincipal().getName()),
                 TransitionReason.ConnectionGotTerminated
             )
         );
+        registry.unregister(securityIdentity.getPrincipal().getName());
     }
 
     @OnTextMessage

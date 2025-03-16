@@ -386,10 +386,10 @@ public class GameService {
                     request.reason()
                 );
                 conversation.getParticipants().removeIf(p -> p.getParticipationId().getPlayer().getSecondaryId().equals(request.player()));
+                sendReasonForTheWaitingIfAny(conversation);
             }
 
             entityManager.persist(conversation);
-            sendReasonForTheWaitingIfAny(conversation);
         }
     }
 }
