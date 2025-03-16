@@ -30,6 +30,7 @@ import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import model.dto.GameDTO.LeaveRequestDTO;
+import model.dto.GameDTO.VoteAcknowledgedMessageDTO;
 import model.dto.GameDTO.VoteStartRequestDTO;
 import model.dto.GameDTO.WSReasonForWaiting;
 import model.dto.GameDTO.WaitingLobbyAssignedStrategyMessageDTO;
@@ -61,9 +62,9 @@ public class GameService {
     Long timeOutForWaitingLobby;
 
     @Inject
-    @Channel("notify-evolution")
+    @Channel("notify-reason-for-waiting")
     @Broadcast
-    Emitter<WaitingLobbyReasonForWaitingMessageDTO> notifyEvolutionEmitter;
+    Emitter<WaitingLobbyReasonForWaitingMessageDTO> notifyReasonForWaitingEmitter;
 
     @Inject
     @Channel("assign-new-role")
@@ -74,6 +75,11 @@ public class GameService {
     @Channel("notify-game-as-ready")
     @Broadcast
     Emitter<WaitingLobbyReadyToStartMessageDTO> notifyGameAsReadyEmitter;
+
+    @Inject
+    @Channel("acknowledge-start-vote")
+    @Broadcast
+    Emitter<VoteAcknowledgedMessageDTO> acknowledgeStartVoteEmitter;
 
     @Inject
     @Channel("notify-game-as-starting")
@@ -169,7 +175,7 @@ public class GameService {
         }
 
         for (var player: conversation.getParticipants()) {
-            notifyEvolutionEmitter.send(
+            notifyReasonForWaitingEmitter.send(
                 new WaitingLobbyReasonForWaitingMessageDTO(
                     player.getParticipationId().getPlayer().getSecondaryId().toString(),
                     reasonsList
@@ -280,7 +286,7 @@ public class GameService {
 
         var conversation = entityManager.find(Conversation.class, conversationId);
         conversation.getParticipants().forEach(p -> {
-            notifyEvolutionEmitter.send(
+            notifyReasonForWaitingEmitter.send(
                 new WaitingLobbyReasonForWaitingMessageDTO
                 (
                     p.getParticipationId().getPlayer().getSecondaryId().toString(), 
@@ -338,6 +344,7 @@ public class GameService {
 
         if (! registry.hasVoted(player.getId())) {
             registry.register(player.getId(), conversation.getId());
+            acknowledgeStartVoteEmitter.send(new VoteAcknowledgedMessageDTO(player.getSecondaryId().toString()));
         }
 
         var everyOneHasVotedToStart = conversation.getParticipants()
@@ -405,7 +412,7 @@ public class GameService {
 
                 conversation.getParticipants().removeIf(p -> p.getParticipationId().getPlayer().getSecondaryId().equals(request.player()));
                 conversation.getParticipants().forEach(p -> {
-                    notifyEvolutionEmitter.send(
+                    notifyReasonForWaitingEmitter.send(
                         new WaitingLobbyReasonForWaitingMessageDTO
                         (
                             p.getParticipationId().getPlayer().getSecondaryId().toString(), 

@@ -12,18 +12,21 @@ class Game {
 
   late State isWaiting;
   late State isReady;
+  late State isWaitingForStartOfGame;
   late State isRunning;
   late State isVoting;
+  late State isWaitingForEndOfVote;
   late State isFinished;
   late State isCancelled;
 
   late StateTransition conditionsMetForStart;
   late StateTransition conditionsNotMetAnymore;
   late StateTransition startTimedOut;
-  late StateTransition playersClickedStart;
+  late StateTransition playerStarted;
+  late StateTransition allPlayersStarted;
   late StateTransition gameGotInterrupted;
   late StateTransition voteCalled;
-  late StateTransition voted;
+  late StateTransition playerVoted;
   late StateTransition voteTimedOut;
   late StateTransition keepOnPlaying;
   late StateTransition reachedEndGame;
@@ -41,20 +44,23 @@ class Game {
   void _prepare() {
     isWaiting = stateMachine.newState("isWaiting");
     isReady = stateMachine.newState("isReady");
+    isWaitingForStartOfGame = stateMachine.newState("isWaitingForStartOfGame");
     isRunning = stateMachine.newState("isRunning");
     isVoting = stateMachine.newState("isVoting");
+    isWaitingForEndOfVote = stateMachine.newState("isWaitingForEndOfVote");
     isFinished = stateMachine.newState("isFinished");
     isCancelled = stateMachine.newState("isCancelled");
 
     conditionsMetForStart = stateMachine.newStateTransition('conditionsMetForStart', [isWaiting], isReady);
-    conditionsNotMetAnymore = stateMachine.newStateTransition('conditionsNotMetAnymore', [isReady], isWaiting);
-    startTimedOut = stateMachine.newStateTransition('startTimedOut', [isReady], isWaiting);
-    playersClickedStart = stateMachine.newStateTransition('playersClickedStart', [isReady], isRunning);
+    conditionsNotMetAnymore = stateMachine.newStateTransition('conditionsNotMetAnymore', [isReady, isWaitingForStartOfGame], isWaiting);
+    startTimedOut = stateMachine.newStateTransition('startTimedOut', [isReady, isWaitingForStartOfGame], isWaiting);
+    playerStarted = stateMachine.newStateTransition('playerStarted', [isReady], isWaitingForStartOfGame);
+    allPlayersStarted = stateMachine.newStateTransition('allPlayersStarted', [isWaitingForStartOfGame], isRunning);
     gameGotInterrupted = stateMachine.newStateTransition('gameGotInterrupted', [isRunning], isCancelled);
     voteCalled = stateMachine.newStateTransition('voteCalled', [isRunning], isVoting);
-    voted = stateMachine.newStateTransition('voted', [isVoting], isRunning);
-    voteTimedOut = stateMachine.newStateTransition('voteTimedOut', [isVoting], isRunning);
-    keepOnPlaying = stateMachine.newStateTransition('keepOnPlaying', [isVoting], isRunning);
-    reachedEndGame = stateMachine.newStateTransition('reachedEndGame', [isVoting], isFinished);
+    playerVoted = stateMachine.newStateTransition('playerVoted', [isVoting], isWaitingForEndOfVote);
+    voteTimedOut = stateMachine.newStateTransition('voteTimedOut', [isVoting], isWaitingForEndOfVote);
+    keepOnPlaying = stateMachine.newStateTransition('keepOnPlaying', [isWaitingForEndOfVote], isRunning);
+    reachedEndGame = stateMachine.newStateTransition('reachedEndGame', [isWaitingForEndOfVote], isFinished);
   }
 }

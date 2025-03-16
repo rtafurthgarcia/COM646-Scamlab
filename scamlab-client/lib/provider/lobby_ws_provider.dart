@@ -109,7 +109,11 @@ class LobbyWSProvider extends RetryableProvider {
     }
 
     if (message is WaitingLobbyVoteAcknowledgedMessage) {
-      game.playersClickedStart();
+      game.playerStarted();
+    }
+
+    if (message is WaitingLobbyGameStartingMessage) {
+      game.allPlayersStarted();
     }
   }
 

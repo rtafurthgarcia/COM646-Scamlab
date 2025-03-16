@@ -22,6 +22,7 @@ import jakarta.inject.Inject;
 import model.dto.MessageDTODecoder;
 import model.dto.GameDTO.GameGameCancelledMessageDTO;
 import model.dto.GameDTO.LeaveRequestDTO;
+import model.dto.GameDTO.VoteAcknowledgedMessageDTO;
 import model.dto.GameDTO.VoteStartRequestDTO;
 import model.dto.GameDTO.WaitingLobbyAssignedStrategyMessageDTO;
 import model.dto.GameDTO.WaitingLobbyGameStartingMessageDTO;
@@ -62,7 +63,7 @@ public class GameWSResource {
         registry.register(securityIdentity.getPrincipal().getName(), connection.id());
     }
 
-    @Incoming("notify-evolution")
+    @Incoming("notify-reason-for-waiting")
     public Uni<Void> notifyPlayersOfChange(WaitingLobbyReasonForWaitingMessageDTO statistics) {
         Log.info("Notified player " 
             + statistics.playerSecondaryId() 
@@ -98,9 +99,18 @@ public class GameWSResource {
         ).get().sendText(message);
     }
 
+    @Incoming("acknowledge-start-vote")
+    public Uni<Void> acknowledgeStartVote(VoteAcknowledgedMessageDTO message) {
+        Log.info("Notify player " + message.playerSecondaryId() + " that their start vote has been acknowledged");
+        
+        return connectionManager.findByConnectionId(
+            registry.getConnectionId(message.playerSecondaryId())
+        ).get().sendText(message);
+    }
+
     @Incoming("notify-game-as-starting")
     public Uni<Void> startGame(WaitingLobbyGameStartingMessageDTO message) {
-        Log.info("Player " + message.playerSecondaryId() + " notified that their game is starting");
+        Log.info("Notify player " + message.playerSecondaryId() + " that their game is starting");
         
         return connectionManager.findByConnectionId(
             registry.getConnectionId(message.playerSecondaryId())
