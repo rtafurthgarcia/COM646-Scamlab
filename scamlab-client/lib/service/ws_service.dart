@@ -45,8 +45,9 @@ abstract class WSService {
       developer.log(chatMessage.toString(), name: 'scamlab.wsservice');
     }, onError: (error) {
       onError(error);
-      developer.log(error.toString(), name: 'scamlab.wsservice');
+      developer.log(error.toString(), error: error, name: 'scamlab.wsservice');
     }, onDone: () {
+      developer.log("Connected closed.", name: 'scamlab.wsservice');
       // per WebSocket https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.5
       if (_channel?.closeCode != null && _channel?.closeCode != 1000 ) {
         onError(WebSocketException("Connection not closed properly", _channel?.closeCode));

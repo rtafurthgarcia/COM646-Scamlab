@@ -16,7 +16,7 @@ import io.quarkus.websockets.next.OnTextMessage;
 import io.quarkus.websockets.next.WebSocket;
 import io.quarkus.websockets.next.WebSocketConnection;
 import io.quarkus.websockets.next.runtime.ConnectionManager;
-import io.smallrye.common.annotation.RunOnVirtualThread;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.inject.Inject;
 import model.dto.GameDTO.GameGameCancelledMessageDTO;
@@ -62,51 +62,48 @@ public class GameWSResource {
     }
 
     @Incoming("notify-evolution")
-    @RunOnVirtualThread
-    public void notifyPlayersOfChange(WaitingLobbyReasonForWaitingMessageDTO statistics) {
-        connectionManager.findByConnectionId(
-            registry.getConnectionId(statistics.playerSecondaryId())
-        ).get().sendTextAndAwait(statistics);
-
+    public Uni<Void> notifyPlayersOfChange(WaitingLobbyReasonForWaitingMessageDTO statistics) {
         Log.info("Notified player " 
             + statistics.playerSecondaryId() 
             + " about the reasons why they are waiting: " 
             + String.join(", ", statistics.reasons()));
+
+        return connectionManager.findByConnectionId(
+            registry.getConnectionId(statistics.playerSecondaryId())
+        ).get().sendText(statistics);
     }
 
     @Incoming("assign-new-role")
-    @RunOnVirtualThread
-    public void notifyOfNewlyAssignedRole(WaitingLobbyAssignedStrategyMessageDTO message) {
-        connectionManager.findByConnectionId(
-            registry.getConnectionId(message.playerSecondaryId())
-        ).get().sendTextAndAwait(message);
-
+    public Uni<Void> notifyOfNewlyAssignedRole(WaitingLobbyAssignedStrategyMessageDTO message) {
         Log.info("Role " 
             + message.role()  
             + " assigned for player " 
             + message.playerSecondaryId() 
             + " part of game " 
             + message.conversationSecondaryId());
+
+        return connectionManager.findByConnectionId(
+            registry.getConnectionId(message.playerSecondaryId())
+            ).get().sendText(message);
+            
     }
 
     @Incoming("notify-game-as-ready")
-    @RunOnVirtualThread
-    public void setGameAsReady(WaitingLobbyReadyToStartMessageDTO message) {
-        connectionManager.findByConnectionId(
-            registry.getConnectionId(message.playerSecondaryId())
-        ).get().sendTextAndAwait(message);
-
+    public Uni<Void> setGameAsReady(WaitingLobbyReadyToStartMessageDTO message) {
         Log.info("Player " + message.playerSecondaryId() + " notified that their game is ready");
+        
+        return connectionManager.findByConnectionId(
+            registry.getConnectionId(message.playerSecondaryId())
+        ).get().sendText(message);
     }
 
     @Incoming("notify-game-as-starting")
-    @RunOnVirtualThread
-    public void startGame(WaitingLobbyGameStartingMessageDTO message) {
-        connectionManager.findByConnectionId(
-            registry.getConnectionId(message.playerSecondaryId())
-        ).get().sendTextAndAwait(message);
-
+    public Uni<Void> startGame(WaitingLobbyGameStartingMessageDTO message) {
         Log.info("Player " + message.playerSecondaryId() + " notified that their game is starting");
+        
+        return connectionManager.findByConnectionId(
+            registry.getConnectionId(message.playerSecondaryId())
+        ).get().sendText(message);
     }
 
     @OnClose

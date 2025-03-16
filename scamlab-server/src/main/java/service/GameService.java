@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
@@ -17,6 +19,7 @@ import helper.MathHelper;
 import helper.VoteToStartRegistry;
 import helper.DefaultKeyValues.RoleValue;
 import helper.DefaultKeyValues.StateValue;
+import io.quarkus.arc.Lock;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduler;
 import io.quarkus.scheduler.Scheduled.ConcurrentExecution;
@@ -99,7 +102,7 @@ public class GameService {
 
     @Incoming(value = "put-players-on-waiting-list")
     @RunOnVirtualThread
-    //@Lock(value = Lock.Type.WRITE, time = 1, unit = TimeUnit.SECONDS)  
+    @Lock(value = Lock.Type.WRITE, time = 1, unit = TimeUnit.SECONDS)  
     public void putPlayerOnWaitingList(Player player) {
         makeSureGameExists();
         setupGameForPlayer(player);
@@ -109,12 +112,13 @@ public class GameService {
         var results = entityManager.createQuery(
             """
                 SELECT c.id, c.testingScenario, COUNT(p) FROM Conversation c
-                JOIN c.participants p
-                WHERE c.currentState.id = :state
+                LEFT OUTER JOIN c.participants p
+                WHERE c.currentState.id IN (:state1)
                 GROUP BY c.id, c.testingScenario
                 HAVING (c.testingScenario = :scenario1 AND COUNT(p) < :scenario1HumanCount) OR (c.testingScenario = :scenario2 AND COUNT(p) < :scenario2HumanCount)
                     """, Object[].class)
-            .setParameter("state", DefaultKeyValues.StateValue.WAITING.value)
+            .setParameter("state1", DefaultKeyValues.StateValue.WAITING.value)
+            //.setParameter("state2", DefaultKeyValues.StateValue.READY.value)
             .setParameter("scenario1", TestingScenario.OneBotTwoHumans)
             .setParameter("scenario2", TestingScenario.ThreeHumans)
             .setParameter("scenario1HumanCount", TestingScenario.OneBotTwoHumans.numberOfHumans)
@@ -158,6 +162,10 @@ public class GameService {
 
         if (ongoingGamesCount == maxOngoingGamesCount) {
             reasonsList.add(WSReasonForWaiting.ALL_LOBBIES_OCCUPIED);
+        }
+
+        if (reasonsList.isEmpty()) {
+            reasonsList.add(WSReasonForWaiting.SYNCHRONISING);
         }
 
         for (var player: conversation.getParticipants()) {
@@ -268,6 +276,8 @@ public class GameService {
     }
 
     void timeoutTriggered(Long conversationId) {
+        Log.info("Timeout triggered for start for game " + conversationId.toString());
+
         var conversation = entityManager.find(Conversation.class, conversationId);
         conversation.getParticipants().forEach(p -> {
             notifyEvolutionEmitter.send(
@@ -321,6 +331,7 @@ public class GameService {
 
     @Incoming(value = "register-start-game")
     @RunOnVirtualThread
+    @Lock(value = Lock.Type.WRITE, time = 1, unit = TimeUnit.SECONDS)  
     public void registerStartGame(VoteStartRequestDTO request) {
         var conversation = findConversationBySecondaryId(request.conversation());
         var player = findPlayerBySecondaryId(request.player());
@@ -347,6 +358,7 @@ public class GameService {
 
     @Incoming(value = "handle-player-leaving")
     @RunOnVirtualThread
+    @Lock(value = Lock.Type.WRITE, time = 1, unit = TimeUnit.SECONDS)  
     public void handlePlayerLeavingConversation(LeaveRequestDTO request) {
         var anyConversationInvolvedIn = entityManager.createQuery(
             """
@@ -380,16 +392,34 @@ public class GameService {
                     entityManager.find(State.class, DefaultKeyValues.StateValue.CANCELLED.value),
                     request.reason()
                 );
+                entityManager.persist(conversation);
             } else {
+                if (conversation.getCurrentState().getId().equals(DefaultKeyValues.StateValue.READY.value)) {
+                    scheduler.unscheduleJob(conversation.getId().toString());
+                }
+
                 conversation.setCurrentState(
                     entityManager.find(State.class, DefaultKeyValues.StateValue.WAITING.value),
                     request.reason()
-                );
+                    );
+
                 conversation.getParticipants().removeIf(p -> p.getParticipationId().getPlayer().getSecondaryId().equals(request.player()));
-                sendReasonForTheWaitingIfAny(conversation);
+                conversation.getParticipants().forEach(p -> {
+                    notifyEvolutionEmitter.send(
+                        new WaitingLobbyReasonForWaitingMessageDTO
+                        (
+                            p.getParticipationId().getPlayer().getSecondaryId().toString(), 
+                            Arrays.asList(WSReasonForWaiting.OTHER_PLAYERS_LEFT, WSReasonForWaiting.NOT_ENOUGH_PLAYERS)
+                        )
+                    );
+                });
+                var playersLeft = conversation.getParticipants().stream().map(p -> p.getParticipationId().getPlayer()).toList();
+                conversation.getParticipants().clear();
+                entityManager.persist(conversation);
+
+                playersLeft.forEach(p -> putPlayerOnWaitingList(p));
             }
 
-            entityManager.persist(conversation);
         }
     }
 }

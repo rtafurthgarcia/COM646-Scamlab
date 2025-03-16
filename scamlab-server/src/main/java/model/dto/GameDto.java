@@ -8,9 +8,11 @@ import model.entity.TransitionReason;
 
 public class GameDTO {
     public static enum WSReasonForWaiting {
-        NOT_ENOUGH_PLAYERS("Waiting on other players to join..."),
+        NOT_ENOUGH_PLAYERS("Waiting on other player(s) to join..."),
         ALL_LOBBIES_OCCUPIED("Waiting on a free lobby..."),
-        START_CANCELLED_TIEMOUT("Players didnt start the game on time...");
+        START_CANCELLED_TIEMOUT("Player(s) didn't start the game on time..."),
+        OTHER_PLAYERS_LEFT("Some player(s) left..."),
+        SYNCHRONISING("Please hold on a bit...");
 
         public final String message;
 
