@@ -19,6 +19,7 @@ import io.quarkus.websockets.next.runtime.ConnectionManager;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import model.dto.MessageDTODecoder;
 import model.dto.GameDTO.GameGameCancelledMessageDTO;
 import model.dto.GameDTO.LeaveRequestDTO;
@@ -32,6 +33,7 @@ import model.dto.GameDTO.WaitingLobbyVoteToStartMessageDTO;
 import model.entity.TransitionReason;
 
 @Authenticated
+@Singleton
 @WebSocket(path = "/ws/lobby")
 public class LobbyWSResource {
     @Inject

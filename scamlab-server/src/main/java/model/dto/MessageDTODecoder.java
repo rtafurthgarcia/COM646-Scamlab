@@ -42,28 +42,14 @@ public class MessageDTODecoder implements TextMessageCodec<Record> {
         WSMessageType messageType = WSMessageType.fromValue(typeNode.asLong());
 
         return switch (messageType) {
-            case NOTIFY_REASON_FOR_WAITING -> 
-                objectMapper.readValue(json, GameDTO.WaitingLobbyReasonForWaitingMessageDTO.class);
-            case NOTIFY_START_MENU_STATISTICS -> 
-                objectMapper.readValue(json, GameDTO.StartMenuStatisticsMessageDTO.class);
-            case STRATEGY_ASSIGNED -> 
-                objectMapper.readValue(json, GameDTO.WaitingLobbyAssignedStrategyMessageDTO.class);
-            case READY_TO_START -> 
-                objectMapper.readValue(json, GameDTO.WaitingLobbyReadyToStartMessageDTO.class);
             case VOTE_TO_START -> 
                 objectMapper.readValue(json, GameDTO.WaitingLobbyVoteToStartMessageDTO.class);
-            case VOTE_ACKNOWLEDGED -> 
-                objectMapper.readValue(json, GameDTO.VoteAcknowledgedMessageDTO.class);
             case GAME_STARTING -> 
                 objectMapper.readValue(json, GameDTO.WaitingLobbyGameStartingMessageDTO.class);
             case GAME_CANCELLED -> 
                 objectMapper.readValue(json, GameDTO.GameGameCancelledMessageDTO.class);
-            case CALL_TO_VOTE -> 
-                objectMapper.readValue(json, GameDTO.GameCallToVoteMessageDTO.class);
             case CAST_VOTE -> 
                 objectMapper.readValue(json, GameDTO.GameCastVoteMessageDTO.class);
-            case GAME_FINISHED -> 
-                objectMapper.readValue(json, GameDTO.GameFinishedMessageDTO.class);
             case PLAYERS_MESSAGE -> 
                 objectMapper.readValue(json, GameDTO.GamePlayersMessageDTO.class);
             default -> throw new JsonException(json);

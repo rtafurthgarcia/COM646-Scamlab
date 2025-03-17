@@ -76,7 +76,8 @@ class LobbyWSProvider extends RetryableProvider {
         developer.log("${game.stateMachine.name} went from ${event.from.name} to ${event.to.name}");
         notifyListeners();
       });
-      wsService.connect(_onMessageReceived, _onErrorReceived);
+      wsService.connect();
+      wsService.stream.listen((message) => _onMessageReceived(message), onError: _onErrorReceived);
     }
   }
 
@@ -90,6 +91,8 @@ class LobbyWSProvider extends RetryableProvider {
   void _processMessage(WsMessage message) {
     if (message is WaitingLobbyAssignedStrategyMessage) {
       game.conversationId = message.conversationSecondaryId;
+      game.username = message.username;
+      game.playerId = message.playerSecondaryId;
     }
 
     if (message is WaitingLobbyReasonForWaitingMessage && game.conditionsNotMetAnymore.canCall()) {

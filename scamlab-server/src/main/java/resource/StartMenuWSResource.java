@@ -20,7 +20,6 @@ public class StartMenuWSResource {
     @Inject
     OpenConnections connections;
 
-
     @Inject
     SecurityIdentity securityIdentity;
 

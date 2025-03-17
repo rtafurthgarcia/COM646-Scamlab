@@ -199,13 +199,33 @@ public class GameDTO {
 
     @RegisterForReflection
     public static record GamePlayersMessageDTO(
-        WSMessageType type,
-        String playerSecondaryId,
-        String text, 
-        String imagePath
-    ) implements MessageDTO {
-        public GamePlayersMessageDTO(String playerSecondaryId, String text, String imagePath) {
-            this(WSMessageType.PLAYERS_MESSAGE, playerSecondaryId, text, imagePath);
+            WSMessageType type,
+            String senderSecondaryId,
+            String senderUsername,
+            String text,
+            String imagePath) implements MessageDTO {
+        public GamePlayersMessageDTO(String playerSecondaryId, String username, String text, String imagePath) {
+            this(WSMessageType.PLAYERS_MESSAGE, playerSecondaryId, username, text, imagePath);
+        }
+
+        @Override
+        public WSMessageType getType() {
+            return type;
+        }
+    }
+
+    @RegisterForReflection
+    public static record GamePlayersMessageBroadcastedDTO(
+            WSMessageType type,
+            String senderSecondaryId,
+            String senderUsername,
+            String receiverSecondaryId,
+            String text,
+            String imagePath) implements MessageDTO {
+        public GamePlayersMessageBroadcastedDTO(String senderSecondaryId, String senderUsername,
+                String receiverSecondaryId, String text, String imagePath) {
+            this(WSMessageType.PLAYERS_MESSAGE, senderSecondaryId, senderUsername, receiverSecondaryId, text,
+                    imagePath);
         }
 
         @Override

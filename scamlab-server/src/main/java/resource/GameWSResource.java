@@ -9,6 +9,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 import helper.PlayerConnectionRegistry;
 import io.quarkus.logging.Log;
 import io.quarkus.security.Authenticated;
+import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.websockets.next.OnClose;
 import io.quarkus.websockets.next.OnOpen;
@@ -22,9 +23,9 @@ import jakarta.inject.Inject;
 import jakarta.resource.NotSupportedException;
 import model.dto.MessageDTODecoder;
 import model.dto.GameDTO.GameGameCancelledMessageDTO;
+import model.dto.GameDTO.GamePlayersMessageBroadcastedDTO;
 import model.dto.GameDTO.GamePlayersMessageDTO;
 import model.dto.GameDTO.LeaveRequestDTO;
-import model.dto.GameDTO.WaitingLobbyAssignedStrategyMessageDTO;
 import model.entity.TransitionReason;
 
 @Authenticated
@@ -47,6 +48,11 @@ public class GameWSResource {
     @Broadcast
     Emitter<LeaveRequestDTO> leaveEmitter;
 
+    @Inject
+    @Channel("reply-received")
+    @Broadcast
+    Emitter<GamePlayersMessageDTO> replyReceivedEmitter;
+
     @OnOpen
     public void onOpen() {
         Log.info("Player " + securityIdentity.getPrincipal().getName() + "joined conversation: " + connection.id());
@@ -54,8 +60,12 @@ public class GameWSResource {
     }
 
     @Incoming("send-reply")
-    public Uni<Void> sendReply(WaitingLobbyAssignedStrategyMessageDTO message) throws NotSupportedException {
-        throw new NotSupportedException();
+    public Uni<Void> sendReply(GamePlayersMessageBroadcastedDTO message) throws NotSupportedException {
+        Log.info("Player " + message.receiverSecondaryId() + " is about to receive a message from Player " + message.senderSecondaryId());
+        
+        return connectionManager.findByConnectionId(
+            registry.getConnectionId(message.receiverSecondaryId())
+        ).get().sendText(message);
     }
 
     @OnClose
@@ -73,14 +83,11 @@ public class GameWSResource {
     @OnTextMessage(codec = MessageDTODecoder.class)
     public void processAsync(Record message) {
         if (message instanceof GamePlayersMessageDTO) {
-            var playerId = UUID.fromString(securityIdentity.getPrincipal().getName());
+            if(((GamePlayersMessageDTO)message).senderSecondaryId() != securityIdentity.getPrincipal().getName()) {
+                throw new UnauthorizedException("Secondary IDs do not match");
+            }
 
-            /*registerStartGameEmitter.send(
-                new VoteStartRequestDTO(
-                    playerId, 
-                    conversationId
-                )
-            );*/
+            replyReceivedEmitter.send((GamePlayersMessageDTO)message);
         }
 
         if (message instanceof GameGameCancelledMessageDTO) {

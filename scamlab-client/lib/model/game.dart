@@ -10,6 +10,9 @@ class Game {
   }
   String get conversationId => _conversationId;
 
+  String username = "";
+  String playerId = "";
+
   late State isWaiting;
   late State isReady;
   late State isWaitingForStartOfGame;
@@ -38,6 +41,8 @@ class Game {
 
   void reset() {
     stateMachine = StateMachine("Game $conversationId");
+    username = "";
+    playerId = "";
     _prepare();  
   }
 

@@ -23,7 +23,8 @@ class StartMenuWSProvider extends ChangeNotifier {
   void startListening() {
     // Start the connection when this provider is instantiated.
     if (isReady()) {
-      wsService.connect(_onMessageReceived, _onErrorReceived);
+      wsService.connect();
+      wsService.stream.listen((message) => _onMessageReceived(message), onError: _onErrorReceived);
       notifyListeners();
     }
   }

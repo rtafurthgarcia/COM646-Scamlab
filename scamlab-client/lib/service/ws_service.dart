@@ -9,6 +9,7 @@ abstract class WSService {
   String? jwtToken;
   WebSocketChannel? _channel;
   int _sequence = 0;
+  late Stream<WsMessage> stream;
 
   WSService({required this.wsUrl, this.jwtToken});
 
@@ -16,7 +17,7 @@ abstract class WSService {
     return _channel != null && _channel!.protocol != null;
   }
 
-  void connect(void Function(WsMessage) onMessage, void Function(dynamic) onError) {
+  void connect() {
     if (jwtToken == null) {
       throw Exception("Missing JWT token for WebSocket!");
     }
@@ -35,24 +36,13 @@ abstract class WSService {
 
     _channel = WebSocketChannel.connect(Uri.parse(wsUrl), protocols: protocols);
 
-    _channel?.stream.listen((data) {
-      // Assume the incoming data is in JSON format.
-      final Map<String, dynamic> decodedData = json.decode(data);
-      final chatMessage = deserialiseMessage(json: decodedData, sequence: _sequence);
-      _sequence++;
-
-      onMessage(chatMessage);
-      developer.log(chatMessage.toString(), name: 'scamlab.wsservice');
-    }, onError: (error) {
-      onError(error);
-      developer.log(error.toString(), error: error, name: 'scamlab.wsservice');
-    }, onDone: () {
-      developer.log("Connected closed.", name: 'scamlab.wsservice');
-      // per WebSocket https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.5
-      if (_channel?.closeCode != null && _channel?.closeCode != 1000 ) {
-        onError(WebSocketException("Connection not closed properly", _channel?.closeCode));
-      }
-    });
+    stream = _channel!.stream
+      .map((data) => json.decode(data))
+      .map((json) {
+        var message = deserialiseMessage(json: json, sequence: _sequence);
+        _sequence++;
+        return message;
+      });
   }
 
   /// Disconnects the WebSocket.

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:collection';
 
 import 'package:scamlab/model/game.dart';
 import 'package:scamlab/model/ws_message.dart';
@@ -13,9 +12,9 @@ class ChatWSProvider extends RetryableProvider {
   final GameService gameService;
   final Game game;
 
-  final SplayTreeSet<WsMessage> _messages = SplayTreeSet((m1, m2) => m1.sequence.compareTo(m2.sequence));
-
   ChatWSProvider({required this.gameService, required this.wsService, required this.game});
+
+  late Stream<List<GamePlayersMessage>> messagesStream;
 
   bool isReady() {
     return wsService.jwtToken != null;
@@ -24,26 +23,25 @@ class ChatWSProvider extends RetryableProvider {
   bool isListening() => wsService.isListening();
   void stopListening() {
     wsService.disconnect();
-    _messages.clear();
     notifyListeners();
   }
 
   void clearMessages() {
-    _messages.clear();
     notifyListeners();
   }
 
-  T? getLastMessageOfType<T extends WsMessage>() {
-    return _messages.whereType<T>().lastOrNull;
-  }
-
-  WsMessage? getLastMessage() {
-    return _messages.isNotEmpty ? _messages.last : null;
-  }
-
-  void sendNewMessage(GamePlayersMessage message) {
+  void sendNewMessage(String message) {
     if (game.stateMachine.current == game.isRunning) {
-      wsService.sendMessage(message);
+      wsService.sendMessage(
+        GamePlayersMessage(
+          senderSecondaryId: game.playerId,
+          senderUsername: game.username,
+          isSender: true,
+          text: message,
+          imagePath: "", 
+          sequence: -1
+        )
+      );
     }
   }
 
@@ -53,12 +51,18 @@ class ChatWSProvider extends RetryableProvider {
         developer.log("${game.stateMachine.name} went from ${event.from.name} to ${event.to.name}");
         notifyListeners();
       });
-      wsService.connect(_onMessageReceived, _onErrorReceived);
+      wsService.connect();
+      wsService.stream.listen((message) => _onMessageReceived(message), onError: _onErrorReceived);
+      messagesStream = wsService.stream
+        .where((element) => element is GamePlayersMessage)
+        .cast<GamePlayersMessage>()
+        .map((element) => element..isSender = element.senderSecondaryId == game.playerId)
+        .toList()
+        .asStream();
     }
   }
 
   void _onMessageReceived(WsMessage message) {
-    _messages.add(message);
     _processMessage(message);
     notifyListeners();
   }

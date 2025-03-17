@@ -280,19 +280,27 @@ class GameFinishedMessage extends WsMessage {
 }
 
 class GamePlayersMessage extends WsMessage {
-  String playerSecondaryId;
+  String senderSecondaryId;
+  String senderUsername;
   String text;
   String imagePath;
+  bool isSender;
 
-  GamePlayersMessage({required super.sequence, required this.playerSecondaryId, required this.text, required this.imagePath})
+  GamePlayersMessage({
+    required super.sequence, 
+    required this.senderSecondaryId, 
+    required this.senderUsername,
+    this.isSender = false,
+    required this.text, 
+    required this.imagePath})
       : super(type: WsMessageType.playersMessage);
 
   factory GamePlayersMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
     return GamePlayersMessage(
-      playerSecondaryId: json['playerSecondaryId'] as String,
+      senderSecondaryId: json['senderSecondaryId'] as String,
+      senderUsername: json['senderUsername'] as String,
       text: json['text'] as String,
       imagePath: json['imagePath'] as String,
-
       sequence: sequence
     );
   }
@@ -300,7 +308,8 @@ class GamePlayersMessage extends WsMessage {
   String toJsonString() {
     return json.encode({
       'type': super.type.value,
-      'playerSecondaryId': playerSecondaryId,
+      'senderSecondaryId': senderSecondaryId,
+      'senderUsername': senderUsername,
       'text': text,
       'imagePath': imagePath
     });
