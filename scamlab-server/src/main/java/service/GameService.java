@@ -366,18 +366,16 @@ public class GameService {
     @Incoming(value = "handle-player-leaving")
     @RunOnVirtualThread
     @Lock(value = Lock.Type.WRITE, time = 1, unit = TimeUnit.SECONDS)  
-    public void handlePlayerLeavingConversation(LeaveRequestDTO request) {
+    public void handlePlayerLeavingLobby(LeaveRequestDTO request) {
         var anyConversationInvolvedIn = entityManager.createQuery(
             """
                 SELECT c FROM Conversation c
                 JOIN c.participants p
-                WHERE c.currentState.id IN (:state1, :state2, :state3, :state4)
+                WHERE c.currentState.id IN (:state1, :state2)
                 AND p.participationId.player.secondaryId = :secondaryId
                     """, Conversation.class)
-            .setParameter("state1", DefaultKeyValues.StateValue.RUNNING.value)
-            .setParameter("state2", DefaultKeyValues.StateValue.VOTING.value)
-            .setParameter("state3", DefaultKeyValues.StateValue.WAITING.value)
-            .setParameter("state4", DefaultKeyValues.StateValue.READY.value)
+            .setParameter("state1", DefaultKeyValues.StateValue.WAITING.value)
+            .setParameter("state2", DefaultKeyValues.StateValue.READY.value)
             .setParameter("secondaryId", request.player())
             .getResultStream()
             .findFirst();
@@ -393,40 +391,30 @@ public class GameService {
                 + request.reason().name()
             );
 
-            if (conversation.getCurrentState().getId().equals(DefaultKeyValues.StateValue.RUNNING.value) 
-            || conversation.getCurrentState().getId().equals(DefaultKeyValues.StateValue.VOTING.value)) {
-                conversation.setCurrentState(
-                    entityManager.find(State.class, DefaultKeyValues.StateValue.CANCELLED.value),
-                    request.reason()
-                );
-                entityManager.persist(conversation);
-            } else {
-                if (conversation.getCurrentState().getId().equals(DefaultKeyValues.StateValue.READY.value)) {
-                    scheduler.unscheduleJob(conversation.getId().toString());
-                }
-
-                conversation.setCurrentState(
-                    entityManager.find(State.class, DefaultKeyValues.StateValue.WAITING.value),
-                    request.reason()
-                    );
-
-                conversation.getParticipants().removeIf(p -> p.getParticipationId().getPlayer().getSecondaryId().equals(request.player()));
-                conversation.getParticipants().forEach(p -> {
-                    notifyReasonForWaitingEmitter.send(
-                        new WaitingLobbyReasonForWaitingMessageDTO
-                        (
-                            p.getParticipationId().getPlayer().getSecondaryId().toString(), 
-                            Arrays.asList(WSReasonForWaiting.OTHER_PLAYERS_LEFT, WSReasonForWaiting.NOT_ENOUGH_PLAYERS)
-                        )
-                    );
-                });
-                var playersLeft = conversation.getParticipants().stream().map(p -> p.getParticipationId().getPlayer()).toList();
-                conversation.getParticipants().clear();
-                entityManager.persist(conversation);
-
-                playersLeft.forEach(p -> putPlayerOnWaitingList(p));
+            if (conversation.getCurrentState().getId().equals(DefaultKeyValues.StateValue.READY.value)) {
+                scheduler.unscheduleJob(conversation.getId().toString());
             }
 
+            conversation.setCurrentState(
+                entityManager.find(State.class, DefaultKeyValues.StateValue.WAITING.value),
+                request.reason()
+            );
+
+            conversation.getParticipants().removeIf(p -> p.getParticipationId().getPlayer().getSecondaryId().equals(request.player()));
+            conversation.getParticipants().forEach(p -> {
+                notifyReasonForWaitingEmitter.send(
+                    new WaitingLobbyReasonForWaitingMessageDTO
+                    (
+                        p.getParticipationId().getPlayer().getSecondaryId().toString(), 
+                        Arrays.asList(WSReasonForWaiting.OTHER_PLAYERS_LEFT, WSReasonForWaiting.NOT_ENOUGH_PLAYERS)
+                    )
+                );
+            });
+            var playersLeft = conversation.getParticipants().stream().map(p -> p.getParticipationId().getPlayer()).toList();
+            conversation.getParticipants().clear();
+            entityManager.persist(conversation);
+
+            playersLeft.forEach(p -> putPlayerOnWaitingList(p));
         }
     }
 }

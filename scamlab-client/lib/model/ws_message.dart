@@ -11,7 +11,8 @@ enum WsMessageType {
   gameCancelled(value: 8),
   callToVote(value: 9),
   castVote(value: 10),
-  gameFinished(value: 11);
+  gameFinished(value: 11),
+  playersMessage(value: 12);
 
   const WsMessageType({required this.value});
   final int value;
@@ -43,7 +44,7 @@ class WsMessage {
 WsMessageType wsMessageTypeFromInt(int value) {
   return WsMessageType.values.firstWhere(
     (e) => e.value == value,
-    orElse: () => throw Exception("Invalid WsMessageType value: $value"),
+    orElse: () => throw JsonUnsupportedObjectError("Invalid WsMessageType value: $value"),
   );
 }
 
@@ -58,19 +59,15 @@ WsMessage deserialiseMessage({required Map<String, dynamic> json, required int s
     case WsMessageType.strategyAssigned:
       return WaitingLobbyAssignedStrategyMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.readyToStart:
-      return WaitingLobbyReadyToStartMessage.fromJson(json: json, sequence: sequence);
-    case WsMessageType.voteAcknowledged:
       return WaitingLobbyVoteAcknowledgedMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.gameStarting:
       return WaitingLobbyGameStartingMessage.fromJson(json: json, sequence: sequence);
-    case WsMessageType.callToVote:
-      return GameCallToVoteMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.castVote:
       return GameCastVoteMessage.fromJson(json: json, sequence: sequence);
-    case WsMessageType.gameFinished:
-      return GameFinishedMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.gameCancelled:
       return GameCancelledMessage.fromJson(json: json, sequence: sequence);
+    case WsMessageType.playersMessage:
+      return GamePlayersMessage.fromJson(json: json, sequence: sequence);
     default:
       throw JsonUnsupportedObjectError(type);
   }
@@ -79,6 +76,8 @@ WsMessage deserialiseMessage({required Map<String, dynamic> json, required int s
 String serialiseMessage({required WsMessage message}) {
   switch (message) {
     case WaitingLobbyVoteToStartMessage m:
+      return m.toJsonString();
+    case GamePlayersMessage m:
       return m.toJsonString();
     default: 
       throw JsonUnsupportedObjectError(message);
@@ -267,5 +266,33 @@ class GameFinishedMessage extends WsMessage {
     return GameFinishedMessage(
       sequence: sequence
     );
+  }
+}
+
+class GamePlayersMessage extends WsMessage {
+  String playerSecondaryId;
+  String text;
+  String imagePath;
+
+  GamePlayersMessage({required super.sequence, required this.playerSecondaryId, required this.text, required this.imagePath})
+      : super(type: WsMessageType.playersMessage);
+
+  factory GamePlayersMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
+    return GamePlayersMessage(
+      playerSecondaryId: json['playerSecondaryId'] as String,
+      text: json['text'] as String,
+      imagePath: json['imagePath'] as String,
+
+      sequence: sequence
+    );
+  }
+
+  String toJsonString() {
+    return json.encode({
+      'type': super.type.value,
+      'playerSecondaryId': playerSecondaryId,
+      'text': text,
+      'imagePath': imagePath
+    });
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
@@ -14,88 +15,159 @@ class WaitingLobbyPage extends StatefulWidget {
 }
 
 class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
+  var _alertShowing = false;
+  bool _hasNavigated = false; // Flag to ensure navigation only happens once
+
   @override
-  Widget build(BuildContext context) {
-    return ChangeNotifierProxyProvider<AuthenticationProvider, LobbyWSProvider>(
-      update: (context, authenticationProvider, lobbyWSProvider) {
-        lobbyWSProvider!.stopListening();
-        lobbyWSProvider.gameService.jwtToken = authenticationProvider.player?.jwtToken;
-        lobbyWSProvider.wsService.jwtToken = authenticationProvider.player?.jwtToken;
-        lobbyWSProvider.startListening();
-        return lobbyWSProvider;
-      }, 
-      create: (BuildContext context) => LobbyWSProvider(
-        wsService: context.read(),
-        gameService: context.read(),
-        game: context.read()
-      ),
-      child: Scaffold(
-          appBar: AppBar(
-            leading: Consumer<LobbyWSProvider>(
-              builder: (context, provider, child) {
-                return IconButton(
-                  icon: Icon(Icons.arrow_back),
-                  onPressed: () async {
-                    if (provider.game.stateMachine.current == provider.game.isWaiting) {
-                      Navigator.pop(context);
-                    } else {
-                      final bool? confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: const Text('Leave despite game ready?'),
-                            content: const Text(
-                              'A new game is about to start. Are you sure you want to quit now?',
-                            ),
-                            actions: <Widget>[
-                              TextButton(
-                                onPressed:
-                                    () => Navigator.pop(context, false),
-                                child: const Text('No'),
-                              ),
-                              TextButton(
-                                onPressed:
-                                    () => Navigator.pop(context, true),
-                                child: const Text('Yes'),
-                              ),
-                            ],
-                          );
-                        },
-                      );
+  void initState() {
+    super.initState();
 
-                      if (confirm == true) {
-                        Navigator.pop(context);
-                      }
-                    }
-                  },
-                );
-              }
+    FlutterWindowClose.setWindowShouldCloseHandler(() async {
+      if (_alertShowing) return false;
+      _alertShowing = true;
+
+      return await showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Leave despite game ready?'),
+            content: const Text(
+              'A new game is about to start. Are you sure you want to quit now?',
             ),
-            title: buildTitle(),
-          ),
-          body: buildBody(),
-        )
-    );
-  }
-
-  Consumer<LobbyWSProvider> buildTitle() {
-    return Consumer<LobbyWSProvider>(
-        builder: (context, provider, child) {
-          return Row(
-            children: [
-              Text("Scamlab - Player's username: "),
-              SelectableText(
-                provider
-                  .getLastMessageOfType<
-                    WaitingLobbyAssignedStrategyMessage
-                  >()
-                  ?.username ??
-              "-",
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                  _alertShowing = false;
+                },
+                child: const Text('Yes'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop(false);
+                  _alertShowing = false;
+                },
+                child: const Text('No'),
               ),
             ],
           );
         },
       );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProxyProvider<AuthenticationProvider, LobbyWSProvider>(
+      update: (context, authenticationProvider, lobbyWSProvider) {
+        lobbyWSProvider!.stopListening();
+        lobbyWSProvider.gameService.jwtToken =
+            authenticationProvider.player?.jwtToken;
+        lobbyWSProvider.wsService.jwtToken =
+            authenticationProvider.player?.jwtToken;
+        lobbyWSProvider.startListening();
+        return lobbyWSProvider;
+      },
+      create:
+        (BuildContext context) => LobbyWSProvider(
+          wsService: context.read(),
+          gameService: context.read(),
+          game: context.read(),
+        ),
+      child: Scaffold(
+        appBar: AppBar(
+          leading: Consumer<LobbyWSProvider>(
+            builder: (context, provider, child) {
+              return IconButton(
+                icon: Icon(Icons.arrow_back),
+                onPressed: () async {
+                  if (provider.game.stateMachine.current ==
+                      provider.game.isWaiting) {
+                    Navigator.pop(context);
+                  } else {
+                    final bool? confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: const Text('Leave despite game ready?'),
+                          content: const Text(
+                            'A new game is about to start. Are you sure you want to quit now?',
+                          ),
+                          actions: <Widget>[
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('No'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Yes'),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+
+                    if (confirm == true) {
+                      Navigator.pop(context);
+                    }
+                  }
+                },
+              );
+            },
+          ),
+          title: buildTitle(),
+        ),
+        // Use a Stack so we can overlay a Consumer that checks for state changes
+        body: Stack(
+          children: [
+            buildBody(),
+            // Consumer that listens for game state change to IsRunning
+            Consumer<LobbyWSProvider>(
+              builder: (context, provider, child) {
+                if (!_hasNavigated && provider.game.stateMachine.current == provider.game.isRunning) {
+                  _hasNavigated = true;
+                  // Schedule the navigation after the current frame
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    Navigator.pushNamed(
+                      context,
+                      '/games',
+                      arguments: {'id': provider.game.conversationId},
+                    );
+                  });
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Consumer<LobbyWSProvider> buildTitle() {
+    return Consumer<LobbyWSProvider>(
+      builder: (context, provider, child) {
+        List<Widget> children = List.empty(growable: true);
+
+        if (provider.game.stateMachine.current == provider.game.isWaitingForStartOfGame) {
+          children.add(LinearProgressIndicator());
+        }
+
+        children.add(Text("Scamlab - Player's username: "));
+        children.add(SelectableText(
+          provider
+            .getLastMessageOfType<
+              WaitingLobbyAssignedStrategyMessage
+            >()
+            ?.username ??
+          "-",
+        ));
+            
+        return Row(
+          children: children,
+        );
+      },
+    );
   }
 
   Center buildBody() {
@@ -104,8 +176,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
         constraints: const BoxConstraints(maxWidth: 600),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize:
-              MainAxisSize.min, // Constrain the height to the content
+          mainAxisSize: MainAxisSize.min, // Constrain the height to the content
           spacing: 16,
           children: [
             Consumer<LobbyWSProvider>(
@@ -115,15 +186,18 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
 
                 if (lastMessage == null) {
                   children.add(
-                    const Text(
-                      "Loading the new gameplay's strategy and role",
-                    ),
+                    const Text("Loading the new gameplay's strategy and role"),
                   );
                 }
 
-                if (provider.game.stateMachine.current == provider.game.isWaiting) {
+                if (provider.game.stateMachine.current ==
+                    provider.game.isWaiting) {
                   children.add(CircularProgressIndicator());
-                  var reasonsForWaiting = provider.getLastMessageOfType<WaitingLobbyReasonForWaitingMessage>();
+                  var reasonsForWaiting =
+                      provider
+                          .getLastMessageOfType<
+                            WaitingLobbyReasonForWaitingMessage
+                          >();
 
                   if (reasonsForWaiting != null) {
                     for (var reason in reasonsForWaiting.reasons) {
@@ -141,7 +215,11 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
             ),
             Consumer<LobbyWSProvider>(
               builder: (context, provider, child) {
-                var assignedStrategy = provider.getLastMessageOfType<WaitingLobbyAssignedStrategyMessage>();
+                var assignedStrategy =
+                  provider
+                    .getLastMessageOfType<
+                      WaitingLobbyAssignedStrategyMessage
+                    >();
                 if (assignedStrategy != null) {
                   return Column(
                     children: [
@@ -190,9 +268,9 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
                         iconColor: Theme.of(context).colorScheme.onSecondary,
                       ),
                       onPressed:
-                          provider.game.stateMachine.current == provider.game.isReady
-                            ? provider.voteToStart
-                            : null,
+                        provider.game.stateMachine.current == provider.game.isReady
+                          ? provider.voteToStart
+                          : null,
                       icon: Icon(Icons.videogame_asset),
                       label: Text('Start'),
                     );
@@ -201,13 +279,19 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
                 SizedBox.square(dimension: 8.0),
                 Consumer<LobbyWSProvider>(
                   builder: (context, provider, child) {
-                    if (provider.game.stateMachine.current == provider.game.isReady) {
-                      var timeout = provider.getLastMessageOfType<WaitingLobbyReadyToStartMessage>()?.voteTimeout;
+                    if (provider.game.stateMachine.current ==
+                        provider.game.isReady) {
+                      var timeout =
+                        provider
+                          .getLastMessageOfType<
+                            WaitingLobbyReadyToStartMessage
+                          >()
+                          ?.voteTimeout;
                       return TimoutTimerWidget(
                         duration: Duration(seconds: timeout ?? 0),
                       );
                     }
-                    
+
                     return SizedBox.shrink();
                   },
                 ),

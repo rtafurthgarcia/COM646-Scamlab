@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/model/game.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
+import 'package:scamlab/provider/chat_ws_provider.dart';
 import 'package:scamlab/provider/lobby_ws_provider.dart';
 import 'package:scamlab/service/lobby_ws_service.dart';
 import 'package:scamlab/service/startmenu_ws_service.dart';
 import 'package:scamlab/service/authentication_service.dart';
 import 'package:scamlab/service/game_service.dart';
 import 'package:scamlab/theme.dart';
+import 'package:scamlab/view/page/chat_page.dart';
 import 'package:scamlab/view/page/home_page.dart';
 import 'package:scamlab/view/page/waiting_lobby_page.dart';
 import 'package:scamlab/view/widget/clearable_exception_listener.dart';
@@ -28,7 +30,7 @@ void main() {
         Provider(create: (context) => AuthenticationService(baseUrl: '$apiURL/api')),
         Provider(create: (context) => GameService(baseUrl: '$apiURL/api')),
         Provider(create: (context) => StartmenuWsService(wsUrl: "$wsURL/ws/start-menu")),
-        Provider(create: (context) => LobbyWsService(wsUrl: "$wsURL/ws/games")),
+        Provider(create: (context) => LobbyWsService(wsUrl: "$wsURL/ws/lobby")),
         Provider(create: (context) => Game()),
         ChangeNotifierProvider(create: (context) => AuthenticationProvider(
           authenticationService: context.read()
@@ -80,7 +82,11 @@ class MainApp extends StatelessWidget {
         '/lobby': (BuildContext context) => ClearableExceptionListener<LobbyWSProvider>(
           message: "Couldn't join a new game.",
           child: const WaitingLobbyPage()
-        )
+        ), 
+        '/games': (BuildContext context) => ClearableExceptionListener<ChatWSProvider>(
+          message: "Network or chat issue mid-game. You have been disconnected.",
+          child: const ChatPage()
+        ), 
       },
     );
   }

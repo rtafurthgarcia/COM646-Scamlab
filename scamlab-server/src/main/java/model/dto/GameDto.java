@@ -197,6 +197,23 @@ public class GameDTO {
         }
     }
 
+    @RegisterForReflection
+    public static record GamePlayersMessageDTO(
+        WSMessageType type,
+        String playerSecondaryId,
+        String text, 
+        String imagePath
+    ) implements MessageDTO {
+        public GamePlayersMessageDTO(String playerSecondaryId, String text, String imagePath) {
+            this(WSMessageType.PLAYERS_MESSAGE, playerSecondaryId, text, imagePath);
+        }
+
+        @Override
+        public WSMessageType getType() {
+            return type;
+        }
+    }
+
     // The following request DTOs remain unchanged
     @RegisterForReflection
     public static record VoteStartRequestDTO(

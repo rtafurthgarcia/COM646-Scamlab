@@ -17,7 +17,8 @@ public enum WSMessageType {
     GAME_CANCELLED(8),
     CALL_TO_VOTE(9),
     CAST_VOTE(10),
-    GAME_FINISHED(11);
+    GAME_FINISHED(11),
+    PLAYERS_MESSAGE(12);
 
     public final Long value;
 
