@@ -26,7 +26,7 @@ public class PlayerConnectionRegistry {
      */
     public void register(String playerSecondaryId, String connectionId) {
         playerToConnectionMap.put(playerSecondaryId, connectionId);
-        //Log.info("New player " + playerSecondaryId + " registered on WS endpoint " + connectionId);
+        Log.info("New player " + playerSecondaryId + " registered on WS endpoint " + connectionId);
     }
 
     /**
@@ -37,7 +37,7 @@ public class PlayerConnectionRegistry {
      */
     @Lock(value = Lock.Type.READ, time = 1, unit = TimeUnit.SECONDS)
     public String getConnectionId(String playerSecondaryId) {
-        //Log.info("Player " + playerSecondaryId + " looked up");
+        Log.info("Player " + playerSecondaryId + " looked up");
         return playerToConnectionMap.get(playerSecondaryId);
     }
 
@@ -47,7 +47,7 @@ public class PlayerConnectionRegistry {
      * @param playerSecondaryId The player's secondary identifier.
      */
     public void unregister(String playerSecondaryId) {
-        //Log.info("Player " + playerSecondaryId + " unregistered");
+        Log.info("Player " + playerSecondaryId + " unregistered");
         playerToConnectionMap.remove(playerSecondaryId);
     }
 }

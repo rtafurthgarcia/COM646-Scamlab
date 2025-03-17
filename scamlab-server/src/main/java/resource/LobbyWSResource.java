@@ -120,17 +120,29 @@ public class LobbyWSResource {
     @OnClose
     public void onClose() {
         Log.info("WS connection closed: " + connection.endpointId());
-        leaveEmitter.send(
-            new LeaveRequestDTO(
-                UUID.fromString(securityIdentity.getPrincipal().getName()),
-                TransitionReason.ConnectionGotTerminated
-            )
-        );
-        registry.unregister(securityIdentity.getPrincipal().getName());
+        
+        // Won't send the leave request for players who will reconnect
+        if (registry.getConnectionId(securityIdentity.getPrincipal().getName()) != null) {
+            leaveEmitter.send(
+                new LeaveRequestDTO(
+                    UUID.fromString(securityIdentity.getPrincipal().getName()),
+                    TransitionReason.ConnectionGotTerminated
+                )
+            );
+            
+            registry.unregister(securityIdentity.getPrincipal().getName());
+        }
     }
 
     @OnTextMessage(codec = MessageDTODecoder.class)
     public void processAsync(Record message) {
+        // For players who will reconnect right away to the /games/ endpoint
+        if (message instanceof WaitingLobbyGameStartingMessageDTO) {
+            var playerId = securityIdentity.getPrincipal().getName();
+            Log.info("Game starting for player " + securityIdentity.getPrincipal().getName());
+            registry.unregister(playerId);
+        }
+
         if (message instanceof WaitingLobbyVoteToStartMessageDTO) {
             var conversationId = UUID.fromString(((WaitingLobbyVoteToStartMessageDTO) message).conversationSecondaryId());
             var playerId = UUID.fromString(securityIdentity.getPrincipal().getName());

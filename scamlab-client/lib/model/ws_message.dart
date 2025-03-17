@@ -59,6 +59,8 @@ WsMessage deserialiseMessage({required Map<String, dynamic> json, required int s
     case WsMessageType.strategyAssigned:
       return WaitingLobbyAssignedStrategyMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.readyToStart:
+      return WaitingLobbyReadyToStartMessage.fromJson(json: json, sequence: sequence);
+    case WsMessageType.voteAcknowledged:
       return WaitingLobbyVoteAcknowledgedMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.gameStarting:
       return WaitingLobbyGameStartingMessage.fromJson(json: json, sequence: sequence);
@@ -78,6 +80,8 @@ String serialiseMessage({required WsMessage message}) {
     case WaitingLobbyVoteToStartMessage m:
       return m.toJsonString();
     case GamePlayersMessage m:
+      return m.toJsonString();
+    case WaitingLobbyGameStartingMessage m:
       return m.toJsonString();
     default: 
       throw JsonUnsupportedObjectError(message);
@@ -212,6 +216,12 @@ class WaitingLobbyGameStartingMessage extends WsMessage {
     return WaitingLobbyGameStartingMessage(
       sequence: sequence
     );
+  }
+
+  String toJsonString() {
+    return json.encode({
+      'type': super.type.value,
+    });
   }
 }
 

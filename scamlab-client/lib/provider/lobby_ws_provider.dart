@@ -64,10 +64,7 @@ class LobbyWSProvider extends RetryableProvider {
   void voteToStart() {
     final assignedMsg = getLastMessageOfType<WaitingLobbyAssignedStrategyMessage>();
     if (game.stateMachine.current == game.isReady && assignedMsg != null) {
-      wsService.sendMessage(WaitingLobbyVoteToStartMessage(
-        sequence: -1,
-        conversationSecondaryId: assignedMsg.conversationSecondaryId) 
-      );
+      wsService.voteToStart(game.conversationId);
     }
   }
 
@@ -114,6 +111,7 @@ class LobbyWSProvider extends RetryableProvider {
 
     if (message is WaitingLobbyGameStartingMessage) {
       game.allPlayersStarted();
+      wsService.gameStarting();
     }
   }
 

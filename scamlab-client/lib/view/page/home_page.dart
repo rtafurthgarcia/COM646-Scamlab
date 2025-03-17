@@ -21,8 +21,8 @@ class HomePage extends StatelessWidget {
             onPressed:
                 () =>
                     provider.player != null
-                        ? Navigator.pushNamed(context, '/lobby')
-                        : null,
+                      ? Navigator.pushNamed(context, '/lobby')
+                      : null,
             icon: Icon(Icons.videogame_asset),
             label: Text('New game'),
           );
@@ -262,12 +262,12 @@ class HomePage extends StatelessWidget {
                                   'Are you sure you want to generate a new identity?',
                                 ),
                                 actions: <Widget>[
-                                  TextButton(
+                                  ElevatedButton(
                                     onPressed:
                                         () => Navigator.pop(context, false),
                                     child: const Text('No'),
                                   ),
-                                  TextButton(
+                                  ElevatedButton(
                                     onPressed:
                                         () => Navigator.pop(context, true),
                                     child: const Text('Yes'),

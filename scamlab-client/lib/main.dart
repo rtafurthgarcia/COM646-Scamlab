@@ -83,10 +83,7 @@ class MainApp extends StatelessWidget {
           message: "Couldn't join a new game.",
           child: const WaitingLobbyPage()
         ), 
-        '/games': (BuildContext context) => ClearableExceptionListener<ChatWSProvider>(
-          message: "Network or chat issue mid-game. You have been disconnected.",
-          child: const ChatPage()
-        ), 
+        '/games': (BuildContext context) =>  const ChatPage()
       },
     );
   }
