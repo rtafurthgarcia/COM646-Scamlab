@@ -31,11 +31,11 @@ class ChatWSProvider extends RetryableProvider {
   }
 
   void sendNewMessage(String message) {
-    if (game.stateMachine.current == game.isRunning) {
+    if (game.stateMachine.current == game.isRunning && game.isGameAssigned) {
       wsService.sendMessage(
         GamePlayersMessage(
-          senderSecondaryId: game.playerId,
-          senderUsername: game.username,
+          senderSecondaryId: game.playerSecondaryId!,
+          senderUsername: game.username!,
           isSender: true,
           text: message,
           imagePath: "", 
@@ -56,7 +56,7 @@ class ChatWSProvider extends RetryableProvider {
       messagesStream = wsService.stream
         .where((element) => element is GamePlayersMessage)
         .cast<GamePlayersMessage>()
-        .map((element) => element..isSender = element.senderSecondaryId == game.playerId)
+        .map((element) => element..isSender = element.senderSecondaryId == game.playerSecondaryId)
         .toList()
         .asStream();
     }

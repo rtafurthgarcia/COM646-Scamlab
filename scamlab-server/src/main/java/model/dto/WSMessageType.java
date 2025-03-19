@@ -9,7 +9,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 public enum WSMessageType {
     NOTIFY_START_MENU_STATISTICS(1),
     NOTIFY_REASON_FOR_WAITING(2),
-    STRATEGY_ASSIGNED(3),
+    GAME_ASSIGNED(3),
     READY_TO_START(4),
     VOTE_TO_START(5),
     VOTE_ACKNOWLEDGED(6),

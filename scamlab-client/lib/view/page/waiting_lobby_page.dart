@@ -58,23 +58,13 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProxyProvider<AuthenticationProvider, LobbyWSProvider>(
-      update: (context, authenticationProvider, lobbyWSProvider) {
-        lobbyWSProvider!.stopListening();
-        lobbyWSProvider.gameService.jwtToken =
-            authenticationProvider.player?.jwtToken;
-        lobbyWSProvider.wsService.jwtToken =
-            authenticationProvider.player?.jwtToken;
-        lobbyWSProvider.startListening();
-        return lobbyWSProvider;
-      },
-      create:
-        (BuildContext context) => LobbyWSProvider(
-          wsService: context.read(),
-          gameService: context.read(),
-          game: context.read(),
-        ),
-      child: Scaffold(
+    return ChangeNotifierProvider(
+      create: (BuildContext context) => LobbyWSProvider(
+        gameService: context.read()..jwtToken = context.read<AuthenticationProvider>().player?.jwtToken, 
+        wsService: context.read()..jwtToken = context.read<AuthenticationProvider>().player?.jwtToken, 
+        game: context.read()
+      )..startListening(),
+      builder: (context, child) => Scaffold(
         appBar: AppBar(
           leading: Consumer<LobbyWSProvider>(
             builder: (context, provider, child) {
@@ -131,7 +121,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
                     Navigator.pushNamed(
                       context,
                       '/games',
-                      arguments: {'id': provider.game.conversationId},
+                      arguments: {'id': provider.game.conversationSecondaryId},
                     );
                   });
                 }
@@ -155,12 +145,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
 
         children.add(Text("Scamlab - Player's username: "));
         children.add(SelectableText(
-          provider
-            .getLastMessageOfType<
-              WaitingLobbyAssignedStrategyMessage
-            >()
-            ?.username ??
-          "-",
+          provider.game.isGameAssigned ? provider.game.username! : "-",
         ));
             
         return Row(
@@ -218,7 +203,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
                 var assignedStrategy =
                   provider
                     .getLastMessageOfType<
-                      WaitingLobbyAssignedStrategyMessage
+                      WaitingLobbyGameAssignmentMessage
                     >();
                 if (assignedStrategy != null) {
                   return Column(

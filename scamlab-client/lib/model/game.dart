@@ -1,9 +1,10 @@
+import 'package:scamlab/model/ws_message.dart';
 import 'package:state_machine/state_machine.dart';
 
 class Game {
   late StateMachine stateMachine;
 
-  String _conversationId;
+  /*String _conversationId;
   set conversationId(String newId) {
     _conversationId = newId;
     stateMachine.name = "Game $_conversationId";
@@ -11,7 +12,21 @@ class Game {
   String get conversationId => _conversationId;
 
   String username = "";
-  String playerId = "";
+  String playerId = "";*/ 
+
+  WaitingLobbyGameAssignmentMessage? _gameAssignment;
+  set gameAssignment(WaitingLobbyGameAssignmentMessage assignment) {
+    _gameAssignment = assignment;
+    stateMachine.name = "Game ID: ${_gameAssignment!.conversationSecondaryId}";
+  }
+
+  String? get username => _gameAssignment?.username;
+  String? get conversationSecondaryId => _gameAssignment?.conversationSecondaryId;
+  String? get playerSecondaryId => _gameAssignment?.playerSecondaryId;
+  String? get strategy => _gameAssignment?.strategy;
+  String? get script => _gameAssignment?.script;
+  String? get example => _gameAssignment?.example;
+  bool get isGameAssigned => _gameAssignment != null;
 
   late State isWaiting;
   late State isReady;
@@ -34,15 +49,14 @@ class Game {
   late StateTransition keepOnPlaying;
   late StateTransition reachedEndGame;
 
-  Game({String? conversationId}): _conversationId = conversationId ?? "" {
-    stateMachine = StateMachine("Game ${ conversationId ?? "(non initialised)" }");
+  Game() {
+    stateMachine = StateMachine("Game (non-initialised)");
     _prepare();
   }
 
   void reset() {
-    stateMachine = StateMachine("Game $conversationId");
-    username = "";
-    playerId = "";
+    stateMachine = StateMachine("Game (non-initialised)");
+    _gameAssignment = null;
     _prepare();  
   }
 

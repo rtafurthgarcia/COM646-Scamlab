@@ -8,7 +8,7 @@ import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import model.dto.GameDTO;
 import model.dto.AuthenticationDTO.GetNewPlayerDTO;
-import model.dto.GameDTO.WaitingLobbyAssignedStrategyMessageDTO;
+import model.dto.GameDTO.WaitingLobbyGameAssignmentMessageDTO;
 import model.dto.GameDTO.WaitingLobbyReasonForWaitingMessageDTO;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -80,7 +80,7 @@ public class GameWSResourceTest {
 
         for (int i = 0; i < 2; i++) {
             var message = MESSAGES.poll(30, TimeUnit.SECONDS);
-            if (message instanceof WaitingLobbyAssignedStrategyMessageDTO) {
+            if (message instanceof WaitingLobbyGameAssignmentMessageDTO) {
                 assertNotNull(message);
             }
 

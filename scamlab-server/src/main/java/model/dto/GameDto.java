@@ -53,7 +53,7 @@ public class GameDTO {
     }
 
     @RegisterForReflection
-    public static record WaitingLobbyAssignedStrategyMessageDTO(
+    public static record WaitingLobbyGameAssignmentMessageDTO(
             WSMessageType type,
             String playerSecondaryId,
             String conversationSecondaryId,
@@ -62,7 +62,7 @@ public class GameDTO {
             String example,
             String strategy,
             String username) implements MessageDTO {
-        public WaitingLobbyAssignedStrategyMessageDTO(
+        public WaitingLobbyGameAssignmentMessageDTO(
                 String playerSecondaryId,
                 String conversationSecondaryId,
                 String role,
@@ -70,7 +70,7 @@ public class GameDTO {
                 String example,
                 String strategy,
                 String username) {
-            this(WSMessageType.STRATEGY_ASSIGNED,
+            this(WSMessageType.GAME_ASSIGNED,
                     playerSecondaryId,
                     conversationSecondaryId,
                     role,

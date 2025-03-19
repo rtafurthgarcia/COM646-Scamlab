@@ -3,7 +3,7 @@ import 'dart:convert';
 enum WsMessageType {
   notifyStartMenuStatistics(value: 1),
   notifyReasonForWaiting(value: 2),
-  strategyAssigned(value: 3),
+  gameAssigned(value: 3),
   readyToStart(value: 4),
   voteToStart(value: 5),
   voteAcknowledged(value: 6),
@@ -56,8 +56,8 @@ WsMessage deserialiseMessage({required Map<String, dynamic> json, required int s
       return StartMenuStatisticsMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.notifyReasonForWaiting:
       return WaitingLobbyReasonForWaitingMessage.fromJson(json: json, sequence: sequence);
-    case WsMessageType.strategyAssigned:
-      return WaitingLobbyAssignedStrategyMessage.fromJson(json: json, sequence: sequence);
+    case WsMessageType.gameAssigned:
+      return WaitingLobbyGameAssignmentMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.readyToStart:
       return WaitingLobbyReadyToStartMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.voteAcknowledged:
@@ -123,7 +123,7 @@ class WaitingLobbyReasonForWaitingMessage extends WsMessage {
   }
 }
 
-class WaitingLobbyAssignedStrategyMessage extends WsMessage {
+class WaitingLobbyGameAssignmentMessage extends WsMessage {
   final String playerSecondaryId;
   final String conversationSecondaryId;
   final String role;
@@ -132,7 +132,7 @@ class WaitingLobbyAssignedStrategyMessage extends WsMessage {
   final String strategy;
   final String username;
 
-  WaitingLobbyAssignedStrategyMessage({
+  WaitingLobbyGameAssignmentMessage({
     required this.playerSecondaryId,
     required this.conversationSecondaryId,
     required this.role,
@@ -141,10 +141,10 @@ class WaitingLobbyAssignedStrategyMessage extends WsMessage {
     required this.strategy,
     required this.username,
     required super.sequence,
-  }) : super(type: WsMessageType.strategyAssigned);
+  }) : super(type: WsMessageType.gameAssigned);
 
-  factory WaitingLobbyAssignedStrategyMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
-    return WaitingLobbyAssignedStrategyMessage(
+  factory WaitingLobbyGameAssignmentMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
+    return WaitingLobbyGameAssignmentMessage(
       playerSecondaryId: json['playerSecondaryId'] as String,
       conversationSecondaryId: json['conversationSecondaryId'] as String,
       role: json['role'] as String,

@@ -25,7 +25,7 @@ import model.dto.GameDTO.GameGameCancelledMessageDTO;
 import model.dto.GameDTO.LeaveRequestDTO;
 import model.dto.GameDTO.VoteAcknowledgedMessageDTO;
 import model.dto.GameDTO.VoteStartRequestDTO;
-import model.dto.GameDTO.WaitingLobbyAssignedStrategyMessageDTO;
+import model.dto.GameDTO.WaitingLobbyGameAssignmentMessageDTO;
 import model.dto.GameDTO.WaitingLobbyGameStartingMessageDTO;
 import model.dto.GameDTO.WaitingLobbyReadyToStartMessageDTO;
 import model.dto.GameDTO.WaitingLobbyReasonForWaitingMessageDTO;
@@ -78,7 +78,7 @@ public class LobbyWSResource {
     }
 
     @Incoming("assign-new-role")
-    public Uni<Void> notifyOfNewlyAssignedRole(WaitingLobbyAssignedStrategyMessageDTO message) {
+    public Uni<Void> notifyOfNewlyAssignedRole(WaitingLobbyGameAssignmentMessageDTO message) {
         Log.info("Role " 
             + message.role()  
             + " assigned for player " 

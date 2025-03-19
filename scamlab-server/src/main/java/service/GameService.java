@@ -35,7 +35,7 @@ import model.dto.GameDTO.LeaveRequestDTO;
 import model.dto.GameDTO.VoteAcknowledgedMessageDTO;
 import model.dto.GameDTO.VoteStartRequestDTO;
 import model.dto.GameDTO.WSReasonForWaiting;
-import model.dto.GameDTO.WaitingLobbyAssignedStrategyMessageDTO;
+import model.dto.GameDTO.WaitingLobbyGameAssignmentMessageDTO;
 import model.dto.GameDTO.WaitingLobbyGameStartingMessageDTO;
 import model.dto.GameDTO.WaitingLobbyReadyToStartMessageDTO;
 import model.dto.GameDTO.WaitingLobbyReasonForWaitingMessageDTO;
@@ -72,7 +72,7 @@ public class GameService {
     @Inject
     @Channel("assign-new-role")
     @Broadcast
-    Emitter<WaitingLobbyAssignedStrategyMessageDTO> assignNewRoleEmitter;
+    Emitter<WaitingLobbyGameAssignmentMessageDTO> assignNewRoleEmitter;
 
     @Inject
     @Channel("notify-game-as-ready")
@@ -329,7 +329,7 @@ public class GameService {
         players.forEach(p -> putPlayerOnWaitingList(p));
     }
 
-    public WaitingLobbyAssignedStrategyMessageDTO getPlayersAssignedStrategy(Player player, Conversation conversation) {
+    public WaitingLobbyGameAssignmentMessageDTO getPlayersAssignedStrategy(Player player, Conversation conversation) {
         Participation playersParticipation = conversation.getParticipants().stream()
                 .filter(p -> p.getParticipationId().getPlayer().equals(player)).findFirst().get();
         var role = playersParticipation.getParticipationId().getRole();
@@ -343,7 +343,7 @@ public class GameService {
                 .getSingleResult();
         var strategy = conversation.getStrategy();
 
-        return new WaitingLobbyAssignedStrategyMessageDTO(
+        return new WaitingLobbyGameAssignmentMessageDTO(
                 player.getSecondaryId().toString(),
                 conversation.getSecondaryId().toString(),
                 playersParticipation.getParticipationId().getRole().getName(),
@@ -378,11 +378,11 @@ public class GameService {
             entityManager.flush();
 
             conversation.getParticipants()
-                .stream()
-                .map(p -> p.getParticipationId().getPlayer().getSecondaryId())
-                .forEach(uuid -> {
-                    notifyGameStarting.send(new WaitingLobbyGameStartingMessageDTO(uuid.toString()));
-                });
+                    .stream()
+                    .map(p -> p.getParticipationId().getPlayer().getSecondaryId())
+                    .forEach(uuid -> {
+                        notifyGameStarting.send(new WaitingLobbyGameStartingMessageDTO(uuid.toString()));
+                    });
         }
     }
 

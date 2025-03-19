@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'dart:developer' as developer;
 
 abstract class WSService {
   final String wsUrl;

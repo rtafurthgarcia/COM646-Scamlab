@@ -20,6 +20,9 @@ class LobbyWSProvider extends RetryableProvider {
   bool get dontWaitNextTime => _dontWaitNextTime;
   late final SharedPreferences _settings;
 
+  WaitingLobbyGameAssignmentMessage? _strategy;
+  WaitingLobbyGameAssignmentMessage? get strategy => _strategy;
+
   set dontWaitNextTime(bool newValue) {
     _dontWaitNextTime = newValue;
     _settings.setBool('dontwaitnexttime', newValue);
@@ -62,9 +65,8 @@ class LobbyWSProvider extends RetryableProvider {
   }
 
   void voteToStart() {
-    final assignedMsg = getLastMessageOfType<WaitingLobbyAssignedStrategyMessage>();
-    if (game.stateMachine.current == game.isReady && assignedMsg != null) {
-      wsService.voteToStart(game.conversationId);
+    if (game.stateMachine.current == game.isReady && game.isGameAssigned) {
+      wsService.voteToStart(game.conversationSecondaryId!);
     }
   }
 
@@ -89,10 +91,8 @@ class LobbyWSProvider extends RetryableProvider {
   }
 
   void _processMessage(WsMessage message) {
-    if (message is WaitingLobbyAssignedStrategyMessage) {
-      game.conversationId = message.conversationSecondaryId;
-      game.username = message.username;
-      game.playerId = message.playerSecondaryId;
+    if (message is WaitingLobbyGameAssignmentMessage) {
+      game.gameAssignment = message;
     }
 
     if (message is WaitingLobbyReasonForWaitingMessage && game.conditionsNotMetAnymore.canCall()) {

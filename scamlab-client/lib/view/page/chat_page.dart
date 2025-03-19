@@ -74,14 +74,7 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProxyProvider<AuthenticationProvider, ChatWSProvider>(
-      update: (context, authenticationProvider, chatWSProvider) {
-        chatWSProvider!.stopListening();
-        chatWSProvider.wsService.jwtToken =
-            authenticationProvider.player?.jwtToken;
-        chatWSProvider.startListening();
-        return chatWSProvider;
-      },
+    return ChangeNotifierProvider(
       create: (context) {
         const wsURL = String.fromEnvironment(
           'WS_URL',
@@ -92,11 +85,11 @@ class _ChatPageState extends State<ChatPage> {
 
         return ChatWSProvider(
           wsService: ChatWSService(
-            wsUrl: "$wsURL/ws/games/${game.conversationId}",
-          ),
+            wsUrl: "$wsURL/ws/games/${game.conversationSecondaryId}",
+          )..jwtToken = context.read<AuthenticationProvider>().player?.jwtToken,
           gameService: context.read(),
           game: game,
-        );
+        )..startListening();
       },
       child: Scaffold(
         appBar: AppBar(title: buildTitle()),
@@ -210,7 +203,7 @@ class _ChatPageState extends State<ChatPage> {
         return Row(
           children: [
             Text("Scamlab - Conversation ID:"),
-            SelectableText(game.conversationId),
+            SelectableText(game.conversationSecondaryId!),
           ],
         );
       },
