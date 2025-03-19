@@ -108,7 +108,6 @@ class _ChatPageState extends State<ChatPage> {
       margin: EdgeInsets.only(top: 8, bottom: 16.0),
       decoration: BoxDecoration(
         color: Colors.white,
-        //borderRadius: BorderRadius.all(Radius.circular(16.0)),
         boxShadow: [
           BoxShadow(
             color: Theme.of(
@@ -128,6 +127,7 @@ class _ChatPageState extends State<ChatPage> {
               child: Column(
                 children: <Widget>[
                   StreamProvider<List<GamePlayersMessage>>(
+                    lazy: true,
                     create:
                         (context) =>
                             Provider.of<ChatWSProvider>(

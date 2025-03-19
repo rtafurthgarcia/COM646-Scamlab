@@ -9,6 +9,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 
+import io.quarkus.logging.Log;
 import io.quarkus.security.Authenticated;
 import io.quarkus.websockets.next.runtime.ConnectionManager;
 import io.smallrye.common.annotation.RunOnVirtualThread;
@@ -20,6 +21,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import model.dto.AuthenticationDTO.GetNewPlayerDTO;
+import model.dto.GameDTO.GameReconcileStateMessageDTO;
 import model.entity.Player;
 import service.GameService;
 import service.AuthenticationService;
@@ -33,7 +35,7 @@ public class GameResource {
     AuthenticationService authenticationService;
 
     @Inject
-    GameService conversationService;
+    GameService gameService;
 
     @Inject
     ConnectionManager connectionManager;
@@ -65,5 +67,27 @@ public class GameResource {
         return Response
             .ok()
             .build();
+    }
+
+    @GET
+    @Path("{id}/state")
+    @APIResponses(value = {
+        @APIResponse(
+            responseCode = "200",
+            description = "Current game's state returned", 
+            content = @Content(
+                mediaType = "application/json", 
+                schema = @Schema(implementation = GameReconcileStateMessageDTO.class)
+            )
+        )
+    })
+    @Authenticated
+    @RunOnVirtualThread
+    public Response reconcile(String id) {
+        var playerId = securityContext.getUserPrincipal().getName();
+        var message = gameService.reconcileStateForClient(id, playerId);
+        Log.info("Reconcilating the state for game " + id + " for player " + playerId);
+
+        return Response.ok().entity(message).status(200).build();
     }
 }

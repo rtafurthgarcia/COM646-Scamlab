@@ -202,30 +202,15 @@ public class GameDTO {
             WSMessageType type,
             String senderSecondaryId,
             String senderUsername,
-            String text,
-            String imagePath) implements MessageDTO {
-        public GamePlayersMessageDTO(String playerSecondaryId, String username, String text, String imagePath) {
-            this(WSMessageType.PLAYERS_MESSAGE, playerSecondaryId, username, text, imagePath);
-        }
-
-        @Override
-        public WSMessageType getType() {
-            return type;
-        }
-    }
-
-    @RegisterForReflection
-    public static record GamePlayersMessageBroadcastedDTO(
-            WSMessageType type,
-            String senderSecondaryId,
-            String senderUsername,
             String receiverSecondaryId,
             String text,
             String imagePath) implements MessageDTO {
-        public GamePlayersMessageBroadcastedDTO(String senderSecondaryId, String senderUsername,
-                String receiverSecondaryId, String text, String imagePath) {
-            this(WSMessageType.PLAYERS_MESSAGE, senderSecondaryId, senderUsername, receiverSecondaryId, text,
-                    imagePath);
+        public GamePlayersMessageDTO(String playerSecondaryId, String username, String text, String imagePath) {
+            this(WSMessageType.PLAYERS_MESSAGE, playerSecondaryId, null, username, text, imagePath);
+        }
+
+        public GamePlayersMessageDTO(String playerSecondaryId, String username, String receiverSecondaryId, String text, String imagePath) {
+            this(WSMessageType.PLAYERS_MESSAGE, playerSecondaryId, receiverSecondaryId, username, text, imagePath);
         }
 
         @Override
@@ -236,14 +221,33 @@ public class GameDTO {
 
     // The following request DTOs remain unchanged
     @RegisterForReflection
-    public static record VoteStartRequestDTO(
+    public static record VoteStartRequestInternalDTO(
             UUID player,
             UUID conversation) {
     }
 
     @RegisterForReflection
-    public static record LeaveRequestDTO(
+    public static record LeaveRequestInternalDTO(
             UUID player,
             TransitionReason reason) {
+    }
+
+    @RegisterForReflection
+    public static record GameReconcileStateMessageDTO(
+            WSMessageType type,
+            String conversationSecondaryId, 
+            Long state) implements MessageDTO {
+        public GameReconcileStateMessageDTO(String conversationSecondaryId) {
+            this(WSMessageType.RECONCILE_STATE, conversationSecondaryId, null);
+        }
+
+        public GameReconcileStateMessageDTO(String conversationSecondaryId, Long state) {
+            this(WSMessageType.RECONCILE_STATE, conversationSecondaryId, state);
+        }
+
+        @Override
+        public WSMessageType getType() {
+            return type;
+        }
     }
 }

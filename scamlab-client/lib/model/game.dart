@@ -2,22 +2,14 @@ import 'package:scamlab/model/ws_message.dart';
 import 'package:state_machine/state_machine.dart';
 
 class Game {
-  late StateMachine stateMachine;
-
-  /*String _conversationId;
-  set conversationId(String newId) {
-    _conversationId = newId;
-    stateMachine.name = "Game $_conversationId";
-  }
-  String get conversationId => _conversationId;
-
-  String username = "";
-  String playerId = "";*/ 
+  late StateMachine _stateMachine;
+  State? get currentState => _stateMachine.current;
+  Stream<StateChange> get onStateChange => _stateMachine.onStateChange;
 
   WaitingLobbyGameAssignmentMessage? _gameAssignment;
   set gameAssignment(WaitingLobbyGameAssignmentMessage assignment) {
     _gameAssignment = assignment;
-    stateMachine.name = "Game ID: ${_gameAssignment!.conversationSecondaryId}";
+    _stateMachine.name = "Game ID: ${_gameAssignment!.conversationSecondaryId}";
   }
 
   String? get username => _gameAssignment?.username;
@@ -50,36 +42,58 @@ class Game {
   late StateTransition reachedEndGame;
 
   Game() {
-    stateMachine = StateMachine("Game (non-initialised)");
+    _stateMachine = StateMachine("Game (non-initialised)");
     _prepare();
   }
 
-  void reset() {
-    stateMachine = StateMachine("Game (non-initialised)");
-    _gameAssignment = null;
+  State reconciliateBasedOnConversationStateId(int statusId) {
+    switch (statusId) {
+      case 1: return isWaiting;
+      case 2: return isReady;
+      case 3: return isRunning;
+      case 4: return isVoting; 
+      case 5: return isFinished;
+      case 6: return isCancelled;
+      default: throw IllegalStateMachineMutation("Reconciliation failed due to erronous DB state ID");
+    }
+  }
+
+  void startFrom(State state) {
+    _stateMachine = StateMachine("Game (non-initialised)");
     _prepare();  
+    _stateMachine.start(state);
+
+    if (state == isWaiting) {
+      _gameAssignment = null;
+    }
+  }
+
+  void clear() {
+    _stateMachine = StateMachine("Game (non-initialised)");
+    _gameAssignment = null; 
+    _prepare();
   }
 
   void _prepare() {
-    isWaiting = stateMachine.newState("isWaiting");
-    isReady = stateMachine.newState("isReady");
-    isWaitingForStartOfGame = stateMachine.newState("isWaitingForStartOfGame");
-    isRunning = stateMachine.newState("isRunning");
-    isVoting = stateMachine.newState("isVoting");
-    isWaitingForEndOfVote = stateMachine.newState("isWaitingForEndOfVote");
-    isFinished = stateMachine.newState("isFinished");
-    isCancelled = stateMachine.newState("isCancelled");
+    isWaiting = _stateMachine.newState("isWaiting");
+    isReady = _stateMachine.newState("isReady");
+    isWaitingForStartOfGame = _stateMachine.newState("isWaitingForStartOfGame");
+    isRunning = _stateMachine.newState("isRunning");
+    isVoting = _stateMachine.newState("isVoting");
+    isWaitingForEndOfVote = _stateMachine.newState("isWaitingForEndOfVote");
+    isFinished = _stateMachine.newState("isFinished");
+    isCancelled = _stateMachine.newState("isCancelled");
 
-    conditionsMetForStart = stateMachine.newStateTransition('conditionsMetForStart', [isWaiting], isReady);
-    conditionsNotMetAnymore = stateMachine.newStateTransition('conditionsNotMetAnymore', [isReady, isWaitingForStartOfGame], isWaiting);
-    startTimedOut = stateMachine.newStateTransition('startTimedOut', [isReady, isWaitingForStartOfGame], isWaiting);
-    playerStarted = stateMachine.newStateTransition('playerStarted', [isReady], isWaitingForStartOfGame);
-    allPlayersStarted = stateMachine.newStateTransition('allPlayersStarted', [isWaitingForStartOfGame], isRunning);
-    gameGotInterrupted = stateMachine.newStateTransition('gameGotInterrupted', [isRunning], isCancelled);
-    voteCalled = stateMachine.newStateTransition('voteCalled', [isRunning], isVoting);
-    playerVoted = stateMachine.newStateTransition('playerVoted', [isVoting], isWaitingForEndOfVote);
-    voteTimedOut = stateMachine.newStateTransition('voteTimedOut', [isVoting], isWaitingForEndOfVote);
-    keepOnPlaying = stateMachine.newStateTransition('keepOnPlaying', [isWaitingForEndOfVote], isRunning);
-    reachedEndGame = stateMachine.newStateTransition('reachedEndGame', [isWaitingForEndOfVote], isFinished);
+    conditionsMetForStart = _stateMachine.newStateTransition('conditionsMetForStart', [isWaiting], isReady);
+    conditionsNotMetAnymore = _stateMachine.newStateTransition('conditionsNotMetAnymore', [isReady, isWaitingForStartOfGame], isWaiting);
+    startTimedOut = _stateMachine.newStateTransition('startTimedOut', [isReady, isWaitingForStartOfGame], isWaiting);
+    playerStarted = _stateMachine.newStateTransition('playerStarted', [isReady], isWaitingForStartOfGame);
+    allPlayersStarted = _stateMachine.newStateTransition('allPlayersStarted', [isWaitingForStartOfGame], isRunning);
+    gameGotInterrupted = _stateMachine.newStateTransition('gameGotInterrupted', [isRunning], isCancelled);
+    voteCalled = _stateMachine.newStateTransition('voteCalled', [isRunning], isVoting);
+    playerVoted = _stateMachine.newStateTransition('playerVoted', [isVoting], isWaitingForEndOfVote);
+    voteTimedOut = _stateMachine.newStateTransition('voteTimedOut', [isVoting], isWaitingForEndOfVote);
+    keepOnPlaying = _stateMachine.newStateTransition('keepOnPlaying', [isWaitingForEndOfVote], isRunning);
+    reachedEndGame = _stateMachine.newStateTransition('reachedEndGame', [isWaitingForEndOfVote], isFinished);
   }
 }

@@ -22,9 +22,9 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import model.dto.MessageDTODecoder;
 import model.dto.GameDTO.GameGameCancelledMessageDTO;
-import model.dto.GameDTO.LeaveRequestDTO;
+import model.dto.GameDTO.LeaveRequestInternalDTO;
 import model.dto.GameDTO.VoteAcknowledgedMessageDTO;
-import model.dto.GameDTO.VoteStartRequestDTO;
+import model.dto.GameDTO.VoteStartRequestInternalDTO;
 import model.dto.GameDTO.WaitingLobbyGameAssignmentMessageDTO;
 import model.dto.GameDTO.WaitingLobbyGameStartingMessageDTO;
 import model.dto.GameDTO.WaitingLobbyReadyToStartMessageDTO;
@@ -51,12 +51,12 @@ public class LobbyWSResource {
     @Inject
     @Channel("register-start-game")
     @Broadcast
-    Emitter<VoteStartRequestDTO> registerStartGameEmitter;
+    Emitter<VoteStartRequestInternalDTO> registerStartGameEmitter;
 
     @Inject
     @Channel("handle-player-leaving")
     @Broadcast
-    Emitter<LeaveRequestDTO> leaveEmitter;
+    Emitter<LeaveRequestInternalDTO> leaveEmitter;
 
     @OnOpen
     public void onOpen() {
@@ -77,7 +77,7 @@ public class LobbyWSResource {
         ).get().sendText(statistics);
     }
 
-    @Incoming("assign-new-role")
+    @Incoming("return-game-assignment")
     public Uni<Void> notifyOfNewlyAssignedRole(WaitingLobbyGameAssignmentMessageDTO message) {
         Log.info("Role " 
             + message.role()  
@@ -126,7 +126,7 @@ public class LobbyWSResource {
         // Won't send the leave request for players who will reconnect
         if (registry.getConnectionId(securityIdentity.getPrincipal().getName()) != null) {
             leaveEmitter.send(
-                new LeaveRequestDTO(
+                new LeaveRequestInternalDTO(
                     UUID.fromString(securityIdentity.getPrincipal().getName()),
                     TransitionReason.ConnectionGotTerminated
                 )
@@ -150,7 +150,7 @@ public class LobbyWSResource {
             var playerId = UUID.fromString(securityIdentity.getPrincipal().getName());
 
             registerStartGameEmitter.send(
-                new VoteStartRequestDTO(
+                new VoteStartRequestInternalDTO(
                     playerId, 
                     conversationId
                 )
@@ -161,7 +161,7 @@ public class LobbyWSResource {
             var playerId = UUID.fromString(securityIdentity.getPrincipal().getName());
 
             leaveEmitter.send(
-                new LeaveRequestDTO(
+                new LeaveRequestInternalDTO(
                     playerId,
                     TransitionReason.PlayerWillingfullyCancelled
                 )

@@ -55,5 +55,4 @@ abstract class WSService {
       _channel!.sink.add(serialiseMessage(message: message));
     }
   }
-  
 }

@@ -10,6 +10,8 @@ import 'package:scamlab/service/game_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:developer' as developer;
 
+import 'package:state_machine/state_machine.dart';
+
 class LobbyWSProvider extends RetryableProvider {
   final LobbyWsService wsService;
   final GameService gameService;
@@ -19,9 +21,6 @@ class LobbyWSProvider extends RetryableProvider {
   bool _dontWaitNextTime = false;
   bool get dontWaitNextTime => _dontWaitNextTime;
   late final SharedPreferences _settings;
-
-  WaitingLobbyGameAssignmentMessage? _strategy;
-  WaitingLobbyGameAssignmentMessage? get strategy => _strategy;
 
   set dontWaitNextTime(bool newValue) {
     _dontWaitNextTime = newValue;
@@ -65,7 +64,7 @@ class LobbyWSProvider extends RetryableProvider {
   }
 
   void voteToStart() {
-    if (game.stateMachine.current == game.isReady && game.isGameAssigned) {
+    if (game.currentState == game.isReady && game.isGameAssigned) {
       wsService.voteToStart(game.conversationSecondaryId!);
     }
   }
@@ -73,9 +72,9 @@ class LobbyWSProvider extends RetryableProvider {
   Future<void> startListening() async {
     if (isReady()) {
       await gameService.joinNewGame();
-      game.stateMachine.start(game.isWaiting);
-      game.stateMachine.onStateChange.listen((event) {
-        developer.log("${game.stateMachine.name} went from ${event.from.name} to ${event.to.name}");
+      game.startFrom(game.isWaiting);
+      game.onStateChange.listen((event) {
+        developer.log("Game ${game.conversationSecondaryId} went from ${event.from.name} to ${event.to.name}");
         notifyListeners();
       });
       wsService.connect();
@@ -83,10 +82,16 @@ class LobbyWSProvider extends RetryableProvider {
     }
   }
 
-  void _onMessageReceived(WsMessage message) {
+  Future<void> _onMessageReceived(WsMessage message) async {
     // Insert the incoming message keyed by its sequence.
     _messages.add(message);
-    _processMessage(message);
+     try {
+      _processMessage(message);
+    } on IllegalStateTransition catch (e) {
+      developer.log("Transition ${e.transition} impossible from ${e.from} to ${e.to}", name: "lobby_ws_provider");
+      var state = await gameService.reconcileState(game.conversationSecondaryId!);
+      game.startFrom(game.reconciliateBasedOnConversationStateId(state.state));
+    }
     notifyListeners();
   }
 
@@ -134,7 +139,7 @@ class LobbyWSProvider extends RetryableProvider {
   @override
   void dispose() {
     stopListening();
-    game.reset();
+    game.clear();
     super.dispose();
   }
   

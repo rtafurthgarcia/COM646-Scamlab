@@ -71,7 +71,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
               return IconButton(
                 icon: Icon(Icons.arrow_back),
                 onPressed: () async {
-                  if (provider.game.stateMachine.current ==
+                  if (provider.game.currentState ==
                       provider.game.isWaiting) {
                     Navigator.pop(context);
                   } else {
@@ -114,7 +114,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
             // Consumer that listens for game state change to IsRunning
             Consumer<LobbyWSProvider>(
               builder: (context, provider, child) {
-                if (!_hasNavigated && provider.game.stateMachine.current == provider.game.isRunning) {
+                if (!_hasNavigated && provider.game.currentState == provider.game.isRunning) {
                   _hasNavigated = true;
                   // Schedule the navigation after the current frame
                   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -139,7 +139,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
       builder: (context, provider, child) {
         List<Widget> children = List.empty(growable: true);
 
-        if (provider.game.stateMachine.current == provider.game.isWaitingForStartOfGame) {
+        if (provider.game.currentState == provider.game.isWaitingForStartOfGame) {
           children.add(LinearProgressIndicator());
         }
 
@@ -175,7 +175,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
                   );
                 }
 
-                if (provider.game.stateMachine.current ==
+                if (provider.game.currentState ==
                     provider.game.isWaiting) {
                   children.add(CircularProgressIndicator());
                   var reasonsForWaiting =
@@ -253,7 +253,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
                         iconColor: Theme.of(context).colorScheme.onSecondary,
                       ),
                       onPressed:
-                        provider.game.stateMachine.current == provider.game.isReady
+                        provider.game.currentState == provider.game.isReady
                           ? provider.voteToStart
                           : null,
                       icon: Icon(Icons.videogame_asset),
@@ -264,7 +264,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
                 SizedBox.square(dimension: 8.0),
                 Consumer<LobbyWSProvider>(
                   builder: (context, provider, child) {
-                    if (provider.game.stateMachine.current ==
+                    if (provider.game.currentState ==
                         provider.game.isReady) {
                       var timeout =
                         provider

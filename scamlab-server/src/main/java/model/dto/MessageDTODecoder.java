@@ -52,6 +52,8 @@ public class MessageDTODecoder implements TextMessageCodec<Record> {
                 objectMapper.readValue(json, GameDTO.GameCastVoteMessageDTO.class);
             case PLAYERS_MESSAGE -> 
                 objectMapper.readValue(json, GameDTO.GamePlayersMessageDTO.class);
+            case RECONCILE_STATE -> 
+                objectMapper.readValue(json, GameDTO.GameReconcileStateMessageDTO.class);
             default -> throw new JsonException(json);
             };
         } catch (JsonProcessingException e) {

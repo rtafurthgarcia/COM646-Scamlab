@@ -23,9 +23,8 @@ import jakarta.inject.Inject;
 import jakarta.resource.NotSupportedException;
 import model.dto.MessageDTODecoder;
 import model.dto.GameDTO.GameGameCancelledMessageDTO;
-import model.dto.GameDTO.GamePlayersMessageBroadcastedDTO;
 import model.dto.GameDTO.GamePlayersMessageDTO;
-import model.dto.GameDTO.LeaveRequestDTO;
+import model.dto.GameDTO.LeaveRequestInternalDTO;
 import model.entity.TransitionReason;
 
 @Authenticated
@@ -46,7 +45,7 @@ public class GameWSResource {
     @Inject
     @Channel("handle-player-leaving")
     @Broadcast
-    Emitter<LeaveRequestDTO> leaveEmitter;
+    Emitter<LeaveRequestInternalDTO> leaveEmitter;
 
     @Inject
     @Channel("reply-received")
@@ -60,7 +59,7 @@ public class GameWSResource {
     }
 
     @Incoming("send-reply")
-    public Uni<Void> sendReply(GamePlayersMessageBroadcastedDTO message) throws NotSupportedException {
+    public Uni<Void> sendReply(GamePlayersMessageDTO message) throws NotSupportedException {
         Log.info("Player " + message.receiverSecondaryId() + " is about to receive a message from Player " + message.senderSecondaryId());
         
         return connectionManager.findByConnectionId(
@@ -72,7 +71,7 @@ public class GameWSResource {
     public void onClose() {
         Log.info("WS connection closed: " + connection.endpointId());
         leaveEmitter.send(
-            new LeaveRequestDTO(
+            new LeaveRequestInternalDTO(
                 UUID.fromString(securityIdentity.getPrincipal().getName()),
                 TransitionReason.ConnectionGotTerminated
             )
@@ -94,7 +93,7 @@ public class GameWSResource {
             var playerId = UUID.fromString(securityIdentity.getPrincipal().getName());
 
             leaveEmitter.send(
-                new LeaveRequestDTO(
+                new LeaveRequestInternalDTO(
                     playerId,
                     TransitionReason.PlayerWillingfullyCancelled
                 )

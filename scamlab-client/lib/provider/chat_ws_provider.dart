@@ -7,6 +7,8 @@ import 'package:scamlab/service/chat_ws_service.dart';
 import 'package:scamlab/service/game_service.dart';
 import 'dart:developer' as developer;
 
+import 'package:state_machine/state_machine.dart';
+
 class ChatWSProvider extends RetryableProvider {
   final ChatWSService wsService;
   final GameService gameService;
@@ -31,7 +33,7 @@ class ChatWSProvider extends RetryableProvider {
   }
 
   void sendNewMessage(String message) {
-    if (game.stateMachine.current == game.isRunning && game.isGameAssigned) {
+    if (game.currentState == game.isRunning && game.isGameAssigned) {
       wsService.sendMessage(
         GamePlayersMessage(
           senderSecondaryId: game.playerSecondaryId!,
@@ -47,8 +49,8 @@ class ChatWSProvider extends RetryableProvider {
 
   Future<void> startListening() async {
     if (isReady()) {
-      game.stateMachine.onStateChange.listen((event) {
-        developer.log("${game.stateMachine.name} went from ${event.from.name} to ${event.to.name}");
+      game.onStateChange.listen((event) {
+        developer.log("Game ${game.conversationSecondaryId} went from ${event.from.name} to ${event.to.name}");
         notifyListeners();
       });
       wsService.connect();
@@ -62,8 +64,13 @@ class ChatWSProvider extends RetryableProvider {
     }
   }
 
-  void _onMessageReceived(WsMessage message) {
-    _processMessage(message);
+  Future<void> _onMessageReceived(WsMessage message) async {
+    try {
+      _processMessage(message);
+    } on IllegalStateTransition {
+      var state = await gameService.reconcileState(game.conversationSecondaryId!);
+      game.startFrom(game.reconciliateBasedOnConversationStateId(state.state));
+    }
     notifyListeners();
   }
 
@@ -106,7 +113,7 @@ class ChatWSProvider extends RetryableProvider {
   @override
   void dispose() {
     stopListening();
-    game.reset();
+    game.clear();
     super.dispose();
   }
   

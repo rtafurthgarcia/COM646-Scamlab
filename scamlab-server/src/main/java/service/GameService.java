@@ -29,11 +29,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import model.dto.GameDTO.GamePlayersMessageBroadcastedDTO;
 import model.dto.GameDTO.GamePlayersMessageDTO;
-import model.dto.GameDTO.LeaveRequestDTO;
+import model.dto.GameDTO.GameReconcileStateMessageDTO;
+import model.dto.GameDTO.LeaveRequestInternalDTO;
 import model.dto.GameDTO.VoteAcknowledgedMessageDTO;
-import model.dto.GameDTO.VoteStartRequestDTO;
+import model.dto.GameDTO.VoteStartRequestInternalDTO;
 import model.dto.GameDTO.WSReasonForWaiting;
 import model.dto.GameDTO.WaitingLobbyGameAssignmentMessageDTO;
 import model.dto.GameDTO.WaitingLobbyGameStartingMessageDTO;
@@ -70,9 +70,9 @@ public class GameService {
     Emitter<WaitingLobbyReasonForWaitingMessageDTO> notifyReasonForWaitingEmitter;
 
     @Inject
-    @Channel("assign-new-role")
+    @Channel("return-game-assignment")
     @Broadcast
-    Emitter<WaitingLobbyGameAssignmentMessageDTO> assignNewRoleEmitter;
+    Emitter<WaitingLobbyGameAssignmentMessageDTO> returnGameAssignmentEmitter;
 
     @Inject
     @Channel("notify-game-as-ready")
@@ -92,7 +92,7 @@ public class GameService {
     @Inject
     @Channel("send-reply")
     @Broadcast
-    Emitter<GamePlayersMessageBroadcastedDTO> sendReplyEmitter;
+    Emitter<GamePlayersMessageDTO> sendReplyEmitter;
 
     @Inject
     Scheduler scheduler;
@@ -272,7 +272,7 @@ public class GameService {
 
                 Log.info("Adding player " + player.getSecondaryId().toString() + " to new game");
 
-                assignNewRoleEmitter.send(getPlayersAssignedStrategy(player, conversation));
+                returnGameAssignmentEmitter.send(getPlayersAssignedStrategy(player, conversation));
 
                 sendReasonForTheWaitingIfAny(conversation);
             }
@@ -356,7 +356,7 @@ public class GameService {
     @Incoming(value = "register-start-game")
     @RunOnVirtualThread
     @Lock(value = Lock.Type.WRITE, time = 1, unit = TimeUnit.SECONDS)
-    public void registerStartGame(VoteStartRequestDTO request) {
+    public void registerStartGame(VoteStartRequestInternalDTO request) {
         var conversation = findConversationBySecondaryId(request.conversation());
         var player = findPlayerBySecondaryId(request.player());
 
@@ -389,7 +389,7 @@ public class GameService {
     @Incoming(value = "handle-player-leaving")
     @RunOnVirtualThread
     @Lock(value = Lock.Type.WRITE, time = 1, unit = TimeUnit.SECONDS)
-    public void handlePlayerLeavingLobby(LeaveRequestDTO request) {
+    public void handlePlayerLeavingLobby(LeaveRequestInternalDTO request) {
         var anyConversationInvolvedIn = entityManager.createQuery(
                 """
                         SELECT c FROM Conversation c
@@ -442,7 +442,7 @@ public class GameService {
     @Incoming(value = "reply-received")
     @RunOnVirtualThread
     public void saveNewReply(GamePlayersMessageDTO message) {
-        Conversation conversation = findOnGoingConversationByInvolvedPlayer(
+        var conversation = findOnGoingConversationByInvolvedPlayer(
                 UUID.fromString(message.senderSecondaryId()));
 
         entityManager.persist(new Message().setConversation(conversation).setMessage(message.text()));
@@ -453,7 +453,7 @@ public class GameService {
                         .getPlayer())
                 .forEach(p -> {
                     sendReplyEmitter.send(
-                            new GamePlayersMessageBroadcastedDTO(
+                            new GamePlayersMessageDTO(
                                     message.senderSecondaryId(),
                                     message.senderUsername(),
                                     p.getSecondaryId().toString(),
@@ -462,4 +462,13 @@ public class GameService {
                 });
     }
 
+    public GameReconcileStateMessageDTO reconcileStateForClient(String conversationSecondaryId, String playerSecondaryId) {
+        var conversation = findConversationBySecondaryId(UUID.fromString(conversationSecondaryId));
+        var player = findPlayerBySecondaryId(UUID.fromString(playerSecondaryId));
+
+        // just to make sure its not missing on the client-side
+        returnGameAssignmentEmitter.send(getPlayersAssignedStrategy(player, conversation));
+
+        return new GameReconcileStateMessageDTO(conversationSecondaryId, conversation.getCurrentState().getId());
+    }
 }
