@@ -26,7 +26,7 @@ void main() {
     MultiProvider(
       providers: [
         Provider(create: (context) => AuthenticationService(baseUrl: '$apiURL/api')),
-        Provider(create: (context) => GameService(baseUrl: '$apiURL/api')),
+        Provider(create: (context) => GameService(baseUrl: '$apiURL/api', game: Game())),
         Provider(create: (context) => StartmenuWsService(wsUrl: "$wsURL/ws/start-menu")),
         Provider(create: (context) => LobbyWsService(wsUrl: "$wsURL/ws/lobby")),
         Provider(create: (context) => Game()),

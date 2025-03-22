@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:scamlab/model/game.dart';
 import 'package:scamlab/model/message.dart';
 import 'dart:developer' as developer;
 
@@ -8,8 +9,9 @@ import 'dart:developer' as developer;
 class GameService {
   final String baseUrl;
   String? jwtToken;
+  Game game;
 
-  GameService({required this.baseUrl, this.jwtToken});
+  GameService({required this.baseUrl, this.jwtToken, required this.game});
 
   Future<void> joinNewGame() async {
     if (jwtToken == null) {
@@ -32,7 +34,7 @@ class GameService {
     }
   }
 
-  Future<GameReconcileState> reconcileState(String conversationSecondaryId) async {
+  Future<void> reconcileStateIfNecessary(String conversationSecondaryId) async {
     if (jwtToken == null) {
       throw Exception("Missing JWT token for WebSocket!");
     }
@@ -54,6 +56,8 @@ class GameService {
       );
     }
 
-    return GameReconcileState.fromJson(json: jsonDecode(response.body) as Map<String, dynamic>);
+    var state = GameReconcileState.fromJson(json: jsonDecode(response.body) as Map<String, dynamic>).state;
+
+    game = Game()..startFrom(game.reconciliateBasedOnConversationStateId(state));
   }
 }

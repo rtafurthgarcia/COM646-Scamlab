@@ -88,7 +88,6 @@ class _ChatPageState extends State<ChatPage> {
             wsUrl: "$wsURL/ws/games/${game.conversationSecondaryId}",
           )..jwtToken = context.read<AuthenticationProvider>().player?.jwtToken,
           gameService: context.read(),
-          game: game,
         )..startListening();
       },
       child: Scaffold(

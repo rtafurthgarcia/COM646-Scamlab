@@ -15,12 +15,13 @@ import 'package:state_machine/state_machine.dart';
 class LobbyWSProvider extends RetryableProvider {
   final LobbyWsService wsService;
   final GameService gameService;
-  final Game game;
+  Game get game => gameService.game;
 
   final SplayTreeSet<WsMessage> _messages = SplayTreeSet((m1, m2) => m1.sequence.compareTo(m2.sequence));
   bool _dontWaitNextTime = false;
   bool get dontWaitNextTime => _dontWaitNextTime;
   late final SharedPreferences _settings;
+  bool _pauseProcessingMessages = false;
 
   set dontWaitNextTime(bool newValue) {
     _dontWaitNextTime = newValue;
@@ -28,7 +29,7 @@ class LobbyWSProvider extends RetryableProvider {
     notifyListeners();
   }
 
-  LobbyWSProvider({required this.gameService, required this.wsService, required this.game}) {
+  LobbyWSProvider({required this.gameService, required this.wsService}) {
     loadSettings();
   }
 
@@ -88,14 +89,19 @@ class LobbyWSProvider extends RetryableProvider {
      try {
       _processMessage(message);
     } on IllegalStateTransition catch (e) {
+      _pauseProcessingMessages = true;
       developer.log("Transition ${e.transition} impossible from ${e.from} to ${e.to}", name: "lobby_ws_provider");
-      var state = await gameService.reconcileState(game.conversationSecondaryId!);
-      game.startFrom(game.reconciliateBasedOnConversationStateId(state.state));
+      await gameService.reconcileStateIfNecessary(game.conversationSecondaryId!);
+      _pauseProcessingMessages = false;
     }
     notifyListeners();
   }
 
   void _processMessage(WsMessage message) {
+    if (_pauseProcessingMessages) {
+      return;
+    }
+
     if (message is WaitingLobbyGameAssignmentMessage) {
       game.gameAssignment = message;
     }
@@ -104,7 +110,7 @@ class LobbyWSProvider extends RetryableProvider {
       game.conditionsNotMetAnymore();
     }
 
-    if (message is WaitingLobbyReadyToStartMessage) {
+    if (message is WaitingLobbyReadyToStartMessage && game.conditionsMetForStart.canCall()) {
       Timer(
         Duration(seconds: message.voteTimeout),
         () => triggerTimeout(),
@@ -139,7 +145,7 @@ class LobbyWSProvider extends RetryableProvider {
   @override
   void dispose() {
     stopListening();
-    game.clear();
+    gameService.game = Game();
     super.dispose();
   }
   

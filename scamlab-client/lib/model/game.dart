@@ -58,21 +58,7 @@ class Game {
     }
   }
 
-  void startFrom(State state) {
-    _stateMachine = StateMachine("Game (non-initialised)");
-    _prepare();  
-    _stateMachine.start(state);
-
-    if (state == isWaiting) {
-      _gameAssignment = null;
-    }
-  }
-
-  void clear() {
-    _stateMachine = StateMachine("Game (non-initialised)");
-    _gameAssignment = null; 
-    _prepare();
-  }
+  void startFrom(State state) => _stateMachine.start(state);
 
   void _prepare() {
     isWaiting = _stateMachine.newState("isWaiting");
@@ -95,5 +81,7 @@ class Game {
     voteTimedOut = _stateMachine.newStateTransition('voteTimedOut', [isVoting], isWaitingForEndOfVote);
     keepOnPlaying = _stateMachine.newStateTransition('keepOnPlaying', [isWaitingForEndOfVote], isRunning);
     reachedEndGame = _stateMachine.newStateTransition('reachedEndGame', [isWaitingForEndOfVote], isFinished);
+
+    conditionsMetForStart.cancelIf((stateChange) => !isGameAssigned);
   }
 }

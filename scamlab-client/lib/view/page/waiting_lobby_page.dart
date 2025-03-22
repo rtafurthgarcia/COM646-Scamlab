@@ -62,7 +62,6 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
       create: (BuildContext context) => LobbyWSProvider(
         gameService: context.read()..jwtToken = context.read<AuthenticationProvider>().player?.jwtToken, 
         wsService: context.read()..jwtToken = context.read<AuthenticationProvider>().player?.jwtToken, 
-        game: context.read()
       )..startListening(),
       builder: (context, child) => Scaffold(
         appBar: AppBar(

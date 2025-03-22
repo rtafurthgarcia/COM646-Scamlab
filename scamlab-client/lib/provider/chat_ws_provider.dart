@@ -12,9 +12,9 @@ import 'package:state_machine/state_machine.dart';
 class ChatWSProvider extends RetryableProvider {
   final ChatWSService wsService;
   final GameService gameService;
-  final Game game;
+  Game get game => gameService.game;
 
-  ChatWSProvider({required this.gameService, required this.wsService, required this.game});
+  ChatWSProvider({required this.gameService, required this.wsService});
 
   late Stream<List<GamePlayersMessage>> messagesStream;
 
@@ -68,8 +68,7 @@ class ChatWSProvider extends RetryableProvider {
     try {
       _processMessage(message);
     } on IllegalStateTransition {
-      var state = await gameService.reconcileState(game.conversationSecondaryId!);
-      game.startFrom(game.reconciliateBasedOnConversationStateId(state.state));
+      await gameService.reconcileStateIfNecessary(game.conversationSecondaryId!);
     }
     notifyListeners();
   }
@@ -113,7 +112,7 @@ class ChatWSProvider extends RetryableProvider {
   @override
   void dispose() {
     stopListening();
-    game.clear();
+    gameService.game = Game();
     super.dispose();
   }
   
