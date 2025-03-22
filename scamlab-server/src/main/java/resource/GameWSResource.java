@@ -55,7 +55,7 @@ public class GameWSResource {
     @OnOpen
     public void onOpen() {
         Log.info("Player " + securityIdentity.getPrincipal().getName() + "joined conversation: " + connection.id());
-        registry.putIfAbsent(securityIdentity.getPrincipal().getName(), connection.id());
+        registry.register(securityIdentity.getPrincipal().getName(), connection.id());
     }
 
     @Incoming("send-reply")
@@ -63,7 +63,7 @@ public class GameWSResource {
         Log.info("Player " + message.receiverSecondaryId() + " is about to receive a message from Player " + message.senderSecondaryId());
         
         return connectionManager.findByConnectionId(
-            registry.get(message.receiverSecondaryId())
+            registry.getConnectionId(message.receiverSecondaryId())
         ).get().sendText(message);
     }
 
@@ -76,7 +76,7 @@ public class GameWSResource {
                 TransitionReason.ConnectionGotTerminated
             )
         );
-        registry.remove(securityIdentity.getPrincipal().getName());
+        registry.unregister(securityIdentity.getPrincipal().getName());
     }
 
     @OnTextMessage(codec = MessageDTODecoder.class)

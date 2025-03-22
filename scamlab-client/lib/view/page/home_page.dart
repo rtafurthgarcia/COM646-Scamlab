@@ -70,14 +70,22 @@ class HomePage extends StatelessWidget {
       AuthenticationProvider,
       StartMenuWSProvider
     >(
+      create: (BuildContext context) => StartMenuWSProvider(wsService: context.read()),
       update: (context, authenticationProvider, startMenuWSProvider) {
-        startMenuWSProvider!.stopListening();
-        startMenuWSProvider.wsService.jwtToken =
-            authenticationProvider.player?.jwtToken;
-        startMenuWSProvider.startListening();
+        startMenuWSProvider ??= StartMenuWSProvider(wsService: context.read());
+        
+        if (startMenuWSProvider.isListening) {
+          startMenuWSProvider.stopListening();
+        }
+
+        if (startMenuWSProvider.jwtToken != authenticationProvider.player?.jwtToken) {
+          startMenuWSProvider.jwtToken = authenticationProvider.player?.jwtToken;
+          if (startMenuWSProvider.jwtToken != null) {
+            startMenuWSProvider.startListening();
+          }
+        }
         return startMenuWSProvider;
       },
-      create: (BuildContext context) => StartMenuWSProvider(wsService: context.read()),
       child: Scaffold(
         appBar: AppBar(title: buildTitle(isScreenSmall)),
         body: buildBody(context, isScreenSmall),
@@ -277,6 +285,7 @@ class HomePage extends StatelessWidget {
                             },
                           );
                           if (confirm == true) {
+                            provider.dontWaitNextTime = false;
                             provider.tryAgain();
                           }
                         },

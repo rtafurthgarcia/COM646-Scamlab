@@ -2,14 +2,15 @@ import 'dart:math';
 
 import 'package:chat_bubbles/bubbles/bubble_special_one.dart';
 import 'package:chat_bubbles/message_bars/message_bar.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/model/game.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/chat_ws_provider.dart';
-import 'package:scamlab/service/chat_ws_service.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -21,42 +22,48 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   var _alertShowing = false;
 
+  Future askBeforeQuitting() {
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Leave despite ongoing gameplay?'),
+          content: const Text(
+            'Quitting mid-game is not a very nice thing to do. Are you sure you want to quit now?',
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).popUntil(ModalRoute.withName('/'));
+                _alertShowing = false;
+              },
+              child: const Text('Yes'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(false);
+                _alertShowing = false;
+              },
+              child: const Text('No'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   void initState() {
     super.initState();
 
-    FlutterWindowClose.setWindowShouldCloseHandler(() async {
-      if (_alertShowing) return false;
-      _alertShowing = true;
+    if (! kDebugMode) {
+      FlutterWindowClose.setWindowShouldCloseHandler(() async {
+        if (_alertShowing) return false;
+        _alertShowing = true;
 
-      return await showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Leave despite ongoing gameplay?'),
-            content: const Text(
-              'Quitting mid-game is not a very nice thing to do. Are you sure you want to quit now?',
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop(true);
-                  _alertShowing = false;
-                },
-                child: const Text('Yes'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop(false);
-                  _alertShowing = false;
-                },
-                child: const Text('No'),
-              ),
-            ],
-          );
-        },
-      );
-    });
+        return await askBeforeQuitting();
+      });
+    }
   }
 
   Color colorFromUsername(String username) {
@@ -82,26 +89,24 @@ class _ChatPageState extends State<ChatPage> {
               'WS_URL',
               defaultValue: 'ws://127.0.0.1:8080',
             );
-
+ 
             Game game = context.read();
 
             return ChatWSProvider(
-              wsService: ChatWSService(
-                  wsUrl: "$wsURL/ws/games/${game.conversationSecondaryId}",
-                )
-                ..jwtToken =
-                    context.read<AuthenticationProvider>().player?.jwtToken,
+              wsService: context.read()
+                ..wsUrl = "$wsURL/ws/games/${game.conversationSecondaryId}"
+                ..jwtToken = context.read<AuthenticationProvider>().player?.jwtToken,
               gameService: context.read(),
             )..startListening();
-          }
+          },
         ),
         StreamProvider(
           create: (context) => context.read<ChatWSProvider>().messagesStream,
-          initialData: List.empty()
-        )
+          initialData: List.empty(),
+        ),
       ],
       child: Scaffold(
-        appBar: AppBar(title: buildTitle()),
+        appBar: AppBar(title: buildTitle(), leading: buildLeading(context)),
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 960),
@@ -109,6 +114,23 @@ class _ChatPageState extends State<ChatPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget buildLeading(BuildContext context) {
+    return Consumer<ChatWSProvider>(
+      builder: (context, provider, child) {
+        return IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () async {
+            if (provider.game.currentState == provider.game.isWaiting) {
+              Navigator.pop(context);
+            } else {
+              await askBeforeQuitting();
+            }
+          },
+        );
+      },
     );
   }
 
@@ -140,9 +162,8 @@ class _ChatPageState extends State<ChatPage> {
                         (context, messages, child) => ListView.builder(
                           itemCount: messages.length,
                           itemBuilder: (context, index) {
-                            GamePlayersMessage message =
-                                messages[index];
-                                    
+                            GamePlayersMessage message = messages[index];
+
                             return Row(
                               children: [
                                 CircleAvatar(
@@ -150,23 +171,16 @@ class _ChatPageState extends State<ChatPage> {
                                     message.senderUsername,
                                   ),
                                   child: Text(
-                                    message.senderUsername.substring(
-                                      0,
-                                      1,
-                                    ),
+                                    message.senderUsername.substring(0, 1),
                                   ),
                                 ),
                                 BubbleSpecialOne(
                                   text: message.text,
                                   isSender: message.isSender,
                                   color:
-                                      Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimary,
+                                      Theme.of(context).colorScheme.onPrimary,
                                   textStyle:
-                                      Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium!,
+                                      Theme.of(context).textTheme.bodyMedium!,
                                 ),
                               ],
                             );
@@ -210,12 +224,39 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Consumer<ChatWSProvider> buildTitle() {
+    bool isScreenSmall = MediaQuery.of(context).size.width < 600;
+
     return Consumer<ChatWSProvider>(
       builder: (context, provider, child) {
+        String titleSuffix = provider.game.conversationSecondaryId ?? "-";
+        // Shorten the ID if on mobile and if it's long enough.
+        String displayedId = titleSuffix;
+        if (isScreenSmall && titleSuffix.length > 10) {
+          displayedId =
+              "${titleSuffix.substring(0, 4)}...${titleSuffix.substring(titleSuffix.length - 2)}";
+        }
+
         return Row(
           children: [
             Text("Scamlab - Conversation ID:"),
-            SelectableText(provider.game.conversationSecondaryId!),
+            isScreenSmall
+                ? GestureDetector(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: titleSuffix));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Conversation ID copied to clipboard!"),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    displayedId,
+                    style: const TextStyle(
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                )
+                : SelectableText(titleSuffix),
           ],
         );
       },

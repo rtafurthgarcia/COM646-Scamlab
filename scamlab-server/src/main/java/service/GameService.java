@@ -318,7 +318,6 @@ public class GameService {
                     new WaitingLobbyReasonForWaitingMessageDTO(
                             p.getParticipationId().getPlayer().getSecondaryId().toString(),
                             Arrays.asList(WSReasonForWaiting.START_CANCELLED_TIEMOUT)));
-            // registry.unregister(p.getParticipationId().getPlayer().getId());
         });
         var players = conversation.getParticipants().stream()
                 .map(p -> p.getParticipationId().getPlayer()).toList();
@@ -332,7 +331,10 @@ public class GameService {
         scheduler.unscheduleJob(conversationId.toString());
 
         // put players back on the queue
-        players.forEach(p -> putPlayerOnWaitingList(p));
+        players.forEach(p -> {
+            voteRegistry.unregister(p.getId());
+            putPlayerOnWaitingList(p);
+        });
     }
 
     public WaitingLobbyGameAssignmentMessageDTO getPlayersAssignedStrategy(Player player, Conversation conversation) {
@@ -385,9 +387,10 @@ public class GameService {
 
             conversation.getParticipants()
                     .stream()
-                    .map(p -> p.getParticipationId().getPlayer().getSecondaryId())
-                    .forEach(uuid -> {
-                        notifyGameStarting.send(new WaitingLobbyGameStartingMessageDTO(uuid.toString()));
+                    .map(p -> p.getParticipationId().getPlayer())
+                    .forEach(p -> {
+                        notifyGameStarting.send(new WaitingLobbyGameStartingMessageDTO(p.getSecondaryId().toString()));
+                        voteRegistry.unregister(p.getId());
                     });
         }
     }
@@ -441,11 +444,13 @@ public class GameService {
             conversation.getParticipants().clear();
             entityManager.persist(conversation);
 
-            playersLeft.forEach(p -> putPlayerOnWaitingList(p));
+            playersLeft.forEach(p -> {
+                voteRegistry.unregister(p.getId());
+                putPlayerOnWaitingList(p);
+            });
         }
 
-        connectionRegistry.remove(request.player().toString());
-        // registry.unregister(request.player().);
+        connectionRegistry.unregister(request.player().toString());
     }
 
     @Incoming(value = "reply-received")

@@ -60,7 +60,7 @@ public class LobbyWSResource {
     public void onOpen() {
         Log.info(securityIdentity.getPrincipal().getName() + " successfully authenticated");
         Log.info("New player waiting to join a game: " + connection.id());
-        registry.putIfAbsent(securityIdentity.getPrincipal().getName(), connection.id());
+        registry.register(securityIdentity.getPrincipal().getName(), connection.id());
     }
 
     @Incoming("notify-reason-for-waiting")
@@ -71,7 +71,7 @@ public class LobbyWSResource {
             + String.join(", ", statistics.reasons()));
 
         return connectionManager.findByConnectionId(
-            registry.get(statistics.playerSecondaryId())
+            registry.getConnectionId(statistics.playerSecondaryId())
         ).get().sendText(statistics);
     }
 
@@ -85,7 +85,7 @@ public class LobbyWSResource {
             + message.conversationSecondaryId());
 
         return connectionManager.findByConnectionId(
-            registry.get(message.playerSecondaryId())
+            registry.getConnectionId(message.playerSecondaryId())
             ).get().sendText(message);
             
     }
@@ -95,7 +95,7 @@ public class LobbyWSResource {
         Log.info("Player " + message.playerSecondaryId() + " notified that their game is ready");
         
         return connectionManager.findByConnectionId(
-            registry.get(message.playerSecondaryId())
+            registry.getConnectionId(message.playerSecondaryId())
         ).get().sendText(message);
     }
 
@@ -104,7 +104,7 @@ public class LobbyWSResource {
         Log.info("Notify player " + message.playerSecondaryId() + " that their start vote has been acknowledged");
         
         return connectionManager.findByConnectionId(
-            registry.get(message.playerSecondaryId())
+            registry.getConnectionId(message.playerSecondaryId())
         ).get().sendText(message);
     }
 
@@ -113,7 +113,7 @@ public class LobbyWSResource {
         Log.info("Notify player " + message.playerSecondaryId() + " that their game is starting");
         
         return connectionManager.findByConnectionId(
-            registry.get(message.playerSecondaryId())
+            registry.getConnectionId(message.playerSecondaryId())
         ).get().sendText(message);
     }
 
@@ -136,7 +136,7 @@ public class LobbyWSResource {
         if (message instanceof WaitingLobbyGameStartingMessageDTO) {
             var playerId = securityIdentity.getPrincipal().getName();
             Log.info("Game starting for player " + securityIdentity.getPrincipal().getName());
-            registry.remove(playerId);
+            registry.unregister(playerId);
         }
 
         if (message instanceof WaitingLobbyVoteToStartMessageDTO) {

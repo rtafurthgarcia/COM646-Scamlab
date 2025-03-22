@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/model/game.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
+import 'package:scamlab/service/chat_ws_service.dart';
 import 'package:scamlab/service/lobby_ws_service.dart';
+import 'package:scamlab/service/settings_service.dart';
 import 'package:scamlab/service/startmenu_ws_service.dart';
 import 'package:scamlab/service/authentication_service.dart';
 import 'package:scamlab/service/game_service.dart';
@@ -29,9 +31,11 @@ void main() {
         Provider(create: (context) => GameService(baseUrl: '$apiURL/api', game: Game())),
         Provider(create: (context) => StartmenuWsService(wsUrl: "$wsURL/ws/start-menu")),
         Provider(create: (context) => LobbyWsService(wsUrl: "$wsURL/ws/lobby")),
-        Provider(create: (context) => Game()),
+        Provider(create: (context) => ChatWSService(wsUrl: "")),
+        Provider(create: (context) => SettingsService()),
         ChangeNotifierProvider(create: (context) => AuthenticationProvider(
-          authenticationService: context.read()
+          authenticationService: context.read(),
+          settingsService: context.read()
         )),
       ],
       child: MainApp(),

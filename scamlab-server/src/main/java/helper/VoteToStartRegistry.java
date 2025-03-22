@@ -1,10 +1,12 @@
 package helper;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import io.quarkus.arc.Lock;
+import io.quarkus.arc.Lock.Type;
 import jakarta.enterprise.context.ApplicationScoped;
 
 /*
@@ -12,14 +14,14 @@ import jakarta.enterprise.context.ApplicationScoped;
     Basically, keep a count of the involved players who started the game before the timeout ran out. 
  */
 @ApplicationScoped
-@Lock
+@Lock(value = Type.WRITE, time = 1, unit = TimeUnit.SECONDS)
 public class VoteToStartRegistry {
 
     // Map player's secondary ID to conversation ID
-    private final ConcurrentMap<Long, Long> VoteMap = new ConcurrentHashMap<>();
+    private final Map<Long, Long> VoteMap = Collections.synchronizedMap(new HashMap<Long, Long>());
 
     /**
-     * Registers a player's secondary ID with the corresponding connection ID.
+     * Registers a player's ID with the corresponding conversation ID.
      *
      * @param playerId The player's primary identifier.
      * @param conversationId The conversation's primary identifier.
@@ -29,18 +31,17 @@ public class VoteToStartRegistry {
     }
 
     /**
-     * Retrieves the connection ID associated with the given player's secondary ID.
+     * Retrieves the conversation ID associated with the given player's ID.
      *
      * @param playerId The player's primary identifier.
      * @return The corresponding conversation's primary identifier., or null if not found.
      */
-    @Lock(value = Lock.Type.READ, time = 1, unit = TimeUnit.SECONDS)
     public Boolean hasVoted(Long playerId) {
         return VoteMap.containsKey(playerId);
     }
 
     /**
-     * Removes the mapping for the given player's secondary ID.
+     * Removes the mapping for the given player's ID.
      *
      * @param playerId The player's primary identifier.
      */

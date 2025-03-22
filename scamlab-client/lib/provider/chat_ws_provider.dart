@@ -10,24 +10,20 @@ import 'dart:developer' as developer;
 import 'package:state_machine/state_machine.dart';
 
 class ChatWSProvider extends RetryableProvider {
-  final ChatWSService wsService;
-  final GameService gameService;
-  Game get game => gameService.game;
+  final ChatWSService _wsService;
+  final GameService _gameService;
+  Game get game => _gameService.game;
 
-  ChatWSProvider({required this.gameService, required this.wsService});
+  ChatWSProvider({required GameService gameService, required ChatWSService wsService}) : _wsService = wsService, _gameService = gameService;
 
   late Stream<List<GamePlayersMessage>> messagesStream;
 
   late StreamSubscription _subscription;
 
-  bool isReady() {
-    return wsService.jwtToken != null;
-  }
-
-  bool isListening() => wsService.isListening();
+  bool get isListening => _wsService.isListening;
   void stopListening() {
     _subscription.cancel();
-    wsService.disconnect();
+    _wsService.disconnect();
     notifyListeners();
   }
 
@@ -37,7 +33,7 @@ class ChatWSProvider extends RetryableProvider {
 
   void sendNewMessage(String message) {
     if (game.currentState == game.isRunning && game.isGameAssigned) {
-      wsService.sendMessage(
+      _wsService.sendMessage(
         GamePlayersMessage(
           senderSecondaryId: game.playerSecondaryId!,
           senderUsername: game.username!,
@@ -51,28 +47,26 @@ class ChatWSProvider extends RetryableProvider {
   }
 
   Future<void> startListening() async {
-    if (isReady()) {
-      game.onStateChange.listen((event) {
-        developer.log("Game ${game.conversationSecondaryId} went from ${event.from.name} to ${event.to.name}");
-        notifyListeners();
-      });
-      wsService.connect();
-      _subscription = wsService.stream.listen((message) => _onMessageReceived(message), onError: _onErrorReceived);
-      messagesStream = wsService.stream
-        .where((element) => element is GamePlayersMessage)
-        .cast<GamePlayersMessage>()
-        .map((element) => element..isSender = element.senderSecondaryId == game.playerSecondaryId)
-        .toList()
-        .asStream();
+    game.onStateChange.listen((event) {
+      developer.log("Game ${game.conversationSecondaryId} went from ${event.from.name} to ${event.to.name}");
       notifyListeners();
-    }
+    });
+    _wsService.connect();
+    _subscription = _wsService.stream.listen((message) => _onMessageReceived(message), onError: _onErrorReceived);
+    messagesStream = _wsService.stream
+      .where((element) => element is GamePlayersMessage)
+      .cast<GamePlayersMessage>()
+      .map((element) => element..isSender = element.senderSecondaryId == game.playerSecondaryId)
+      .toList()
+      .asStream();
+    notifyListeners();
   }
 
   Future<void> _onMessageReceived(WsMessage message) async {
     try {
       _processMessage(message);
     } on IllegalStateTransition {
-      await gameService.reconcileStateIfNecessary(game.conversationSecondaryId!);
+      await _gameService.reconcileStateIfNecessary(game.conversationSecondaryId!);
     }
     notifyListeners();
   }
@@ -99,7 +93,7 @@ class ChatWSProvider extends RetryableProvider {
    void _onErrorReceived(dynamic error) {
     exception = error;
 
-    if (! wsService.isListening()) {
+    if (! _wsService.isListening) {
       game.gameGotInterrupted();
     }
 
@@ -116,7 +110,7 @@ class ChatWSProvider extends RetryableProvider {
   @override
   void dispose() {
     stopListening();
-    gameService.game = Game();
+    _gameService.game = Game();
     super.dispose();
   }
   

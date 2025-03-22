@@ -1,32 +1,36 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/service/startmenu_ws_service.dart';
 
 class StartMenuWSProvider extends ChangeNotifier {
-  final StartmenuWsService wsService;
+  final StartmenuWsService _wsService;
   int? _playersCount;
 
-  bool isReady() {
-    return wsService.jwtToken != null;
+  set jwtToken(String? newJwtToken) {
+    _wsService.jwtToken = newJwtToken;
+    notifyListeners();
   }
-
+  String? get jwtToken => _wsService.jwtToken;
   int? get playersCount => _playersCount;
 
-  StartMenuWSProvider({required this.wsService});
+  late StreamSubscription _subscription;
 
-  bool isListening() => wsService.isListening();
+  StartMenuWSProvider({required StartmenuWsService wsService}) : _wsService = wsService;
+
+  bool get isListening => _wsService.isListening;
   void stopListening() {
-    wsService.disconnect();
+    _subscription.cancel();
+    _wsService.disconnect();
     notifyListeners();
   }
 
   void startListening() {
     // Start the connection when this provider is instantiated.
-    if (isReady()) {
-      wsService.connect();
-      wsService.stream.listen((message) => _onMessageReceived(message), onError: _onErrorReceived);
-      notifyListeners();
-    }
+    _wsService.connect();
+    _subscription = _wsService.stream.listen((message) => _onMessageReceived(message), onError: _onErrorReceived);
+    notifyListeners();
   }
 
   void _onMessageReceived(WsMessage message) {
@@ -42,7 +46,7 @@ class StartMenuWSProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    wsService.disconnect();
+    stopListening();
     super.dispose();
   }
 }
