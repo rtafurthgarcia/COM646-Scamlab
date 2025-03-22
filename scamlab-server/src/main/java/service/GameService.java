@@ -16,6 +16,7 @@ import com.thedeanda.lorem.LoremIpsum;
 
 import helper.DefaultKeyValues;
 import helper.MathHelper;
+import helper.PlayerConnectionRegistry;
 import helper.VoteToStartRegistry;
 import helper.DefaultKeyValues.RoleValue;
 import helper.DefaultKeyValues.StateValue;
@@ -98,7 +99,10 @@ public class GameService {
     Scheduler scheduler;
 
     @Inject
-    VoteToStartRegistry registry;
+    VoteToStartRegistry voteRegistry;
+
+    @Inject
+    PlayerConnectionRegistry connectionRegistry;
 
     Lorem lorem = LoremIpsum.getInstance();
 
@@ -163,12 +167,14 @@ public class GameService {
             var randomlyPickedScenario = TestingScenario.values()[MathHelper.getRandomNumber(0,
                     TestingScenario.values().length - 1)];
 
-            entityManager.persist(
-                    new Conversation()
-                            .setCurrentState(
-                                    entityManager.find(State.class, helper.DefaultKeyValues.StateValue.WAITING.value))
-                            .setStrategy(randomlyPickedStrategy)
-                            .setTestingScenario(randomlyPickedScenario));
+            var newConversation = new Conversation()
+                    .setCurrentState(
+                            entityManager.find(State.class, helper.DefaultKeyValues.StateValue.WAITING.value))
+                    .setStrategy(randomlyPickedStrategy)
+                    .setTestingScenario(randomlyPickedScenario);
+            entityManager.persist(newConversation);
+
+            Log.info("Created new game ID: " + newConversation.getSecondaryId());
         }
     }
 
@@ -281,7 +287,7 @@ public class GameService {
                     && runningOrReadyConversationsCount < maxOngoingGamesCount) {
                 conversation.setCurrentState(entityManager.find(State.class, StateValue.READY.value));
 
-                Log.info("Preparing new game " + conversation.getSecondaryId());
+                Log.info("Set game " + conversation.getSecondaryId() + " as ready. Will wait for players to start.");
 
                 conversation.getParticipants().forEach(p -> {
                     notifyGameAsReadyEmitter.send(
@@ -360,14 +366,14 @@ public class GameService {
         var conversation = findConversationBySecondaryId(request.conversation());
         var player = findPlayerBySecondaryId(request.player());
 
-        if (!registry.hasVoted(player.getId())) {
-            registry.register(player.getId(), conversation.getId());
+        if (!voteRegistry.hasVoted(player.getId())) {
+            voteRegistry.register(player.getId(), conversation.getId());
             acknowledgeStartVoteEmitter.send(new VoteAcknowledgedMessageDTO(player.getSecondaryId().toString()));
         }
 
         var everyOneHasVotedToStart = conversation.getParticipants()
                 .stream()
-                .allMatch(p -> registry.hasVoted(p.getParticipationId().getPlayer().getId()));
+                .allMatch(p -> voteRegistry.hasVoted(p.getParticipationId().getPlayer().getId()));
 
         if (everyOneHasVotedToStart) {
             scheduler.unscheduleJob(conversation.getId().toString());
@@ -437,6 +443,9 @@ public class GameService {
 
             playersLeft.forEach(p -> putPlayerOnWaitingList(p));
         }
+
+        connectionRegistry.remove(request.player().toString());
+        // registry.unregister(request.player().);
     }
 
     @Incoming(value = "reply-received")
@@ -462,7 +471,8 @@ public class GameService {
                 });
     }
 
-    public GameReconcileStateMessageDTO reconcileStateForClient(String conversationSecondaryId, String playerSecondaryId) {
+    public GameReconcileStateMessageDTO reconcileStateForClient(String conversationSecondaryId,
+            String playerSecondaryId) {
         var conversation = findConversationBySecondaryId(UUID.fromString(conversationSecondaryId));
         var player = findPlayerBySecondaryId(UUID.fromString(playerSecondaryId));
 

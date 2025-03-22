@@ -19,7 +19,6 @@ import io.quarkus.websockets.next.runtime.ConnectionManager;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import model.dto.MessageDTODecoder;
 import model.dto.GameDTO.GameGameCancelledMessageDTO;
 import model.dto.GameDTO.LeaveRequestInternalDTO;
@@ -33,7 +32,6 @@ import model.dto.GameDTO.WaitingLobbyVoteToStartMessageDTO;
 import model.entity.TransitionReason;
 
 @Authenticated
-@Singleton
 @WebSocket(path = "/ws/lobby")
 public class LobbyWSResource {
     @Inject
@@ -62,7 +60,7 @@ public class LobbyWSResource {
     public void onOpen() {
         Log.info(securityIdentity.getPrincipal().getName() + " successfully authenticated");
         Log.info("New player waiting to join a game: " + connection.id());
-        registry.register(securityIdentity.getPrincipal().getName(), connection.id());
+        registry.putIfAbsent(securityIdentity.getPrincipal().getName(), connection.id());
     }
 
     @Incoming("notify-reason-for-waiting")
@@ -73,7 +71,7 @@ public class LobbyWSResource {
             + String.join(", ", statistics.reasons()));
 
         return connectionManager.findByConnectionId(
-            registry.getConnectionId(statistics.playerSecondaryId())
+            registry.get(statistics.playerSecondaryId())
         ).get().sendText(statistics);
     }
 
@@ -87,7 +85,7 @@ public class LobbyWSResource {
             + message.conversationSecondaryId());
 
         return connectionManager.findByConnectionId(
-            registry.getConnectionId(message.playerSecondaryId())
+            registry.get(message.playerSecondaryId())
             ).get().sendText(message);
             
     }
@@ -97,7 +95,7 @@ public class LobbyWSResource {
         Log.info("Player " + message.playerSecondaryId() + " notified that their game is ready");
         
         return connectionManager.findByConnectionId(
-            registry.getConnectionId(message.playerSecondaryId())
+            registry.get(message.playerSecondaryId())
         ).get().sendText(message);
     }
 
@@ -106,7 +104,7 @@ public class LobbyWSResource {
         Log.info("Notify player " + message.playerSecondaryId() + " that their start vote has been acknowledged");
         
         return connectionManager.findByConnectionId(
-            registry.getConnectionId(message.playerSecondaryId())
+            registry.get(message.playerSecondaryId())
         ).get().sendText(message);
     }
 
@@ -115,7 +113,7 @@ public class LobbyWSResource {
         Log.info("Notify player " + message.playerSecondaryId() + " that their game is starting");
         
         return connectionManager.findByConnectionId(
-            registry.getConnectionId(message.playerSecondaryId())
+            registry.get(message.playerSecondaryId())
         ).get().sendText(message);
     }
 
@@ -124,16 +122,12 @@ public class LobbyWSResource {
         Log.info("WS connection closed: " + connection.endpointId());
         
         // Won't send the leave request for players who will reconnect
-        if (registry.getConnectionId(securityIdentity.getPrincipal().getName()) != null) {
-            leaveEmitter.send(
-                new LeaveRequestInternalDTO(
-                    UUID.fromString(securityIdentity.getPrincipal().getName()),
-                    TransitionReason.ConnectionGotTerminated
-                )
-            );
-            
-            registry.unregister(securityIdentity.getPrincipal().getName());
-        }
+        leaveEmitter.send(
+            new LeaveRequestInternalDTO(
+                UUID.fromString(securityIdentity.getPrincipal().getName()),
+                TransitionReason.ConnectionGotTerminated
+            )
+        );        
     }
 
     @OnTextMessage(codec = MessageDTODecoder.class)
@@ -142,7 +136,7 @@ public class LobbyWSResource {
         if (message instanceof WaitingLobbyGameStartingMessageDTO) {
             var playerId = securityIdentity.getPrincipal().getName();
             Log.info("Game starting for player " + securityIdentity.getPrincipal().getName());
-            registry.unregister(playerId);
+            registry.remove(playerId);
         }
 
         if (message instanceof WaitingLobbyVoteToStartMessageDTO) {
