@@ -135,7 +135,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
 
         if (provider.game.currentState ==
             provider.game.isWaitingForStartOfGame) {
-          children.add(LinearProgressIndicator());
+          children.add(Expanded(child: LinearProgressIndicator()));
         }
 
         children.add(Text("Scamlab - Player's username: "));

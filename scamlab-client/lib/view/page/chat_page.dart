@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:provider/provider.dart';
-import 'package:scamlab/model/game.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/chat_ws_provider.dart';
@@ -21,6 +20,7 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   var _alertShowing = false;
+  late String id;
 
   Future askBeforeQuitting() {
     return showDialog(
@@ -56,7 +56,7 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
 
-    if (! kDebugMode) {
+    if (!kDebugMode) {
       FlutterWindowClose.setWindowShouldCloseHandler(() async {
         if (_alertShowing) return false;
         _alertShowing = true;
@@ -81,6 +81,10 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    final arguments =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    id = arguments?['id'];
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
@@ -89,20 +93,20 @@ class _ChatPageState extends State<ChatPage> {
               'WS_URL',
               defaultValue: 'ws://127.0.0.1:8080',
             );
- 
-            Game game = context.read();
 
             return ChatWSProvider(
-              wsService: context.read()
-                ..wsUrl = "$wsURL/ws/games/${game.conversationSecondaryId}"
-                ..jwtToken = context.read<AuthenticationProvider>().player?.jwtToken,
+              wsService:
+                  context.read()
+                    ..wsUrl = "$wsURL/ws/games/$id"
+                    ..jwtToken =
+                        context.read<AuthenticationProvider>().player?.jwtToken,
               gameService: context.read(),
             )..startListening();
           },
         ),
-        StreamProvider(
+        StreamProvider<List<GamePlayersMessage>>(
           create: (context) => context.read<ChatWSProvider>().messagesStream,
-          initialData: List.empty(),
+          initialData: <GamePlayersMessage>[],
         ),
       ],
       child: Scaffold(
@@ -160,6 +164,7 @@ class _ChatPageState extends State<ChatPage> {
                   Consumer<List<GamePlayersMessage>>(
                     builder:
                         (context, messages, child) => ListView.builder(
+                          shrinkWrap: true,
                           itemCount: messages.length,
                           itemBuilder: (context, index) {
                             GamePlayersMessage message = messages[index];
@@ -223,43 +228,36 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  Consumer<ChatWSProvider> buildTitle() {
+  Widget buildTitle() {
     bool isScreenSmall = MediaQuery.of(context).size.width < 600;
+    String titleSuffix = id;
+    // Shorten the ID if on mobile and if it's long enough.
+    String displayedId = titleSuffix;
+    if (isScreenSmall && titleSuffix.length > 10) {
+      displayedId =
+          "${titleSuffix.substring(0, 4)}...${titleSuffix.substring(titleSuffix.length - 2)}";
+    }
 
-    return Consumer<ChatWSProvider>(
-      builder: (context, provider, child) {
-        String titleSuffix = provider.game.conversationSecondaryId ?? "-";
-        // Shorten the ID if on mobile and if it's long enough.
-        String displayedId = titleSuffix;
-        if (isScreenSmall && titleSuffix.length > 10) {
-          displayedId =
-              "${titleSuffix.substring(0, 4)}...${titleSuffix.substring(titleSuffix.length - 2)}";
-        }
-
-        return Row(
-          children: [
-            Text("Scamlab - Conversation ID:"),
-            isScreenSmall
-                ? GestureDetector(
-                  onTap: () {
-                    Clipboard.setData(ClipboardData(text: titleSuffix));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Conversation ID copied to clipboard!"),
-                      ),
-                    );
-                  },
-                  child: Text(
-                    displayedId,
-                    style: const TextStyle(
-                      decoration: TextDecoration.underline,
-                    ),
+    return Row(
+      children: [
+        Text("Scamlab - Conversation ID:"),
+        isScreenSmall
+            ? GestureDetector(
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: titleSuffix));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Conversation ID copied to clipboard!"),
                   ),
-                )
-                : SelectableText(titleSuffix),
-          ],
-        );
-      },
+                );
+              },
+              child: Text(
+                displayedId,
+                style: const TextStyle(decoration: TextDecoration.underline),
+              ),
+            )
+            : SelectableText(titleSuffix),
+      ],
     );
   }
 }
