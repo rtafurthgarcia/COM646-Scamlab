@@ -18,12 +18,15 @@ class ChatWSProvider extends RetryableProvider {
 
   late Stream<List<GamePlayersMessage>> messagesStream;
 
+  late StreamSubscription _subscription;
+
   bool isReady() {
     return wsService.jwtToken != null;
   }
 
   bool isListening() => wsService.isListening();
   void stopListening() {
+    _subscription.cancel();
     wsService.disconnect();
     notifyListeners();
   }
@@ -54,13 +57,14 @@ class ChatWSProvider extends RetryableProvider {
         notifyListeners();
       });
       wsService.connect();
-      wsService.stream.listen((message) => _onMessageReceived(message), onError: _onErrorReceived);
+      _subscription = wsService.stream.listen((message) => _onMessageReceived(message), onError: _onErrorReceived);
       messagesStream = wsService.stream
         .where((element) => element is GamePlayersMessage)
         .cast<GamePlayersMessage>()
         .map((element) => element..isSender = element.senderSecondaryId == game.playerSecondaryId)
         .toList()
         .asStream();
+      notifyListeners();
     }
   }
 

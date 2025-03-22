@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -7,7 +8,8 @@ abstract class WSService {
   String? jwtToken;
   WebSocketChannel? _channel;
   int _sequence = 0;
-  late Stream<WsMessage> stream;
+  final StreamController _controller = StreamController.broadcast();
+  Stream get stream => _controller.stream;
 
   WSService({required this.wsUrl, this.jwtToken});
 
@@ -33,14 +35,15 @@ abstract class WSService {
     ];
 
     _channel = WebSocketChannel.connect(Uri.parse(wsUrl), protocols: protocols);
-
-    stream = _channel!.stream
+    
+    _controller.addStream( _channel!.stream
       .map((data) => json.decode(data))
       .map((json) {
         var message = deserialiseMessage(json: json, sequence: _sequence);
         _sequence++;
         return message;
-      });
+      })
+    );
   }
 
   /// Disconnects the WebSocket.

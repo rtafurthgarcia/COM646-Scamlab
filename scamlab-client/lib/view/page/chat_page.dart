@@ -63,33 +63,43 @@ class _ChatPageState extends State<ChatPage> {
     // Create a seed by combining the char codes.
     final seed = username.codeUnits.fold(0, (prev, curr) => prev + curr);
     final random = Random(seed);
-    
+
     return Color.fromARGB(
       255,
       random.nextInt(256),
       random.nextInt(256),
       random.nextInt(256),
     );
-  } 
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) {
-        const wsURL = String.fromEnvironment(
-          'WS_URL',
-          defaultValue: 'ws://127.0.0.1:8080',
-        );
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (context) {
+            const wsURL = String.fromEnvironment(
+              'WS_URL',
+              defaultValue: 'ws://127.0.0.1:8080',
+            );
 
-        Game game = context.read();
+            Game game = context.read();
 
-        return ChatWSProvider(
-          wsService: ChatWSService(
-            wsUrl: "$wsURL/ws/games/${game.conversationSecondaryId}",
-          )..jwtToken = context.read<AuthenticationProvider>().player?.jwtToken,
-          gameService: context.read(),
-        )..startListening();
-      },
+            return ChatWSProvider(
+              wsService: ChatWSService(
+                  wsUrl: "$wsURL/ws/games/${game.conversationSecondaryId}",
+                )
+                ..jwtToken =
+                    context.read<AuthenticationProvider>().player?.jwtToken,
+              gameService: context.read(),
+            )..startListening();
+          }
+        ),
+        StreamProvider(
+          create: (context) => context.read<ChatWSProvider>().messagesStream,
+          initialData: List.empty()
+        )
+      ],
       child: Scaffold(
         appBar: AppBar(title: buildTitle()),
         body: Center(
@@ -125,40 +135,43 @@ class _ChatPageState extends State<ChatPage> {
               padding: EdgeInsets.all(16.0),
               child: Column(
                 children: <Widget>[
-                  StreamProvider<List<GamePlayersMessage>>(
-                    lazy: true,
-                    create:
-                        (context) =>
-                            Provider.of<ChatWSProvider>(
-                              context,
-                              listen: false,
-                            ).messagesStream,
-                    builder: (context, snapshot) {
-                      return Consumer<List<GamePlayersMessage>>(
-                        builder: (context, messages, child) => ListView.builder(
+                  Consumer<List<GamePlayersMessage>>(
+                    builder:
+                        (context, messages, child) => ListView.builder(
                           itemCount: messages.length,
                           itemBuilder: (context, index) {
-                            GamePlayersMessage message = messages[index];
-
+                            GamePlayersMessage message =
+                                messages[index];
+                                    
                             return Row(
                               children: [
                                 CircleAvatar(
-                                  backgroundColor: colorFromUsername(message.senderUsername),
-                                  child: Text(message.senderUsername.substring(0, 1)),
+                                  backgroundColor: colorFromUsername(
+                                    message.senderUsername,
+                                  ),
+                                  child: Text(
+                                    message.senderUsername.substring(
+                                      0,
+                                      1,
+                                    ),
+                                  ),
                                 ),
                                 BubbleSpecialOne(
                                   text: message.text,
                                   isSender: message.isSender,
-                                  color: Theme.of(context).colorScheme.onPrimary,
-                                  textStyle: Theme.of(context).textTheme.bodyMedium!,
+                                  color:
+                                      Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimary,
+                                  textStyle:
+                                      Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium!,
                                 ),
                               ],
                             );
                           },
                         ),
-                      );
-                    },
-                    initialData: [],
                   ),
                 ],
               ),
@@ -167,7 +180,7 @@ class _ChatPageState extends State<ChatPage> {
           const Divider(height: 1, color: Color(0xffe6e6e6)),
           MessageBar(
             onSend: (text) {
-              Provider.of<ChatWSProvider>(context,listen: false).sendNewMessage(text);
+              context.read<ChatWSProvider>().sendNewMessage(text);
             },
             actions: [
               InkWell(
@@ -196,13 +209,13 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  Consumer<Game> buildTitle() {
-    return Consumer<Game>(
-      builder: (context, game, child) {
+  Consumer<ChatWSProvider> buildTitle() {
+    return Consumer<ChatWSProvider>(
+      builder: (context, provider, child) {
         return Row(
           children: [
             Text("Scamlab - Conversation ID:"),
-            SelectableText(game.conversationSecondaryId!),
+            SelectableText(provider.game.conversationSecondaryId!),
           ],
         );
       },
