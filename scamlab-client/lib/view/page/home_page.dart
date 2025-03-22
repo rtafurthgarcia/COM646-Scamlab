@@ -158,7 +158,7 @@ class HomePage extends StatelessWidget {
                 ],
               ),
             ),
-            InstructionsCardWidget(
+            InstructionsCard(
               title: "2. How to play",
               icon: const Icon(Icons.menu_book),
             ),

@@ -1,7 +1,5 @@
 import 'dart:math';
 
-import 'package:chat_bubbles/bubbles/bubble_special_one.dart';
-import 'package:chat_bubbles/message_bars/message_bar.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/chat_ws_provider.dart';
+import 'package:scamlab/view/widget/chat_bubble_widget.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -21,6 +20,8 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   var _alertShowing = false;
   late String id;
+
+  TextEditingController textEditingController = TextEditingController();
 
   Future askBeforeQuitting() {
     return showDialog(
@@ -106,10 +107,17 @@ class _ChatPageState extends State<ChatPage> {
         ),
         StreamProvider<List<GamePlayersMessage>>(
           create: (context) => context.read<ChatWSProvider>().messagesStream,
-          initialData: <GamePlayersMessage>[],
+          initialData: <GamePlayersMessage>[
+            GamePlayersMessage(
+              sequence: 0,
+              senderSecondaryId: "blabla",
+              senderUsername: "blabla",
+              text: "Teehee",
+            ),
+          ],
         ),
       ],
-      child: Scaffold(
+      builder: (context, child) => Scaffold(
         appBar: AppBar(title: buildTitle(), leading: buildLeading(context)),
         body: Center(
           child: ConstrainedBox(
@@ -139,91 +147,79 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget buildStack(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(top: 8, bottom: 16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(
-              context,
-            ).colorScheme.onTertiary.withValues(alpha: 0.5),
-            spreadRadius: 5,
-            blurRadius: 7,
-            //offset: Offset(0, 3), // changes position of shadow
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(16.0),
-              child: Column(
-                children: <Widget>[
-                  Consumer<List<GamePlayersMessage>>(
-                    builder:
-                        (context, messages, child) => ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: messages.length,
-                          itemBuilder: (context, index) {
-                            GamePlayersMessage message = messages[index];
+    return Stack(children: [buildChatView(), buildChatBox(context)]);
+  }
 
-                            return Row(
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor: colorFromUsername(
-                                    message.senderUsername,
-                                  ),
-                                  child: Text(
-                                    message.senderUsername.substring(0, 1),
-                                  ),
-                                ),
-                                BubbleSpecialOne(
-                                  text: message.text,
-                                  isSender: message.isSender,
-                                  color:
-                                      Theme.of(context).colorScheme.onPrimary,
-                                  textStyle:
-                                      Theme.of(context).textTheme.bodyMedium!,
-                                ),
-                              ],
-                            );
-                          },
-                        ),
+  Widget buildChatBox(BuildContext context) {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: SizedBox(
+        child: Row(
+          children: <Widget>[
+            ElevatedButton(
+              onPressed: null,
+              style: ElevatedButton.styleFrom(
+                shape: CircleBorder(),
+                padding: EdgeInsets.all(24),
+                backgroundColor: Theme.of(context).colorScheme.secondary,
+                foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                iconColor: Theme.of(context).colorScheme.onSecondary,
+              ),
+              child: Icon(Icons.photo_camera_back),
+            ),
+            Flexible(
+              fit: FlexFit.loose,
+              child: TextField(
+                controller: textEditingController,
+                decoration: InputDecoration(
+                  hintText: "Write message...",
+                  hintStyle: Theme.of(context).primaryTextTheme.bodyLarge,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(32.0),
+                    borderSide: BorderSide(),
                   ),
-                ],
+                  suffixIcon: Container(
+                    margin: EdgeInsets.all(8.0),
+                    child: IconButton(
+                      onPressed: () => Provider.of<ChatWSProvider>(context, listen: false).sendNewMessage(textEditingController.text),
+                      icon: Icon(Icons.send),
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
-          const Divider(height: 1, color: Color(0xffe6e6e6)),
-          MessageBar(
-            onSend: (text) {
-              context.read<ChatWSProvider>().sendNewMessage(text);
-            },
-            actions: [
-              InkWell(
-                child: Icon(
-                  Icons.add,
-                  color: Theme.of(context).primaryColor,
-                  size: 24,
-                ),
-                onTap: () {},
-              ),
-              Padding(
-                padding: EdgeInsets.only(left: 8, right: 8),
-                child: InkWell(
-                  child: Icon(
-                    Icons.camera_alt,
-                    color: Theme.of(context).primaryColor,
-                    size: 24,
-                  ),
-                  onTap: () {},
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildChatView() {
+    return Align(
+      alignment: Alignment.center,
+      child: Consumer<List<GamePlayersMessage>>(
+        builder:
+            (context, messages, child) => ListView.builder(
+              itemCount: messages.length,
+              itemBuilder: (context, index) {
+                GamePlayersMessage message = messages[index];
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: colorFromUsername(
+                        message.senderUsername,
+                      ),
+                      child: Text(message.senderUsername.substring(0, 1)),
+                    ),
+                    ChatBubble(
+                      message: message.text,
+                      isSender: message.isSender,
+                    ),
+                  ],
+                );
+              },
+            ),
       ),
     );
   }

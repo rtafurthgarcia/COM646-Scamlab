@@ -283,7 +283,7 @@ class GamePlayersMessage extends WsMessage {
   String senderSecondaryId;
   String senderUsername;
   String text;
-  String imagePath;
+  String? imagePath;
   bool isSender;
 
   GamePlayersMessage({
@@ -292,7 +292,7 @@ class GamePlayersMessage extends WsMessage {
     required this.senderUsername,
     this.isSender = false,
     required this.text, 
-    required this.imagePath})
+    this.imagePath})
       : super(type: WsMessageType.playersMessage);
 
   factory GamePlayersMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {

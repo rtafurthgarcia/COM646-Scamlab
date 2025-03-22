@@ -82,7 +82,7 @@ public class GameWSResource {
     @OnTextMessage(codec = MessageDTODecoder.class)
     public void processAsync(Record message) {
         if (message instanceof GamePlayersMessageDTO) {
-            if(((GamePlayersMessageDTO)message).senderSecondaryId() != securityIdentity.getPrincipal().getName()) {
+            if(! ((GamePlayersMessageDTO)message).senderSecondaryId().equals(securityIdentity.getPrincipal().getName())) {
                 throw new UnauthorizedException("Secondary IDs do not match");
             }
 

@@ -1,7 +1,6 @@
 class GameReconcileState {
   final String conversationSecondaryId;
   final int state;
-  
 
   GameReconcileState({
     required this.conversationSecondaryId,

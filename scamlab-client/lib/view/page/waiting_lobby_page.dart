@@ -202,12 +202,12 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
                 if (assignedStrategy != null) {
                   return Column(
                     children: [
-                      InstructionsCardWidget(
+                      InstructionsCard(
                         title: "1. This game's scenario:",
                         text: assignedStrategy.script,
                         icon: const Icon(Icons.menu_book),
                       ),
-                      InstructionsCardWidget(
+                      InstructionsCard(
                         title: "2. Your role as a player:",
                         text: assignedStrategy.role.replaceFirst(
                           assignedStrategy.role[0],
@@ -215,7 +215,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
                         ),
                         icon: const Icon(Icons.person),
                       ),
-                      InstructionsCardWidget(
+                      InstructionsCard(
                         title: "3. Example of what you can say:",
                         text: "\"${assignedStrategy.example}\"",
                         icon: const Icon(Icons.message),
@@ -225,7 +225,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
                 } else {
                   return Column(
                     children: [
-                      InstructionsCardWidget(
+                      InstructionsCard(
                         title: "Rules reminder:",
                         icon: const Icon(Icons.menu_book),
                       ),
@@ -265,7 +265,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
                                 WaitingLobbyReadyToStartMessage
                               >()
                               ?.voteTimeout;
-                      return TimoutTimerWidget(
+                      return TimoutTimer(
                         duration: Duration(seconds: timeout ?? 0),
                       );
                     }

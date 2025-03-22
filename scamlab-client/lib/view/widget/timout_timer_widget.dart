@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:timer_flutter/timer_flutter.dart';
 
-class TimoutTimerWidget extends StatelessWidget {
+class TimoutTimer extends StatelessWidget {
   final Duration duration;
 
-  const TimoutTimerWidget({super.key, required this.duration});
+  const TimoutTimer({super.key, required this.duration});
 
   @override
   Widget build(BuildContext context) {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class InstructionsCardWidget extends StatelessWidget {
-  const InstructionsCardWidget({ 
+class InstructionsCard extends StatelessWidget {
+  const InstructionsCard({ 
     super.key, 
     required this.title, 
     required this.icon,
