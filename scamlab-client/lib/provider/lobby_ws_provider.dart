@@ -11,6 +11,7 @@ import 'package:scamlab/service/settings_service.dart';
 import 'dart:developer' as developer;
 
 import 'package:state_machine/state_machine.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 class LobbyWSProvider extends RetryableProvider {
   final LobbyWsService _wsService;
@@ -28,7 +29,7 @@ class LobbyWSProvider extends RetryableProvider {
   );
 
   Timer? _timer;
-  late StreamSubscription _subscription;
+  StreamSubscription? _subscription;
 
   LobbyWSProvider({
     required GameService gameService,
@@ -40,7 +41,7 @@ class LobbyWSProvider extends RetryableProvider {
 
   bool get isListening => _wsService.isListening;
   void stopListening() {
-    _subscription.cancel();
+    _subscription?.cancel();
     _wsService.disconnect();
     _messages.clear();
     notifyListeners();
@@ -68,21 +69,29 @@ class LobbyWSProvider extends RetryableProvider {
   }
 
   Future<void> startListening() async {
-    _wsService.connect();
-    await _gameService.joinNewGame();
-    game.startFrom(game.isWaiting);
-    game.onStateChange.listen((event) {
-      developer.log(
-        "Game ${game.conversationSecondaryId} went from ${event.from.name} to ${event.to.name}",
-        name: "lobby_ws_provider", 
-        time: DateTime.now()
+    try {
+      _wsService.connect();
+      await _gameService.joinNewGame();
+      game.startFrom(game.isWaiting);
+      game.onStateChange.listen((event) {
+        developer.log(
+          "Game ${game.conversationSecondaryId} went from ${event.from.name} to ${event.to.name}",
+          name: "lobby_ws_provider", 
+          time: DateTime.now()
+        );
+        notifyListeners();
+      });
+      _subscription = _wsService.stream.listen(
+        (message) => _onMessageReceived(message),
+        onDone: () {
+          if (_wsService.errorCode != null) {
+            _onErrorReceived(WebSocketChannelException("Connection closed on error code: ${_wsService.errorCode}"));
+          }
+        }
       );
-      notifyListeners();
-    });
-    _subscription = _wsService.stream.listen(
-      (message) => _onMessageReceived(message),
-      onError: _onErrorReceived,
-    );
+    } catch (e) {
+      _onErrorReceived(e);
+    }
     notifyListeners();
   }
 
@@ -92,7 +101,7 @@ class LobbyWSProvider extends RetryableProvider {
     try {
       _processMessage(message);
     } on IllegalStateTransition catch (e) {
-      _subscription.pause();
+      _subscription?.pause();
       developer.log(
         "Transition ${e.transition} impossible from ${e.from} to ${e.to}",
         name: "lobby_ws_provider",
@@ -101,7 +110,7 @@ class LobbyWSProvider extends RetryableProvider {
       await _gameService.reconcileStateIfNecessary(
         game.conversationSecondaryId!,
       );
-      _subscription.resume();
+      _subscription?.resume();
     }
     notifyListeners();
   }

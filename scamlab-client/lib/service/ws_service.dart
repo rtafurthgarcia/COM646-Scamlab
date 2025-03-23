@@ -31,6 +31,7 @@ abstract class WSService {
   }
 
   WebSocketChannel? _channel;
+  int? get errorCode => _channel?.closeCode;
   int _sequence = 0;
 
   late StreamController _controller;
@@ -60,11 +61,11 @@ abstract class WSService {
     ];
 
     _channel = WebSocketChannel.connect(Uri.parse(_wsUrl), protocols: protocols);
-    _channel!.sink.done.whenComplete(() => _isListening = false);
+    _channel!.sink.done.whenComplete(_onDisconnected);
     _isListening = true;
 
     _controller = StreamController.broadcast();
-    _controller.addStream( _channel!.stream
+    _controller.addStream(cancelOnError: true, _channel!.stream
       .map((data) => json.decode(data))
       .map((json) {
         var message = deserialiseMessage(json: json, sequence: _sequence);
@@ -82,6 +83,16 @@ abstract class WSService {
       name: "ws_service", 
         time: DateTime.now());
 
+  }
+
+  void _onDisconnected() {
+    _isListening = false; 
+    if (_channel?.closeCode != null) {
+      developer.log(
+        "Connection closed on error code: ${_channel?.closeCode}", 
+        name: "ws_service", 
+        time: DateTime.now());
+    }
   }
 
   /// Disconnects the WebSocket.

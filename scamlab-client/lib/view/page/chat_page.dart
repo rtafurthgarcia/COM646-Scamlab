@@ -24,6 +24,19 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
 
   final TextEditingController _textEditingController = TextEditingController();
 
+ @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route changes.¨
+    _observer = context.read<RouteObserver<PageRoute>>();
+    _observer.subscribe(this, ModalRoute.of(context) as PageRoute);
+  }
+
+  @override
+  void dispose() {
+    _observer.unsubscribe(this);
+    super.dispose();
+  }
 
   Future askBeforeQuitting() {
     return showDialog(

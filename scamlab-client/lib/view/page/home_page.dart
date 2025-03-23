@@ -36,6 +36,23 @@ class _HomePageState extends State<HomePage> with RouteAware {
     context.read<StartMenuWSProvider>().startListening();
   }
 
+  void onBackOnHomePage(dynamic value) {
+    if (value is Error || value is Exception) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: SelectableText(
+            "Your gameplay got unexpectedly interrupted: $value",
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.onErrorContainer),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.errorContainer,
+          showCloseIcon: true,
+          closeIconColor: Theme.of(context).colorScheme.onErrorContainer,
+          duration: Duration(seconds: 60)
+        ),
+      );
+    }
+  }
+
   List<Widget> buildButtons(BuildContext context) {
     return [
       Consumer<AuthenticationProvider>(
@@ -49,7 +66,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
             onPressed:
                 () =>
                     provider.player != null
-                      ? Navigator.pushNamed(context, '/lobby')
+                      ? Navigator.pushNamed(context, '/lobby').then(onBackOnHomePage)
                       : null,
             icon: Icon(Icons.videogame_asset),
             label: Text('New game'),

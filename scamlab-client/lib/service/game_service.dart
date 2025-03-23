@@ -15,7 +15,7 @@ class GameService {
 
   Future<void> joinNewGame() async {
     if (jwtToken == null) {
-      throw Exception("Missing JWT token for WebSocket!");
+      throw ArgumentError("Missing JWT token for WebSocket!");
     }
     
     final response = await http.get(
@@ -39,7 +39,7 @@ class GameService {
 
   Future<void> reconcileStateIfNecessary(String conversationSecondaryId) async {
     if (jwtToken == null) {
-      throw Exception("Missing JWT token for WebSocket!");
+      throw ArgumentError("Missing JWT token for WebSocket!");
     }
 
     developer.log(

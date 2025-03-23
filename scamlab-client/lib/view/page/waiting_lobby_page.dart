@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:provider/provider.dart';
-import 'package:scamlab/model/game.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/lobby_ws_provider.dart';
@@ -69,7 +68,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
   void initState() {
     super.initState();
 
-    if (! kDebugMode) {
+    if (!kDebugMode) {
       FlutterWindowClose.setWindowShouldCloseHandler(() async {
         if (_alertShowing) return false;
         _alertShowing = true;
@@ -92,7 +91,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
                 context.read()
                   ..jwtToken =
                       context.read<AuthenticationProvider>().player!.jwtToken,
-            settingsService: context.read()
+            settingsService: context.read(),
           )..startListening(),
       builder:
           (context, child) => Scaffold(
@@ -121,19 +120,27 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
                 // Consumer that listens for game state change to IsRunning
                 Consumer<LobbyWSProvider>(
                   builder: (context, provider, child) {
-                    if (!_hasNavigated &&
-                        provider.game.currentState == provider.game.isRunning) {
+                    if (!_hasNavigated) {
+                      if (provider.game.currentState == provider.game.isRunning) {
                       _hasNavigated = true;
-                      // Schedule the navigation after the current frame
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        Navigator.pushReplacementNamed(
-                          context,
-                          '/games',
-                          arguments: {
-                            'id': provider.game.conversationSecondaryId,
-                          },
-                        );
-                      });
+                        // Schedule the navigation after the current frame
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          Navigator.pushReplacementNamed(
+                            context,
+                            '/games',
+                            arguments: {
+                              'id': provider.game.conversationSecondaryId,
+                            },
+                          );
+                        });
+                      } else if (provider.exception != null) {
+                        _hasNavigated = true;
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          Navigator.of(context).pop(
+                            provider.exception
+                          );
+                        });
+                      }
                     }
                     return const SizedBox.shrink();
                   },
