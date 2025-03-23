@@ -19,8 +19,8 @@ import io.quarkus.websockets.next.WebSocketConnection;
 import io.quarkus.websockets.next.runtime.ConnectionManager;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.resource.NotSupportedException;
 import model.dto.MessageDTODecoder;
 import model.dto.GameDTO.GameGameCancelledMessageDTO;
 import model.dto.GameDTO.GamePlayersMessageDTO;
@@ -28,6 +28,7 @@ import model.dto.GameDTO.LeaveRequestInternalDTO;
 import model.entity.TransitionReason;
 
 @Authenticated
+@ApplicationScoped
 @WebSocket(path = "/ws/games/{conversationSecondaryId}")
 public class GameWSResource {
     @Inject

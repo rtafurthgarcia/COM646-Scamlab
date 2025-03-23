@@ -18,6 +18,7 @@ import io.quarkus.websockets.next.WebSocketConnection;
 import io.quarkus.websockets.next.runtime.ConnectionManager;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import model.dto.MessageDTODecoder;
 import model.dto.GameDTO.GameGameCancelledMessageDTO;
@@ -32,6 +33,7 @@ import model.dto.GameDTO.WaitingLobbyVoteToStartMessageDTO;
 import model.entity.TransitionReason;
 
 @Authenticated
+@ApplicationScoped
 @WebSocket(path = "/ws/lobby")
 public class LobbyWSResource {
     @Inject
@@ -132,13 +134,6 @@ public class LobbyWSResource {
 
     @OnTextMessage(codec = MessageDTODecoder.class)
     public void processAsync(Record message) {
-        // For players who will reconnect right away to the /games/ endpoint
-        if (message instanceof WaitingLobbyGameStartingMessageDTO) {
-            var playerId = securityIdentity.getPrincipal().getName();
-            Log.info("Game starting for player " + securityIdentity.getPrincipal().getName());
-            registry.unregister(playerId);
-        }
-
         if (message instanceof WaitingLobbyVoteToStartMessageDTO) {
             var conversationId = UUID.fromString(((WaitingLobbyVoteToStartMessageDTO) message).conversationSecondaryId());
             var playerId = UUID.fromString(securityIdentity.getPrincipal().getName());

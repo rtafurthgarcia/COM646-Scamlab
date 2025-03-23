@@ -448,9 +448,9 @@ public class GameService {
                 voteRegistry.unregister(p.getId());
                 putPlayerOnWaitingList(p);
             });
-        }
 
-        connectionRegistry.unregister(request.player().toString());
+            connectionRegistry.unregister(request.player().toString());
+        }
     }
 
     @Incoming(value = "reply-received")

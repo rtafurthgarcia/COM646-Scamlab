@@ -1,12 +1,12 @@
 package helper;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
 import io.quarkus.arc.Lock;
 import io.quarkus.arc.Lock.Type;
+import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 
 /*
@@ -17,16 +17,23 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class PlayerConnectionRegistry {
 
     // Map player's secondary ID to connection ID
-    private final Map<String, String> playerToConnectionMap = Collections.synchronizedMap(new HashMap<String, String>());
+    private final ConcurrentMap<String, String> playerToConnectionMap = new ConcurrentHashMap<String, String>();
 
     /**
      * Registers a player's secondary ID with the corresponding connection ID.
-     *
+     *s
      * @param playerSecondaryId The player's secondary identifier.
      * @param connectionId The WebSocket connection ID.
      */
     public void register(String playerSecondaryId, String connectionId) {
-        playerToConnectionMap.put(playerSecondaryId, connectionId);
+        var oldValue = playerToConnectionMap.put(playerSecondaryId, connectionId);
+
+        if (oldValue != null) {
+            Log.info("Player " + playerSecondaryId + " successfully reconnected");
+        }
+
+        //Log.info("BEAN HASHCODE: " + hashCode());
+        //Log.info("BEAN LIST: " + String.join(",", playerToConnectionMap.keySet().stream().toList()));
     }
 
     /**
@@ -36,6 +43,10 @@ public class PlayerConnectionRegistry {
      * @return The corresponding connection ID, or null if not found.
      */
     public String getConnectionId(String playerSecondaryId) {
+        //Log.info("Player " + playerSecondaryId + " requested");
+        //Log.info("BEAN HASHCODE: " + hashCode());
+        //Log.info("BEAN LIST: " + String.join(",", playerToConnectionMap.keySet().stream().toList()));
+
         return playerToConnectionMap.get(playerSecondaryId);
     }
 
@@ -46,5 +57,9 @@ public class PlayerConnectionRegistry {
      */
     public void unregister(String playerSecondaryId) {
         playerToConnectionMap.remove(playerSecondaryId);
+
+        Log.info("Player " + playerSecondaryId + " erased from connection registry");
+        //Log.info("BEAN HASHCODE: " + hashCode());
+        //Log.info("BEAN LIST: " + String.join(",", playerToConnectionMap.keySet().stream().toList()));
     }
 }

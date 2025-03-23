@@ -121,8 +121,9 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
                 Consumer<LobbyWSProvider>(
                   builder: (context, provider, child) {
                     if (!_hasNavigated) {
-                      if (provider.game.currentState == provider.game.isRunning) {
-                      _hasNavigated = true;
+                      if (provider.game.currentState ==
+                          provider.game.isRunning) {
+                        _hasNavigated = true;
                         // Schedule the navigation after the current frame
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           Navigator.pushReplacementNamed(
@@ -136,9 +137,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
                       } else if (provider.exception != null) {
                         _hasNavigated = true;
                         WidgetsBinding.instance.addPostFrameCallback((_) {
-                          Navigator.of(context).pop(
-                            provider.exception
-                          );
+                          Navigator.of(context).pop(provider.exception);
                         });
                       }
                     }
@@ -154,21 +153,14 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
   Consumer<LobbyWSProvider> buildTitle() {
     return Consumer<LobbyWSProvider>(
       builder: (context, provider, child) {
-        List<Widget> children = List.empty(growable: true);
-
-        if (provider.game.currentState ==
-            provider.game.isWaitingForStartOfGame) {
-          children.add(Expanded(child: LinearProgressIndicator()));
-        }
-
-        children.add(Text("Scamlab - Player's username: "));
-        children.add(
-          SelectableText(
-            provider.game.isGameAssigned ? provider.game.username! : "-",
-          ),
+        return Row(
+          children: [
+            Text("Scamlab - Player's username: "),
+            SelectableText(
+              provider.game.isGameAssigned ? provider.game.username! : "-",
+            ),
+          ],
         );
-
-        return Row(children: children);
       },
     );
   }
@@ -191,6 +183,11 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
                   children.add(
                     const Text("Loading the new gameplay's strategy and role"),
                   );
+                }
+
+                if (provider.game.currentState == provider.game.isWaitingForStartOfGame) {
+                  children.add(CircularProgressIndicator());
+                  children.add(Text("Waiting on other player(s) to start the game themselves."));
                 }
 
                 if (provider.game.currentState == provider.game.isWaiting) {

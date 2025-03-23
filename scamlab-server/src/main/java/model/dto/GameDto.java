@@ -205,12 +205,12 @@ public class GameDTO {
             String receiverSecondaryId,
             String text,
             String imagePath) implements MessageDTO {
-        public GamePlayersMessageDTO(String playerSecondaryId, String username, String text, String imagePath) {
-            this(WSMessageType.PLAYERS_MESSAGE, playerSecondaryId, null, username, text, imagePath);
+        public GamePlayersMessageDTO(String senderSecondaryId, String username, String text, String imagePath) {
+            this(WSMessageType.PLAYERS_MESSAGE, senderSecondaryId, username, null, text, imagePath);
         }
 
-        public GamePlayersMessageDTO(String playerSecondaryId, String username, String receiverSecondaryId, String text, String imagePath) {
-            this(WSMessageType.PLAYERS_MESSAGE, playerSecondaryId, receiverSecondaryId, username, text, imagePath);
+        public GamePlayersMessageDTO(String senderSecondaryId, String username, String receiverSecondaryId, String text, String imagePath) {
+            this(WSMessageType.PLAYERS_MESSAGE, senderSecondaryId, username, receiverSecondaryId, text, imagePath);
         }
 
         @Override
