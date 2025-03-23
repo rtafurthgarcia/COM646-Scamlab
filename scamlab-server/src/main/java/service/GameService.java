@@ -124,7 +124,7 @@ public class GameService {
                 """
                         SELECT c FROM Conversation c
                         JOIN c.participants p
-                        JOIN p.player pl
+                        JOIN p.participationId.player pl
                         WHERE c.currentState.id IN (:state1, :state2) AND pl.secondaryId = :secondaryId
                             """, Conversation.class)
                 .setParameter("secondaryId", secondaryId)

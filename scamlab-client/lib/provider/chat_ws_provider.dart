@@ -48,7 +48,10 @@ class ChatWSProvider extends RetryableProvider {
 
   Future<void> startListening() async {
     game.onStateChange.listen((event) {
-      developer.log("Game ${game.conversationSecondaryId} went from ${event.from.name} to ${event.to.name}");
+      developer.log("Game ${game.conversationSecondaryId} went from ${event.from.name} to ${event.to.name}", 
+        name: "chat_ws_provider", 
+        time: DateTime.now()
+      );
       notifyListeners();
     });
     _wsService.connect();

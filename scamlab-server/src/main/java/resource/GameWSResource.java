@@ -54,12 +54,12 @@ public class GameWSResource {
 
     @OnOpen
     public void onOpen() {
-        Log.info("Player " + securityIdentity.getPrincipal().getName() + "joined conversation: " + connection.id());
+        Log.info("Player " + securityIdentity.getPrincipal().getName() + "joined conversation: " + connection.pathParam("conversationSecondaryId"));
         registry.register(securityIdentity.getPrincipal().getName(), connection.id());
     }
 
     @Incoming("send-reply")
-    public Uni<Void> sendReply(GamePlayersMessageDTO message) throws NotSupportedException {
+    public Uni<Void> sendReply(GamePlayersMessageDTO message) {
         Log.info("Player " + message.receiverSecondaryId() + " is about to receive a message from Player " + message.senderSecondaryId());
         
         return connectionManager.findByConnectionId(

@@ -17,11 +17,13 @@ class ChatPage extends StatefulWidget {
   State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> {
+class _ChatPageState extends State<ChatPage> with RouteAware {
   var _alertShowing = false;
-  late String id;
+  late String _id;
+  late RouteObserver<PageRoute> _observer;
 
-  TextEditingController textEditingController = TextEditingController();
+  final TextEditingController _textEditingController = TextEditingController();
+
 
   Future askBeforeQuitting() {
     return showDialog(
@@ -84,7 +86,7 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     final arguments =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    id = arguments?['id'];
+    _id = arguments?['id'];
 
     return MultiProvider(
       providers: [
@@ -98,7 +100,7 @@ class _ChatPageState extends State<ChatPage> {
             return ChatWSProvider(
               wsService:
                   context.read()
-                    ..wsUrl = "$wsURL/ws/games/$id"
+                    ..wsUrl = "$wsURL/ws/games/$_id"
                     ..jwtToken =
                         context.read<AuthenticationProvider>().player?.jwtToken,
               gameService: context.read(),
@@ -170,7 +172,7 @@ class _ChatPageState extends State<ChatPage> {
             Flexible(
               fit: FlexFit.loose,
               child: TextField(
-                controller: textEditingController,
+                controller: _textEditingController,
                 decoration: InputDecoration(
                   hintText: "Write message...",
                   hintStyle: Theme.of(context).primaryTextTheme.bodyLarge,
@@ -181,7 +183,7 @@ class _ChatPageState extends State<ChatPage> {
                   suffixIcon: Container(
                     margin: EdgeInsets.all(8.0),
                     child: IconButton(
-                      onPressed: () => Provider.of<ChatWSProvider>(context, listen: false).sendNewMessage(textEditingController.text),
+                      onPressed: () => context.read<ChatWSProvider>().sendNewMessage(_textEditingController.text),
                       icon: Icon(Icons.send),
                     ),
                   ),
@@ -226,7 +228,7 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget buildTitle() {
     bool isScreenSmall = MediaQuery.of(context).size.width < 600;
-    String titleSuffix = id;
+    String titleSuffix = _id;
     // Shorten the ID if on mobile and if it's long enough.
     String displayedId = titleSuffix;
     if (isScreenSmall && titleSuffix.length > 10) {

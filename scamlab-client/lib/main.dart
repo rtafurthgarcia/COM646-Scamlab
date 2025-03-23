@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/model/game.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
+import 'package:scamlab/provider/startmenu_ws_provider.dart';
 import 'package:scamlab/service/chat_ws_service.dart';
 import 'package:scamlab/service/lobby_ws_service.dart';
 import 'package:scamlab/service/settings_service.dart';
@@ -33,10 +34,29 @@ void main() {
         Provider(create: (context) => LobbyWsService(wsUrl: "$wsURL/ws/lobby")),
         Provider(create: (context) => ChatWSService(wsUrl: "")),
         Provider(create: (context) => SettingsService()),
+        Provider(create: (context) => RouteObserver<PageRoute>()),
         ChangeNotifierProvider(create: (context) => AuthenticationProvider(
           authenticationService: context.read(),
           settingsService: context.read()
         )),
+        ChangeNotifierProxyProvider<AuthenticationProvider,StartMenuWSProvider>(
+          create: (BuildContext context) => StartMenuWSProvider(wsService: context.read()),
+          update: (context, authenticationProvider, startMenuWSProvider) {
+            startMenuWSProvider ??= StartMenuWSProvider(wsService: context.read());
+  
+            if (startMenuWSProvider.isListening) {
+              startMenuWSProvider.stopListening();
+            }
+
+            if (startMenuWSProvider.jwtToken != authenticationProvider.player?.jwtToken) {
+              startMenuWSProvider.jwtToken = authenticationProvider.player?.jwtToken;
+              if (startMenuWSProvider.jwtToken != null) {
+                startMenuWSProvider.startListening();
+              }
+            }
+            return startMenuWSProvider;
+          }
+        )
       ],
       child: MainApp(),
     ),
@@ -52,20 +72,25 @@ class MainApp extends StatelessWidget {
     final textTheme = Typography.material2021().white; // Light theme text
     final materialTheme = MaterialTheme(textTheme);
 
-    return MaterialApp(
-      title: "Scamlab - Game experiment",
-      theme: materialTheme.light(),
-      darkTheme: materialTheme.dark(),
-      themeMode: ThemeMode.system,
-      initialRoute: '/',
-      routes: <String, WidgetBuilder>{
-        '/': (BuildContext context) => ClearableExceptionListener<AuthenticationProvider>(
-          message: "Couldn't get a new identity.",
-          child: const HomePage(),
-        ),
-        '/lobby': (BuildContext context) => const WaitingLobbyPage(), 
-        '/games': (BuildContext context) => const ChatPage()
-      },
+    return Builder(
+      builder: (innerContext) {
+        return MaterialApp(
+          title: "Scamlab - Game experiment",
+          theme: materialTheme.light(),
+          darkTheme: materialTheme.dark(),
+          themeMode: ThemeMode.system,
+          navigatorObservers: [innerContext.read<RouteObserver<PageRoute>>()],
+          initialRoute: '/',
+          routes: <String, WidgetBuilder>{
+            '/': (BuildContext context) => ClearableExceptionListener<AuthenticationProvider>(
+              message: "Couldn't get a new identity.",
+              child: const HomePage(),
+            ),
+            '/lobby': (BuildContext context) => const WaitingLobbyPage(), 
+            '/games': (BuildContext context) => const ChatPage()
+          },
+        );
+      }
     );
   }
 }

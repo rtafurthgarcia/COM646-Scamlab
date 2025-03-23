@@ -5,8 +5,36 @@ import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/startmenu_ws_provider.dart';
 import 'package:scamlab/view/widget/rules_card_widget.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget  {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> with RouteAware {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route changes.
+    context.read<RouteObserver<PageRoute>>().subscribe(this, ModalRoute.of(context) as PageRoute);
+  }
+
+  @override
+  void dispose() {
+    context.read<RouteObserver<PageRoute>>().unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPushNext() {
+    context.read<StartMenuWSProvider>().stopListening();
+  }
+
+  @override
+  void didPopNext() {
+    context.read<StartMenuWSProvider>().startListening();
+  }
 
   List<Widget> buildButtons(BuildContext context) {
     return [
@@ -66,30 +94,9 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     bool isScreenSmall = MediaQuery.of(context).size.width < 600;
 
-    return ChangeNotifierProxyProvider<
-      AuthenticationProvider,
-      StartMenuWSProvider
-    >(
-      create: (BuildContext context) => StartMenuWSProvider(wsService: context.read()),
-      update: (context, authenticationProvider, startMenuWSProvider) {
-        startMenuWSProvider ??= StartMenuWSProvider(wsService: context.read());
-        
-        if (startMenuWSProvider.isListening) {
-          startMenuWSProvider.stopListening();
-        }
-
-        if (startMenuWSProvider.jwtToken != authenticationProvider.player?.jwtToken) {
-          startMenuWSProvider.jwtToken = authenticationProvider.player?.jwtToken;
-          if (startMenuWSProvider.jwtToken != null) {
-            startMenuWSProvider.startListening();
-          }
-        }
-        return startMenuWSProvider;
-      },
-      child: Scaffold(
-        appBar: AppBar(title: buildTitle(isScreenSmall)),
-        body: buildBody(context, isScreenSmall),
-      ),
+    return Scaffold(
+      appBar: AppBar(title: buildTitle(isScreenSmall)),
+      body: buildBody(context, isScreenSmall),
     );
   }
 

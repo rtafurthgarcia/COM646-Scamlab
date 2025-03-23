@@ -26,7 +26,10 @@ class GameService {
     );
 
     if (response.statusCode != 200) {
-      developer.log("Error when joining a game: ${response.statusCode}", name: "game_service");
+      developer.log(
+        "Error when joining a game: ${response.statusCode}", 
+        name: "game_service", 
+        time: DateTime.now());
       throw Exception(
         'Failed to join game. Status: ${response.statusCode}\n'
         'Response: ${response.body}'
@@ -39,7 +42,10 @@ class GameService {
       throw Exception("Missing JWT token for WebSocket!");
     }
 
-    developer.log("Reconciliating game $conversationSecondaryId", name: "game_service");
+    developer.log(
+      "Reconciliating game $conversationSecondaryId", 
+      name: "game_service", 
+      time: DateTime.now());
     
     final response = await http.get(
       Uri.parse('$baseUrl/games/$conversationSecondaryId/state'),
@@ -49,7 +55,10 @@ class GameService {
     );
 
     if (response.statusCode != 200) {
-      developer.log("Error when reconciliating a game: ${response.statusCode}", name: "game_service");
+      developer.log(
+        "Error when reconciliating a game: ${response.statusCode}", 
+        name: "game_service", 
+        time: DateTime.now());
       throw Exception(
         "Failed to obtain the game's current state. Status: ${response.statusCode}\n"
         'Response: ${response.body}'

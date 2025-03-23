@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
+import 'dart:developer' as developer;
 
 abstract class WSService {
   String _wsUrl;
@@ -13,7 +14,7 @@ abstract class WSService {
 
   set wsUrl(String newUrl) {
     if (isListening) {
-      throw StateError("Cannot update the WebSocket URI Endpoint whilst connection is open.");
+      throw StateError("Cannot update the WebSocket URI Endpoint whilst coopen.");
     }
 
     _wsUrl = newUrl;
@@ -67,10 +68,19 @@ abstract class WSService {
       .map((data) => json.decode(data))
       .map((json) {
         var message = deserialiseMessage(json: json, sequence: _sequence);
+        developer.log(
+          "Message received of type ${message.type}", 
+          sequenceNumber: message.sequence, 
+          name: "ws_service", 
+          time: DateTime.now());
         _sequence++;
         return message;
       })
     );
+    developer.log(
+      "Connection opened on $_wsUrl", 
+      name: "ws_service", 
+        time: DateTime.now());
 
   }
 
@@ -79,11 +89,21 @@ abstract class WSService {
     if (isListening) {
       _channel!.sink.close(status.normalClosure);
       _controller.close();
+      developer.log(
+        "Connection closed on $_wsUrl", 
+        name: "ws_service", 
+        time: DateTime.now());
     }
   }
 
   Future<void> sendMessage(WsMessage message) async {
     if (isListening) {
+      developer.log(
+        "Message sent of type ${message.type}", 
+        sequenceNumber: _sequence, 
+        name: "ws_service", 
+        time: DateTime.now());
+      _sequence++;
       _channel!.sink.add(serialiseMessage(message: message));
     }
   }

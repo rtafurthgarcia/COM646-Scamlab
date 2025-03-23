@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:provider/provider.dart';
+import 'package:scamlab/model/game.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/lobby_ws_provider.dart';
@@ -15,9 +16,24 @@ class WaitingLobbyPage extends StatefulWidget {
   State<WaitingLobbyPage> createState() => _WaitingLobbyPageState();
 }
 
-class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
+class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
   var _alertShowing = false;
   bool _hasNavigated = false; // Flag to ensure navigation only happens once
+  late RouteObserver<PageRoute> _observer;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route changes.¨
+    _observer = context.read<RouteObserver<PageRoute>>();
+    _observer.subscribe(this, ModalRoute.of(context) as PageRoute);
+  }
+
+  @override
+  void dispose() {
+    _observer.unsubscribe(this);
+    super.dispose();
+  }
 
   Future askBeforeQuitting() {
     return showDialog(
@@ -110,7 +126,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> {
                       _hasNavigated = true;
                       // Schedule the navigation after the current frame
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        Navigator.pushNamed(
+                        Navigator.pushReplacementNamed(
                           context,
                           '/games',
                           arguments: {

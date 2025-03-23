@@ -74,6 +74,8 @@ class LobbyWSProvider extends RetryableProvider {
     game.onStateChange.listen((event) {
       developer.log(
         "Game ${game.conversationSecondaryId} went from ${event.from.name} to ${event.to.name}",
+        name: "lobby_ws_provider", 
+        time: DateTime.now()
       );
       notifyListeners();
     });
@@ -94,6 +96,7 @@ class LobbyWSProvider extends RetryableProvider {
       developer.log(
         "Transition ${e.transition} impossible from ${e.from} to ${e.to}",
         name: "lobby_ws_provider",
+        time: DateTime.now()
       );
       await _gameService.reconcileStateIfNecessary(
         game.conversationSecondaryId!,
@@ -154,7 +157,11 @@ class LobbyWSProvider extends RetryableProvider {
   void dispose() {
     stopListening();
     _timer?.cancel();
-    _gameService.game = Game();
+
+    if (game.currentState != game.isRunning) {
+      _gameService.game = Game();
+    }
+
     super.dispose();
   }
 
