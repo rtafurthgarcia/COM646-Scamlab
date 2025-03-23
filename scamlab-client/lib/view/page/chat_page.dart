@@ -24,10 +24,10 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
 
   final TextEditingController _textEditingController = TextEditingController();
 
- @override
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Subscribe to route changes.¨
+    // Subscribe to route changes.
     _observer = context.read<RouteObserver<PageRoute>>();
     _observer.subscribe(this, ModalRoute.of(context) as PageRoute);
   }
@@ -122,25 +122,21 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
         ),
         StreamProvider<List<GamePlayersMessage>>(
           create: (context) => context.read<ChatWSProvider>().messagesStream,
-          initialData: <GamePlayersMessage>[
-            GamePlayersMessage(
-              sequence: 0,
-              senderSecondaryId: "blabla",
-              senderUsername: "blabla",
-              text: "Teehee",
-            ),
-          ],
+          initialData: <GamePlayersMessage>[],
         ),
       ],
-      builder: (context, child) => Scaffold(
-        appBar: AppBar(title: buildTitle(), leading: buildLeading(context)),
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 960),
-            child: buildStack(context),
+      builder:
+          (context, child) => Scaffold(
+            appBar: AppBar(title: buildTitle(), leading: buildLeading(context)),
+            body: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 960),
+                child: Stack(
+                  children: [buildChatView(context), buildChatBox(context)],
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -159,10 +155,6 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
         );
       },
     );
-  }
-
-  Widget buildStack(BuildContext context) {
-    return Stack(children: [buildChatView(), buildChatBox(context)]);
   }
 
   Widget buildChatBox(BuildContext context) {
@@ -196,7 +188,10 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                   suffixIcon: Container(
                     margin: EdgeInsets.all(8.0),
                     child: IconButton(
-                      onPressed: () => context.read<ChatWSProvider>().sendNewMessage(_textEditingController.text),
+                      onPressed:
+                          () => context.read<ChatWSProvider>().sendNewMessage(
+                            _textEditingController.text,
+                          ),
                       icon: Icon(Icons.send),
                     ),
                   ),
@@ -209,7 +204,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
     );
   }
 
-  Widget buildChatView() {
+  Widget buildChatView(BuildContext context) {
     return Align(
       alignment: Alignment.center,
       child: Consumer<List<GamePlayersMessage>>(
@@ -218,20 +213,55 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 GamePlayersMessage message = messages[index];
+                bool isPreviousMessageFromSamePlayer = false;
+
+                isPreviousMessageFromSamePlayer =
+                    (messages.length > 1 && index > 0) &&
+                    (messages[index - 1].senderSecondaryId ==
+                        message.senderSecondaryId);
+
+                List<Widget> children = List.empty(growable: true);
+
+                if (!message.isSender) {
+                  children.add(
+                    isPreviousMessageFromSamePlayer
+                        ? SizedBox(width: 48, height: 48)
+                        : CircleAvatar(
+                          radius: 24,
+                          backgroundColor: colorFromUsername(
+                            message.senderUsername,
+                          ),
+                          child: Text(message.senderUsername.substring(0, 1)),
+                        ),
+                  );
+                }
+
+                children.add(
+                  message.isSender
+                      ? OutChatBubble(
+                        message: message.text,
+                        time: message.time,
+                        fromSamePersonAsPreviousOne:
+                            isPreviousMessageFromSamePlayer,
+                      )
+                      : InChatBubble(
+                        message: message.text,
+                        from: message.senderUsername,
+                        time: message.time,
+                        fromSamePersonAsPreviousOne:
+                            isPreviousMessageFromSamePlayer,
+                      ),
+                );
+
                 return Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: colorFromUsername(
-                        message.senderUsername,
-                      ),
-                      child: Text(message.senderUsername.substring(0, 1)),
-                    ),
-                    ChatBubble(
-                      message: message.text,
-                      isSender: message.isSender,
-                    ),
-                  ],
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment:
+                      message.isSender
+                          ? MainAxisAlignment.end
+                          : MainAxisAlignment.start,
+                  spacing: 16.0,
+                  children: children,
                 );
               },
             ),

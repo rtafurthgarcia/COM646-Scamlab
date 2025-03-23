@@ -23,7 +23,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Subscribe to route changes.¨
+    // Subscribe to route changes.
     _observer = context.read<RouteObserver<PageRoute>>();
     _observer.subscribe(this, ModalRoute.of(context) as PageRoute);
   }

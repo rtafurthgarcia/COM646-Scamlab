@@ -284,6 +284,7 @@ class GamePlayersMessage extends WsMessage {
   String senderUsername;
   String text;
   String? imagePath;
+  DateTime time = DateTime.now();
   bool isSender;
 
   GamePlayersMessage({
