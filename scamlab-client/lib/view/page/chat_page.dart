@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +10,7 @@ import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/chat_ws_provider.dart';
 import 'package:scamlab/view/widget/chat_bubble_widget.dart';
+import 'package:scamlab/view/widget/timout_timer_widget.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -23,6 +25,8 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   late RouteObserver<PageRoute> _observer;
 
   final TextEditingController _textEditingController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void didChangeDependencies() {
@@ -131,8 +135,17 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
             body: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 960),
-                child: Stack(
-                  children: [buildChatView(context), buildChatBox(context)],
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Text("Time before next vote:"),
+                        TimoutTimer(duration: Duration(seconds: 300)),
+                      ],
+                    ),
+                    buildChatView(context),
+                    buildChatBox(context),
+                  ],
                 ),
               ),
             ),
@@ -158,113 +171,133 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   }
 
   Widget buildChatBox(BuildContext context) {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: SizedBox(
-        child: Row(
-          children: <Widget>[
-            ElevatedButton(
-              onPressed: null,
-              style: ElevatedButton.styleFrom(
-                shape: CircleBorder(),
-                padding: EdgeInsets.all(24),
-                backgroundColor: Theme.of(context).colorScheme.secondary,
-                foregroundColor: Theme.of(context).colorScheme.onSecondary,
-                iconColor: Theme.of(context).colorScheme.onSecondary,
-              ),
-              child: Icon(Icons.photo_camera_back),
+    return SizedBox(
+      child: Row(
+        children: <Widget>[
+          ElevatedButton(
+            onPressed: null,
+            style: ElevatedButton.styleFrom(
+              shape: CircleBorder(),
+              padding: EdgeInsets.all(24),
+              backgroundColor: Theme.of(context).colorScheme.secondary,
+              foregroundColor: Theme.of(context).colorScheme.onSecondary,
+              iconColor: Theme.of(context).colorScheme.onSecondary,
             ),
-            Flexible(
-              fit: FlexFit.loose,
-              child: TextField(
-                controller: _textEditingController,
-                decoration: InputDecoration(
-                  hintText: "Write message...",
-                  hintStyle: Theme.of(context).primaryTextTheme.bodyLarge,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(32.0),
-                    borderSide: BorderSide(),
-                  ),
-                  suffixIcon: Container(
-                    margin: EdgeInsets.all(8.0),
-                    child: IconButton(
-                      onPressed:
-                          () => context.read<ChatWSProvider>().sendNewMessage(
-                            _textEditingController.text,
-                          ),
-                      icon: Icon(Icons.send),
-                    ),
+            child: Icon(Icons.photo_camera_back),
+          ),
+          Flexible(
+            fit: FlexFit.loose,
+            child: TextField(
+              focusNode: _focusNode,
+              controller: _textEditingController,
+              textInputAction:
+                  TextInputAction.send, // shows "send" on the keyboard
+              onSubmitted: (value) {
+                // Send the message when Enter is pressed.
+                context.read<ChatWSProvider>().sendNewMessage(value);
+                _textEditingController.clear();
+                _focusNode.requestFocus();
+              },
+              decoration: InputDecoration(
+                hintText: "Write message...",
+                hintStyle: Theme.of(context).primaryTextTheme.bodyLarge,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(32.0),
+                  borderSide: BorderSide(),
+                ),
+                suffixIcon: Container(
+                  margin: EdgeInsets.all(8.0),
+                  child: IconButton(
+                    onPressed: () {
+                      context.read<ChatWSProvider>().sendNewMessage(
+                        _textEditingController.text,
+                      );
+                      _textEditingController.clear();
+                      _focusNode.requestFocus();
+                    },
+                    icon: Icon(Icons.send),
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget buildChatView(BuildContext context) {
-    return Align(
-      alignment: Alignment.center,
+    return Expanded(
       child: Consumer<List<GamePlayersMessage>>(
-        builder:
-            (context, messages, child) => ListView.builder(
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                GamePlayersMessage message = messages[index];
-                bool isPreviousMessageFromSamePlayer = false;
+        builder: (context, messages, child) {
+          // After the frame is rendered, scroll to the bottom.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+              _scrollController.jumpTo(
+                _scrollController.position.maxScrollExtent,
+              );
+            }
+          });
 
-                isPreviousMessageFromSamePlayer =
-                    (messages.length > 1 && index > 0) &&
-                    (messages[index - 1].senderSecondaryId ==
-                        message.senderSecondaryId);
+          return ListView.builder(
+            controller: _scrollController,
+            scrollDirection: Axis.vertical,
+            itemCount: messages.length,
+            itemBuilder: (context, index) {
+              GamePlayersMessage message = messages[index];
+              bool isPreviousMessageFromSamePlayer = false;
 
-                List<Widget> children = List.empty(growable: true);
+              isPreviousMessageFromSamePlayer =
+                  (messages.length > 1 && index > 0) &&
+                  (messages[index - 1].senderSecondaryId ==
+                      message.senderSecondaryId);
 
-                if (!message.isSender) {
-                  children.add(
-                    isPreviousMessageFromSamePlayer
-                        ? SizedBox(width: 48, height: 48)
-                        : CircleAvatar(
-                          radius: 24,
-                          backgroundColor: colorFromUsername(
-                            message.senderUsername,
-                          ),
-                          child: Text(message.senderUsername.substring(0, 1)),
-                        ),
-                  );
-                }
+              List<Widget> children = List.empty(growable: true);
 
+              if (!message.isSender) {
                 children.add(
-                  message.isSender
-                      ? OutChatBubble(
-                        message: message.text,
-                        time: message.time,
-                        fromSamePersonAsPreviousOne:
-                            isPreviousMessageFromSamePlayer,
-                      )
-                      : InChatBubble(
-                        message: message.text,
-                        from: message.senderUsername,
-                        time: message.time,
-                        fromSamePersonAsPreviousOne:
-                            isPreviousMessageFromSamePlayer,
+                  isPreviousMessageFromSamePlayer
+                      ? SizedBox(width: 48, height: 48)
+                      : CircleAvatar(
+                        radius: 24,
+                        backgroundColor: colorFromUsername(
+                          message.senderUsername,
+                        ),
+                        child: Text(message.senderUsername.substring(0, 1)),
                       ),
                 );
+              }
 
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment:
-                      message.isSender
-                          ? MainAxisAlignment.end
-                          : MainAxisAlignment.start,
-                  spacing: 16.0,
-                  children: children,
-                );
-              },
-            ),
+              children.add(
+                message.isSender
+                    ? OutChatBubble(
+                      message: message.text,
+                      time: message.time,
+                      fromSamePersonAsPreviousOne:
+                          isPreviousMessageFromSamePlayer,
+                    )
+                    : InChatBubble(
+                      message: message.text,
+                      from: message.senderUsername,
+                      time: message.time,
+                      fromSamePersonAsPreviousOne:
+                          isPreviousMessageFromSamePlayer,
+                    ),
+              );
+
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment:
+                    message.isSender
+                        ? MainAxisAlignment.end
+                        : MainAxisAlignment.start,
+                spacing: 16.0,
+                children: children,
+              );
+            },
+          );
+        },
       ),
     );
   }
