@@ -23,7 +23,7 @@ import jakarta.ws.rs.core.SecurityContext;
 import model.dto.AuthenticationDTO.GetNewPlayerDTO;
 import model.dto.GameDTO.GameReconcileStateMessageDTO;
 import model.entity.Player;
-import service.GameService;
+import service.LobbyService;
 import service.AuthenticationService;
 
 @Path("games")
@@ -35,7 +35,7 @@ public class GameResource {
     AuthenticationService authenticationService;
 
     @Inject
-    GameService gameService;
+    LobbyService gameService;
 
     @Inject
     ConnectionManager connectionManager;

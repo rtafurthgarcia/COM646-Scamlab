@@ -134,7 +134,8 @@ public class Conversation {
         return setCurrentState(newState, null);
     }
 
-    @OneToMany(mappedBy = "conversation") 
+    @OneToMany(orphanRemoval = false)
+    @JoinColumn(name = "conversation_id") 
     @OrderBy("creation")
     private List<Message> messages = new ArrayList<>();
 

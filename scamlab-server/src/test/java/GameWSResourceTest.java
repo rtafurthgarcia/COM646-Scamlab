@@ -86,7 +86,7 @@ public class GameWSResourceTest {
 
             if (message instanceof WaitingLobbyReasonForWaitingMessageDTO) {
                 var reasonForWaiting = (WaitingLobbyReasonForWaitingMessageDTO) message;
-                assertEquals(GameDTO.WSReasonForWaiting.NOT_ENOUGH_PLAYERS, reasonForWaiting.reasons());
+                assertEquals(GameDTO.WSReasonForEvent.NOT_ENOUGH_PLAYERS, reasonForWaiting.reasons());
             }
 
             assertNotNull(message);

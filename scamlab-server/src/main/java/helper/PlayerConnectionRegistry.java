@@ -43,7 +43,7 @@ public class PlayerConnectionRegistry {
      * @return The corresponding connection ID, or null if not found.
      */
     public String getConnectionId(String playerSecondaryId) {
-        //Log.info("Player " + playerSecondaryId + " requested");
+        //Log.info("Player " + playersSecondaryId + " requested");
         //Log.info("BEAN HASHCODE: " + hashCode());
         //Log.info("BEAN LIST: " + String.join(",", playerToConnectionMap.keySet().stream().toList()));
 

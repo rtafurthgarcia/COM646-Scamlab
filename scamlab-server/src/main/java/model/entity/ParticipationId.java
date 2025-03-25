@@ -9,15 +9,15 @@ import jakarta.persistence.ManyToOne;
 @Embeddable
 public class ParticipationId implements Serializable {
     @ManyToOne
-    @JoinColumn(name = "role_id", referencedColumnName = "id") // Replace with your FK column
+    @JoinColumn(name = "role_id", referencedColumnName = "id", nullable = false) // Replace with your FK column
     private Role role;
 
     @ManyToOne
-    @JoinColumn(name = "conversation_id", referencedColumnName = "id")
+    @JoinColumn(name = "conversation_id", referencedColumnName = "id", nullable = false)
     private Conversation conversation;
 
     @ManyToOne
-    @JoinColumn(name = "player_id", referencedColumnName = "id")
+    @JoinColumn(name = "player_id", referencedColumnName = "id", nullable = false)
     private Player player;
 
     public Role getRole() {

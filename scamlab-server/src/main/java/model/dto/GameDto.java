@@ -7,16 +7,17 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import model.entity.TransitionReason;
 
 public class GameDTO {
-    public static enum WSReasonForWaiting {
+    public static enum WSReasonForEvent {
         NOT_ENOUGH_PLAYERS("Waiting on other player(s) to join..."),
         ALL_LOBBIES_OCCUPIED("Waiting on a free lobby..."),
         START_CANCELLED_TIEMOUT("Player(s) didn't start the game on time..."),
+        TIMEOUT("Game cancelled due to inactive player(s)..."),
         OTHER_PLAYERS_LEFT("Some player(s) left..."),
         SYNCHRONISING("Please hold on a bit...");
 
         public final String message;
 
-        private WSReasonForWaiting(String message) {
+        private WSReasonForEvent(String message) {
             this.message = message;
         }
     }
@@ -26,7 +27,7 @@ public class GameDTO {
             WSMessageType type,
             String playerSecondaryId,
             List<String> reasons) implements MessageDTO {
-        public WaitingLobbyReasonForWaitingMessageDTO(String playerSecondaryId, List<WSReasonForWaiting> reasons) {
+        public WaitingLobbyReasonForWaitingMessageDTO(String playerSecondaryId, List<WSReasonForEvent> reasons) {
             this(WSMessageType.NOTIFY_REASON_FOR_WAITING,
                     playerSecondaryId,
                     reasons.stream().map(r -> r.message).toList());
@@ -144,10 +145,12 @@ public class GameDTO {
     }
 
     @RegisterForReflection
-    public static record GameGameCancelledMessageDTO(
-            WSMessageType type) implements MessageDTO {
-        public GameGameCancelledMessageDTO() {
-            this(WSMessageType.GAME_CANCELLED);
+    public static record GameCancelledMessageDTO(
+            WSMessageType type,
+            String playerSecondaryId,
+            String reason) implements MessageDTO {
+        public GameCancelledMessageDTO(String playerSecondaryId, WSReasonForEvent reason) {
+            this(WSMessageType.GAME_CANCELLED, playerSecondaryId, reason.message);
         }
 
         @Override

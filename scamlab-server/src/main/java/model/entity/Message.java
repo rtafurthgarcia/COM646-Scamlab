@@ -10,13 +10,14 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinColumns;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "messages", indexes = {
-    @Index(name = "idx_message_conversation_id", columnList = "conversation_id"),
+    @Index(name = "idx_message_participation_id", columnList = "role_id, conversation_id, player_id"),
     @Index(name = "idx_message_photo_id", columnList = "photo_id"),
     @Index(name = "idx_message_creation", columnList = "creation")
 })
@@ -77,19 +78,23 @@ public class Message {
     }
 
     @ManyToOne
-    @JoinColumn(name = "conversation_id", referencedColumnName = "id")
-    private Conversation conversation;
+    @JoinColumns({
+        @JoinColumn(name = "role_id", referencedColumnName = "role_id", nullable = false),
+        @JoinColumn(name = "conversation_id", referencedColumnName = "conversation_id", nullable = false),
+        @JoinColumn(name = "player_id", referencedColumnName = "player_id", nullable = false)
+    })
+    private Participation participation;
 
-    public Conversation getConversation() {
-        return conversation;
+    public Participation getParticipation() {
+        return participation;
     }
 
-    public Message setConversation(Conversation conversation) {
-        this.conversation = conversation;
+    public Message setParticipation(Participation participation) {
+        this.participation = participation;
 
         return this;
     }
-
+    
     @ManyToOne
     @JoinColumn(name = "photo_id", referencedColumnName = "id")
     private Photo photo;
@@ -116,9 +121,7 @@ public class Message {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((message == null) ? 0 : message.hashCode());
-        result = prime * result + ((llmTokenCount == null) ? 0 : llmTokenCount.hashCode());
-        result = prime * result + ((llmGenerationTime == null) ? 0 : llmGenerationTime.hashCode());
-        result = prime * result + ((conversation == null) ? 0 : conversation.hashCode());
+        result = prime * result + ((participation == null) ? 0 : participation.hashCode());
         result = prime * result + ((photo == null) ? 0 : photo.hashCode());
         return result;
     }
@@ -137,20 +140,10 @@ public class Message {
                 return false;
         } else if (!message.equals(other.message))
             return false;
-        if (llmTokenCount == null) {
-            if (other.llmTokenCount != null)
+        if (participation == null) {
+            if (other.participation != null)
                 return false;
-        } else if (!llmTokenCount.equals(other.llmTokenCount))
-            return false;
-        if (llmGenerationTime == null) {
-            if (other.llmGenerationTime != null)
-                return false;
-        } else if (!llmGenerationTime.equals(other.llmGenerationTime))
-            return false;
-        if (conversation == null) {
-            if (other.conversation != null)
-                return false;
-        } else if (!conversation.equals(other.conversation))
+        } else if (!participation.equals(other.participation))
             return false;
         if (photo == null) {
             if (other.photo != null)
@@ -159,6 +152,4 @@ public class Message {
             return false;
         return true;
     }
-
-   
 }

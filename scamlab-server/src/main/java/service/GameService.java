@@ -1,8 +1,6 @@
 package service;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -11,45 +9,28 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
-import com.thedeanda.lorem.Lorem;
-import com.thedeanda.lorem.LoremIpsum;
-
 import helper.DefaultKeyValues;
-import helper.MathHelper;
 import helper.PlayerConnectionRegistry;
-import helper.VoteToStartRegistry;
-import helper.DefaultKeyValues.RoleValue;
-import helper.DefaultKeyValues.StateValue;
 import io.quarkus.arc.Lock;
 import io.quarkus.logging.Log;
-import io.quarkus.scheduler.Scheduler;
 import io.quarkus.scheduler.Scheduled.ConcurrentExecution;
+import io.quarkus.scheduler.Scheduler;
 import io.smallrye.common.annotation.RunOnVirtualThread;
 import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import model.dto.GameDTO.GameCancelledMessageDTO;
 import model.dto.GameDTO.GamePlayersMessageDTO;
-import model.dto.GameDTO.GameReconcileStateMessageDTO;
 import model.dto.GameDTO.LeaveRequestInternalDTO;
-import model.dto.GameDTO.VoteAcknowledgedMessageDTO;
-import model.dto.GameDTO.VoteStartRequestInternalDTO;
-import model.dto.GameDTO.WSReasonForWaiting;
-import model.dto.GameDTO.WaitingLobbyGameAssignmentMessageDTO;
-import model.dto.GameDTO.WaitingLobbyGameStartingMessageDTO;
-import model.dto.GameDTO.WaitingLobbyReadyToStartMessageDTO;
-import model.dto.GameDTO.WaitingLobbyReasonForWaitingMessageDTO;
+import model.dto.GameDTO.WSReasonForEvent;
 import model.entity.Conversation;
 import model.entity.Message;
 import model.entity.Participation;
-import model.entity.ParticipationId;
-import model.entity.Player;
-import model.entity.Role;
 import model.entity.State;
-import model.entity.Strategy;
 import model.entity.StrategyByRole;
-import model.entity.TestingScenario;
+import model.entity.TransitionReason;
 
 @ApplicationScoped
 @Transactional
@@ -58,66 +39,34 @@ public class GameService {
     EntityManager entityManager;
 
     @Inject
-    @ConfigProperty(name = "scamlab.max-lobbies")
-    Long maxOngoingGamesCount;
-
-    @Inject
-    @ConfigProperty(name = "scamlab.timeout-lobby-in-seconds")
-    Long timeOutForWaitingLobby;
-
-    @Inject
-    @Channel("notify-reason-for-waiting")
-    @Broadcast
-    Emitter<WaitingLobbyReasonForWaitingMessageDTO> notifyReasonForWaitingEmitter;
-
-    @Inject
-    @Channel("return-game-assignment")
-    @Broadcast
-    Emitter<WaitingLobbyGameAssignmentMessageDTO> returnGameAssignmentEmitter;
-
-    @Inject
-    @Channel("notify-game-as-ready")
-    @Broadcast
-    Emitter<WaitingLobbyReadyToStartMessageDTO> notifyGameAsReadyEmitter;
-
-    @Inject
-    @Channel("acknowledge-start-vote")
-    @Broadcast
-    Emitter<VoteAcknowledgedMessageDTO> acknowledgeStartVoteEmitter;
-
-    @Inject
-    @Channel("notify-game-as-starting")
-    @Broadcast
-    Emitter<WaitingLobbyGameStartingMessageDTO> notifyGameStarting;
-
-    @Inject
     @Channel("send-reply")
     @Broadcast
     Emitter<GamePlayersMessageDTO> sendReplyEmitter;
 
     @Inject
+    @Channel("notify-reason-for-abrupt-end-of-game")
+    @Broadcast
+    Emitter<GameCancelledMessageDTO> notifyReasonForAbruptEndOfGame;
+
+    @Inject
+    @ConfigProperty(name = "scamlab.timeout-inactivity-in-seconds")
+    Long timeOutForInactivity;
+
+    @Inject
     Scheduler scheduler;
 
     @Inject
-    VoteToStartRegistry voteRegistry;
+    LLMService service;
+
+    /*
+     * @Inject
+     * VoteToStartRegistry voteRegistry;
+     */
 
     @Inject
     PlayerConnectionRegistry connectionRegistry;
 
-    Lorem lorem = LoremIpsum.getInstance();
-
-    public Player findPlayerBySecondaryId(UUID secondaryId) {
-        return entityManager.createQuery("SELECT p FROM Player p WHERE secondaryId = :secondaryId", Player.class)
-                .setParameter("secondaryId", secondaryId)
-                .getSingleResult();
-    }
-
-    public Conversation findConversationBySecondaryId(UUID secondaryId) {
-        return entityManager
-                .createQuery("SELECT c FROM Conversation c WHERE secondaryId = :secondaryId", Conversation.class)
-                .setParameter("secondaryId", secondaryId)
-                .getSingleResult();
-    }
+    Random random = new Random();
 
     public Conversation findOnGoingConversationByInvolvedPlayer(UUID secondaryId) {
         return entityManager.createQuery(
@@ -126,221 +75,82 @@ public class GameService {
                         JOIN c.participants p
                         JOIN p.participationId.player pl
                         WHERE c.currentState.id IN (:state1, :state2) AND pl.secondaryId = :secondaryId
-                            """, Conversation.class)
+                            """,
+                Conversation.class)
                 .setParameter("secondaryId", secondaryId)
                 .setParameter("state1", DefaultKeyValues.StateValue.RUNNING.value)
                 .setParameter("state2", DefaultKeyValues.StateValue.VOTING.value)
                 .getSingleResult();
     }
 
-    @Incoming(value = "put-players-on-waiting-list")
+    @Incoming(value = "reply-received")
     @RunOnVirtualThread
-    @Lock(value = Lock.Type.WRITE, time = 1, unit = TimeUnit.SECONDS)
-    public void putPlayerOnWaitingList(Player player) {
-        makeSureGameExists();
-        setupGameForPlayer(player);
-    }
+    public void saveNewReply(GamePlayersMessageDTO message) {
+        scheduler.unscheduleJob("P" + message.senderSecondaryId());
 
-    public void makeSureGameExists() {
-        var results = entityManager.createQuery(
-                """
-                        SELECT c.id, c.testingScenario, COUNT(p) FROM Conversation c
-                        LEFT OUTER JOIN c.participants p
-                        WHERE c.currentState.id IN (:state1)
-                        GROUP BY c.id, c.testingScenario
-                        HAVING (c.testingScenario = :scenario1 AND COUNT(p) < :scenario1HumanCount) OR (c.testingScenario = :scenario2 AND COUNT(p) < :scenario2HumanCount)
-                            """,
-                Object[].class)
-                .setParameter("state1", DefaultKeyValues.StateValue.WAITING.value)
-                // .setParameter("state2", DefaultKeyValues.StateValue.READY.value)
-                .setParameter("scenario1", TestingScenario.OneBotTwoHumans)
-                .setParameter("scenario2", TestingScenario.ThreeHumans)
-                .setParameter("scenario1HumanCount", TestingScenario.OneBotTwoHumans.numberOfHumans)
-                .setParameter("scenario2HumanCount", TestingScenario.ThreeHumans.numberOfHumans)
-                .getResultList();
+        var conversation = findOnGoingConversationByInvolvedPlayer(
+                UUID.fromString(message.senderSecondaryId()));
 
-        if (results.isEmpty()) {
-            var strategies = entityManager.createQuery("SELECT s FROM Strategy s", Strategy.class)
-                    .getResultList();
+        var participation = conversation.getParticipants()
+                .stream()
+                .filter(p -> p.getParticipationId().getPlayer().getSecondaryId().toString()
+                        .equals(message.senderSecondaryId()))
+                .findFirst().orElseThrow();
 
-            var randomlyPickedStrategy = strategies.get(MathHelper.getRandomNumber(0, (int) strategies.size() - 1));
-            var randomlyPickedScenario = TestingScenario.values()[MathHelper.getRandomNumber(0,
-                    TestingScenario.values().length - 1)];
+        entityManager.persist(new Message().setParticipation(participation).setMessage(message.text()));
 
-            var newConversation = new Conversation()
-                    .setCurrentState(
-                            entityManager.find(State.class, helper.DefaultKeyValues.StateValue.WAITING.value))
-                    .setStrategy(randomlyPickedStrategy)
-                    .setTestingScenario(randomlyPickedScenario);
-            entityManager.persist(newConversation);
-
-            Log.info("Created new game ID: " + newConversation.getSecondaryId());
-        }
-    }
-
-    public void sendReasonForTheWaitingIfAny(Conversation conversation) {
-        List<WSReasonForWaiting> reasonsList = new ArrayList<>();
-
-        var tooLittlePlayers = conversation.getParticipants()
-                .size() != conversation.getTestingScenario().numberOfHumans;
-
-        if (tooLittlePlayers) {
-            reasonsList.add(WSReasonForWaiting.NOT_ENOUGH_PLAYERS);
+        if (scheduler.getScheduledJob("B" + conversation.getId().toString()) == null) {
+            Integer seconds = random.nextInt(10, 45);
+            scheduler.newJob("B" + conversation.getId().toString())
+                .setInterval("PT" + seconds.toString() + "S")
+                .setConcurrentExecution(ConcurrentExecution.SKIP)
+                .setTask(t -> createNewBotReplyTriggered(conversation.getId())).schedule();
         }
 
-        var ongoingGamesCount = entityManager.createQuery(
-                """
-                        SELECT COUNT(c) FROM Conversation c
-                        WHERE c.currentState.id IN (:state1, :state2, :state3)
-                            """, Long.class)
-                .setParameter("state1", DefaultKeyValues.StateValue.READY.value)
-                .setParameter("state2", DefaultKeyValues.StateValue.RUNNING.value)
-                .setParameter("state3", DefaultKeyValues.StateValue.VOTING.value)
-                .getSingleResult();
-
-        if (ongoingGamesCount == maxOngoingGamesCount) {
-            reasonsList.add(WSReasonForWaiting.ALL_LOBBIES_OCCUPIED);
-        }
-
-        if (reasonsList.isEmpty()) {
-            reasonsList.add(WSReasonForWaiting.SYNCHRONISING);
-        }
-
-        for (var player : conversation.getParticipants()) {
-            notifyReasonForWaitingEmitter.send(
-                    new WaitingLobbyReasonForWaitingMessageDTO(
-                            player.getParticipationId().getPlayer().getSecondaryId().toString(),
-                            reasonsList));
-        }
-    }
-
-    public Role getNextAppropriateRoleForConversation(Conversation conversation) {
-        if (conversation.getTestingScenario().numberOfHumans.equals(conversation.getParticipants().size())) {
-            return null;
-        }
-
-        if (conversation.getParticipants().isEmpty()) {
-            var id = MathHelper.getRandomNumber(1, RoleValue.values().length);
-            return entityManager.find(Role.class, id);
-        } else {
-            var isScammerRoleAlreadyAttributed = conversation
-                    .getParticipants()
-                    .stream()
-                    .filter(p -> p.getParticipationId()
-                            .getRole()
-                            .getId()
-                            .equals(RoleValue.SCAMMER.value))
-                    .findAny()
-                    .isPresent();
-
-            if (isScammerRoleAlreadyAttributed) {
-                return entityManager.find(Role.class, RoleValue.SCAMBAITER.value);
-            } else {
-                return entityManager.find(Role.class, RoleValue.SCAMMER.value);
-            }
-        }
-    }
-
-    public void setupGameForPlayer(Player player) {
-        var conversationsWithParticipants = entityManager.createQuery(
-                """
-                        SELECT c FROM Conversation c
-                        WHERE c.currentState.id = :state
-                            """, Conversation.class)
-                .setParameter("state", DefaultKeyValues.StateValue.WAITING.value)
-                .getResultList();
-
-        var runningOrReadyConversationsCount = entityManager.createQuery(
-                """
-                        SELECT COUNT(c) FROM Conversation c
-                        WHERE c.currentState.id IN (:state1, :state2)
-                            """, Long.class)
-                .setParameter("state1", DefaultKeyValues.StateValue.READY.value)
-                .setParameter("state2", DefaultKeyValues.StateValue.RUNNING.value)
-                .getFirstResult();
-
-        var playerAssigned = false;
-        for (Conversation conversation : conversationsWithParticipants) {
-            if (conversation.getTestingScenario().numberOfHumans > conversation.getParticipants().size()
-                    && !playerAssigned) {
-                var participant = new Participation();
-                participant.setParticipationId(
-                        new ParticipationId()
-                                .setConversation(conversation)
-                                .setPlayer(player)
-                                .setRole(this.getNextAppropriateRoleForConversation(conversation)))
-                        .setUserName(lorem.getFirstName());
-
-                conversation.getParticipants().add(participant);
-
-                playerAssigned = true;
-                entityManager.persist(participant);
-
-                Log.info("Adding player " + player.getSecondaryId().toString() + " to new game");
-
-                returnGameAssignmentEmitter.send(getPlayersAssignedStrategy(player, conversation));
-
-                sendReasonForTheWaitingIfAny(conversation);
-            }
-
-            if (conversation.getTestingScenario().numberOfHumans == conversation.getParticipants().size()
-                    && runningOrReadyConversationsCount < maxOngoingGamesCount) {
-                conversation.setCurrentState(entityManager.find(State.class, StateValue.READY.value));
-
-                Log.info("Set game " + conversation.getSecondaryId() + " as ready. Will wait for players to start.");
-
-                conversation.getParticipants().forEach(p -> {
-                    notifyGameAsReadyEmitter.send(
-                            new WaitingLobbyReadyToStartMessageDTO(
-                                    timeOutForWaitingLobby,
-                                    p.getParticipationId().getPlayer().getSecondaryId().toString()));
+        conversation.getParticipants()
+                .stream()
+                .map(p -> p.getParticipationId()
+                        .getPlayer())
+                .filter(p -> !p.getIsBot())
+                .forEach(p -> {
+                    sendReplyEmitter.send(
+                            new GamePlayersMessageDTO(
+                                    message.senderSecondaryId(),
+                                    message.senderUsername(),
+                                    p.getSecondaryId().toString(),
+                                    message.text(),
+                                    message.imagePath()));
                 });
 
-                scheduler.newJob(conversation.getId().toString())
-                        .setInterval("PT" + timeOutForWaitingLobby.toString() + "S")
-                        .setDelayed("PT" + timeOutForWaitingLobby.toString() + "S")
-                        .setConcurrentExecution(ConcurrentExecution.SKIP)
-                        .setTask(t -> timeoutTriggered(conversation.getId())).schedule();
-            }
-
-            entityManager.persist(conversation);
-        }
-
-        entityManager.flush();
     }
 
-    void timeoutTriggered(Long conversationId) {
-        Log.info("Timeout triggered for start for game " + conversationId.toString());
+    @Incoming(value = "start-inactivity-timeout")
+    @RunOnVirtualThread
+    void startTimeoutTrigger(String playerSecondaryId) {
+        scheduler.newJob("P" + playerSecondaryId)
+                .setInterval("PT" + timeOutForInactivity.toString() + "S")
+                .setDelayed("PT" + timeOutForInactivity.toString() + "S")
+                .setConcurrentExecution(ConcurrentExecution.SKIP)
+                .setTask(t -> timeoutTriggered(playerSecondaryId)).schedule();
+    }
 
+    void timeoutTriggered(String playerSecondaryId) {
+        Log.info("Inactivity timeout triggered for player " + playerSecondaryId);
+        scheduler.unscheduleJob("P" + playerSecondaryId);
+
+        handlePlayerLeavingGame(
+                new LeaveRequestInternalDTO(UUID.fromString(playerSecondaryId), TransitionReason.PlayerInactivity));
+    }
+
+    void createNewBotReplyTriggered(Long conversationId) {
         var conversation = entityManager.find(Conversation.class, conversationId);
-        conversation.getParticipants().forEach(p -> {
-            notifyReasonForWaitingEmitter.send(
-                    new WaitingLobbyReasonForWaitingMessageDTO(
-                            p.getParticipationId().getPlayer().getSecondaryId().toString(),
-                            Arrays.asList(WSReasonForWaiting.START_CANCELLED_TIEMOUT)));
-        });
-        var players = conversation.getParticipants().stream()
-                .map(p -> p.getParticipationId().getPlayer()).toList();
 
-        conversation.getParticipants().clear();
-        conversation.setCurrentState(entityManager.find(State.class, StateValue.WAITING.value));
+        // Log.info("Inactivity timeout triggered for player " + playerSecondaryId);
+        scheduler.unscheduleJob("B" + conversation.getId().toString());
 
-        entityManager.persist(conversation);
-        entityManager.flush();
-
-        scheduler.unscheduleJob(conversationId.toString());
-
-        // put players back on the queue
-        players.forEach(p -> {
-            voteRegistry.unregister(p.getId());
-            putPlayerOnWaitingList(p);
-        });
-    }
-
-    public WaitingLobbyGameAssignmentMessageDTO getPlayersAssignedStrategy(Player player, Conversation conversation) {
-        Participation playersParticipation = conversation.getParticipants().stream()
-                .filter(p -> p.getParticipationId().getPlayer().equals(player)).findFirst().get();
-        var role = playersParticipation.getParticipationId().getRole();
+        Participation botParticipant = conversation.getParticipants().stream()
+                .filter(p -> p.getParticipationId().getPlayer().getIsBot()).findFirst().get();
+        var role = botParticipant.getParticipationId().getRole();
         var strategyByRole = entityManager.createQuery(
                 """
                         SELECT sbr FROM StrategyByRole sbr
@@ -349,56 +159,50 @@ public class GameService {
                 .setParameter("strategy", conversation.getStrategy().getId())
                 .setParameter("role", role.getId())
                 .getSingleResult();
-        var strategy = conversation.getStrategy();
 
-        return new WaitingLobbyGameAssignmentMessageDTO(
-                player.getSecondaryId().toString(),
-                conversation.getSecondaryId().toString(),
-                playersParticipation.getParticipationId().getRole().getName(),
+        var wholeConversation = "";
+        for (Message message : conversation.getMessages()) {
+            wholeConversation += message.getParticipation().getUserName() + "\n";
+            wholeConversation += message.getMessage();
+            wholeConversation += message.getCreation().toString();
+        }
+
+        var reply = service.generateReply(
+                botParticipant.getUserName(),
                 strategyByRole.getScript(),
                 strategyByRole.getExample(),
-                strategy.getName(),
-                playersParticipation.getUserName());
-    }
+                wholeConversation);
 
-    @Incoming(value = "register-start-game")
-    @RunOnVirtualThread
-    @Lock(value = Lock.Type.WRITE, time = 1, unit = TimeUnit.SECONDS)
-    public void registerStartGame(VoteStartRequestInternalDTO request) {
-        var conversation = findConversationBySecondaryId(request.conversation());
-        var player = findPlayerBySecondaryId(request.player());
-
-        if (!voteRegistry.hasVoted(player.getId())) {
-            voteRegistry.register(player.getId(), conversation.getId());
-            acknowledgeStartVoteEmitter.send(new VoteAcknowledgedMessageDTO(player.getSecondaryId().toString()));
+        if (service.isReplyHarmful(reply)) {
+            reply = service.generateAlternativeReply(wholeConversation, strategyByRole.getEvasionExample());
         }
 
-        var everyOneHasVotedToStart = conversation.getParticipants()
+        var newReply = new Message()
+            .setParticipation(botParticipant)
+            .setMessage(reply);
+
+        entityManager.persist(newReply);
+
+        conversation.getParticipants()
                 .stream()
-                .allMatch(p -> voteRegistry.hasVoted(p.getParticipationId().getPlayer().getId()));
-
-        if (everyOneHasVotedToStart) {
-            scheduler.unscheduleJob(conversation.getId().toString());
-
-            conversation.setCurrentState(entityManager.find(State.class, StateValue.RUNNING.value));
-
-            entityManager.persist(conversation);
-            entityManager.flush();
-
-            conversation.getParticipants()
-                    .stream()
-                    .map(p -> p.getParticipationId().getPlayer())
-                    .forEach(p -> {
-                        notifyGameStarting.send(new WaitingLobbyGameStartingMessageDTO(p.getSecondaryId().toString()));
-                        voteRegistry.unregister(p.getId());
-                    });
-        }
+                .map(p -> p.getParticipationId()
+                        .getPlayer())
+                .filter(p -> !p.getIsBot())
+                .forEach(p -> {
+                    sendReplyEmitter.send(
+                            new GamePlayersMessageDTO(
+                                    botParticipant.getParticipationId().getPlayer().getSecondaryId().toString(),
+                                    botParticipant.getUserName(),
+                                    p.getSecondaryId().toString(),
+                                    newReply.getMessage(),
+                                    null));
+                });
     }
 
-    @Incoming(value = "handle-player-leaving")
+    @Incoming(value = "handle-player-leaving-game")
     @RunOnVirtualThread
     @Lock(value = Lock.Type.WRITE, time = 1, unit = TimeUnit.SECONDS)
-    public void handlePlayerLeavingLobby(LeaveRequestInternalDTO request) {
+    public void handlePlayerLeavingGame(LeaveRequestInternalDTO request) {
         var anyConversationInvolvedIn = entityManager.createQuery(
                 """
                         SELECT c FROM Conversation c
@@ -406,8 +210,8 @@ public class GameService {
                         WHERE c.currentState.id IN (:state1, :state2)
                         AND p.participationId.player.secondaryId = :secondaryId
                             """, Conversation.class)
-                .setParameter("state1", DefaultKeyValues.StateValue.WAITING.value)
-                .setParameter("state2", DefaultKeyValues.StateValue.READY.value)
+                .setParameter("state1", DefaultKeyValues.StateValue.RUNNING.value)
+                .setParameter("state2", DefaultKeyValues.StateValue.VOTING.value)
                 .setParameter("secondaryId", request.player())
                 .getResultStream()
                 .findFirst();
@@ -422,68 +226,30 @@ public class GameService {
                     + " for the following reason: "
                     + request.reason().name());
 
-            if (conversation.getCurrentState().getId().equals(DefaultKeyValues.StateValue.READY.value)) {
-                scheduler.unscheduleJob(conversation.getId().toString());
+            if (conversation.getCurrentState().getId().equals(DefaultKeyValues.StateValue.RUNNING.value)) {
+                scheduler.unscheduleJob("V" + conversation.getId().toString());
             }
 
             conversation.setCurrentState(
-                    entityManager.find(State.class, DefaultKeyValues.StateValue.WAITING.value),
+                    entityManager.find(State.class, DefaultKeyValues.StateValue.CANCELLED.value),
                     request.reason());
 
             conversation.getParticipants()
-                    .removeIf(p -> p.getParticipationId().getPlayer().getSecondaryId().equals(request.player()));
-            conversation.getParticipants().forEach(p -> {
-                notifyReasonForWaitingEmitter.send(
-                        new WaitingLobbyReasonForWaitingMessageDTO(
-                                p.getParticipationId().getPlayer().getSecondaryId().toString(),
-                                Arrays.asList(WSReasonForWaiting.OTHER_PLAYERS_LEFT,
-                                        WSReasonForWaiting.NOT_ENOUGH_PLAYERS)));
+                .stream()
+                .map(p -> p.getParticipationId().getPlayer())
+                .filter(p -> !p.getIsBot())
+                .forEach(p -> {
+                var reason = WSReasonForEvent.OTHER_PLAYERS_LEFT;
+                if (request.reason().equals(TransitionReason.PlayerInactivity)) {
+                    reason = WSReasonForEvent.TIMEOUT;
+                }
+                notifyReasonForAbruptEndOfGame.send(
+                        new GameCancelledMessageDTO(p.getSecondaryId().toString(),
+                        reason));
             });
-            var playersLeft = conversation.getParticipants().stream().map(p -> p.getParticipationId().getPlayer())
-                    .toList();
-            conversation.getParticipants().clear();
             entityManager.persist(conversation);
-
-            playersLeft.forEach(p -> {
-                voteRegistry.unregister(p.getId());
-                putPlayerOnWaitingList(p);
-            });
 
             connectionRegistry.unregister(request.player().toString());
         }
-    }
-
-    @Incoming(value = "reply-received")
-    @RunOnVirtualThread
-    public void saveNewReply(GamePlayersMessageDTO message) {
-        var conversation = findOnGoingConversationByInvolvedPlayer(
-                UUID.fromString(message.senderSecondaryId()));
-
-        entityManager.persist(new Message().setConversation(conversation).setMessage(message.text()));
-
-        conversation.getParticipants()
-                .stream()
-                .map(p -> p.getParticipationId()
-                        .getPlayer())
-                .forEach(p -> {
-                    sendReplyEmitter.send(
-                            new GamePlayersMessageDTO(
-                                    message.senderSecondaryId(),
-                                    message.senderUsername(),
-                                    p.getSecondaryId().toString(),
-                                    message.text(),
-                                    message.imagePath()));
-                });
-    }
-
-    public GameReconcileStateMessageDTO reconcileStateForClient(String conversationSecondaryId,
-            String playerSecondaryId) {
-        var conversation = findConversationBySecondaryId(UUID.fromString(conversationSecondaryId));
-        var player = findPlayerBySecondaryId(UUID.fromString(playerSecondaryId));
-
-        // just to make sure its not missing on the client-side
-        returnGameAssignmentEmitter.send(getPlayersAssignedStrategy(player, conversation));
-
-        return new GameReconcileStateMessageDTO(conversationSecondaryId, conversation.getCurrentState().getId());
     }
 }

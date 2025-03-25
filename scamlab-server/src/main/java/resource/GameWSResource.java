@@ -22,7 +22,7 @@ import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import model.dto.MessageDTODecoder;
-import model.dto.GameDTO.GameGameCancelledMessageDTO;
+import model.dto.GameDTO.GameCancelledMessageDTO;
 import model.dto.GameDTO.GamePlayersMessageDTO;
 import model.dto.GameDTO.LeaveRequestInternalDTO;
 import model.entity.TransitionReason;
@@ -44,7 +44,7 @@ public class GameWSResource {
     PlayerConnectionRegistry registry;
 
     @Inject
-    @Channel("handle-player-leaving")
+    @Channel("handle-player-leaving-game")
     @Broadcast
     Emitter<LeaveRequestInternalDTO> leaveEmitter;
 
@@ -53,10 +53,17 @@ public class GameWSResource {
     @Broadcast
     Emitter<GamePlayersMessageDTO> replyReceivedEmitter;
 
+    @Inject
+    @Channel("start-inactivity-timeout")
+    @Broadcast
+    Emitter<String> startInactivityTimeoutEmitter;
+
     @OnOpen
     public void onOpen() {
         Log.info("Player " + securityIdentity.getPrincipal().getName() + "joined conversation: " + connection.pathParam("conversationSecondaryId"));
         registry.register(securityIdentity.getPrincipal().getName(), connection.id());
+
+        startInactivityTimeoutEmitter.send(securityIdentity.getPrincipal().getName());
     }
 
     @Incoming("send-reply")
@@ -90,7 +97,7 @@ public class GameWSResource {
             replyReceivedEmitter.send((GamePlayersMessageDTO)message);
         }
 
-        if (message instanceof GameGameCancelledMessageDTO) {
+        if (message instanceof GameCancelledMessageDTO) {
             var playerId = UUID.fromString(securityIdentity.getPrincipal().getName());
 
             leaveEmitter.send(

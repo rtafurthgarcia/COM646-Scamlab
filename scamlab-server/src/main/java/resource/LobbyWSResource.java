@@ -21,7 +21,7 @@ import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import model.dto.MessageDTODecoder;
-import model.dto.GameDTO.GameGameCancelledMessageDTO;
+import model.dto.GameDTO.GameCancelledMessageDTO;
 import model.dto.GameDTO.LeaveRequestInternalDTO;
 import model.dto.GameDTO.VoteAcknowledgedMessageDTO;
 import model.dto.GameDTO.VoteStartRequestInternalDTO;
@@ -146,7 +146,7 @@ public class LobbyWSResource {
             );
         }
 
-        if (message instanceof GameGameCancelledMessageDTO) {
+        if (message instanceof GameCancelledMessageDTO) {
             var playerId = UUID.fromString(securityIdentity.getPrincipal().getName());
 
             leaveEmitter.send(
