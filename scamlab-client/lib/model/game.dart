@@ -15,6 +15,7 @@ class Game {
   String? get username => _gameAssignment?.username;
   String? get conversationSecondaryId => _gameAssignment?.conversationSecondaryId;
   String? get playerSecondaryId => _gameAssignment?.playerSecondaryId;
+  String? get role => _gameAssignment?.role;
   String? get strategy => _gameAssignment?.strategy;
   String? get script => _gameAssignment?.script;
   String? get example => _gameAssignment?.example;

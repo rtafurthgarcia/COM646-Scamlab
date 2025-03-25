@@ -14,11 +14,11 @@ class TimoutTimer extends StatelessWidget {
         isPieShape: false,
         timerControllerValues: TimerControllerValues(
           listeningDelay: const Duration(milliseconds: 100),
-          timeFormate: "SS",
+          timeFormate: "MM:SS",
           isCountdown: true,
           duration: duration,
         ),
-        radius: 16,
+        radius: 24,
         decoraton: CircularTimerDecoraton(
           prgressThickness: 8,
           progressColors: List.empty(growable: true)..add(Theme.of(context).colorScheme.secondary),
@@ -26,7 +26,7 @@ class TimoutTimer extends StatelessWidget {
         builder: (BuildContext context, value, progress) {
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [Text(value ?? ''), const Text("s")],
+            children: [Text(value ?? '')],
           );
         },
       ),
