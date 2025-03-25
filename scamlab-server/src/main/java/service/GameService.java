@@ -104,7 +104,7 @@ public class GameService {
             scheduler.newJob("B" + conversation.getId().toString())
                 .setInterval("PT" + seconds.toString() + "S")
                 .setConcurrentExecution(ConcurrentExecution.SKIP)
-                .setTask(t -> createNewBotReplyTriggered(conversation.getId())).schedule();
+                .setTask(t -> createNewBotReplyTriggered(conversation.getId(), message)).schedule();
         }
 
         conversation.getParticipants()
@@ -142,7 +142,8 @@ public class GameService {
                 new LeaveRequestInternalDTO(UUID.fromString(playerSecondaryId), TransitionReason.PlayerInactivity));
     }
 
-    void createNewBotReplyTriggered(Long conversationId) {
+    @Transactional
+    void createNewBotReplyTriggered(Long conversationId, GamePlayersMessageDTO newMessage) {
         var conversation = entityManager.find(Conversation.class, conversationId);
 
         // Log.info("Inactivity timeout triggered for player " + playerSecondaryId);
@@ -160,21 +161,23 @@ public class GameService {
                 .setParameter("role", role.getId())
                 .getSingleResult();
 
-        var wholeConversation = "";
+        /*var wholeConversation = "";
         for (Message message : conversation.getMessages()) {
             wholeConversation += message.getParticipation().getUserName() + "\n";
             wholeConversation += message.getMessage();
             wholeConversation += message.getCreation().toString();
-        }
+        }*/
 
         var reply = service.generateReply(
                 botParticipant.getUserName(),
                 strategyByRole.getScript(),
                 strategyByRole.getExample(),
-                wholeConversation);
+                newMessage.senderUsername(), 
+                newMessage.text(), 
+                conversationId.intValue());
 
         if (service.isReplyHarmful(reply)) {
-            reply = service.generateAlternativeReply(wholeConversation, strategyByRole.getEvasionExample());
+            reply = service.generateAlternativeReply(strategyByRole.getEvasionExample(), conversationId.intValue());
         }
 
         var newReply = new Message()
@@ -195,7 +198,7 @@ public class GameService {
                                     botParticipant.getUserName(),
                                     p.getSecondaryId().toString(),
                                     newReply.getMessage(),
-                                    null));
+                                    ""));
                 });
     }
 
