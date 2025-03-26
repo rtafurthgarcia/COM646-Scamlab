@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:provider/provider.dart';
@@ -23,6 +22,7 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> with RouteAware {
   var _alertShowing = false;
   late String _id;
+  bool _hasNavigated = false; // Flag to ensure navigation only happens once
   late RouteObserver<PageRoute> _observer;
 
   final TextEditingController _textEditingController = TextEditingController();
@@ -103,7 +103,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   @override
   Widget build(BuildContext context) {
     final arguments =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+        ModalRoute.of(context)?.settings.arguments as Map<dynamic, dynamic>?;
     _id = arguments?['id'];
 
     return MultiProvider(
@@ -140,11 +140,40 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
-                  children: [buildChatView(context), buildChatBox(context)],
+                  children: [
+                    buildChatView(context), 
+                    buildChatBox(context),
+                    buildSelector()],
                 ),
               ),
             ),
           ),
+    );
+  }
+
+  Consumer<ChatWSProvider> buildSelector() {
+    // Consumer that listens for game state change
+    return Consumer<ChatWSProvider>(
+      builder: (context, provider, child) {
+        if (!_hasNavigated) {
+          if (provider.game.currentState == provider.game.isCancelled) {
+            // Schedule the navigation after the current frame
+            _hasNavigated = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.of(context).pop();
+            });
+          }
+
+          if (provider.game.currentState == provider.game.isFinished) {
+            // Schedule the navigation after the current frame
+            _hasNavigated = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.of(context).pop();
+            });
+          }
+        }
+        return const SizedBox.shrink();
+      },
     );
   }
 

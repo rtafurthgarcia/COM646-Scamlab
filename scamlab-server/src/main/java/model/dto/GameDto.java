@@ -7,7 +7,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import model.entity.TransitionReason;
 
 public class GameDTO {
-    public static enum WSReasonForEvent {
+    public static enum WSReasonForWaiting {
         NOT_ENOUGH_PLAYERS("Waiting on other player(s) to join..."),
         ALL_LOBBIES_OCCUPIED("Waiting on a free lobby..."),
         START_CANCELLED_TIEMOUT("Player(s) didn't start the game on time..."),
@@ -17,7 +17,7 @@ public class GameDTO {
 
         public final String message;
 
-        private WSReasonForEvent(String message) {
+        private WSReasonForWaiting(String message) {
             this.message = message;
         }
     }
@@ -27,7 +27,7 @@ public class GameDTO {
             WSMessageType type,
             String playerSecondaryId,
             List<String> reasons) implements MessageDTO {
-        public WaitingLobbyReasonForWaitingMessageDTO(String playerSecondaryId, List<WSReasonForEvent> reasons) {
+        public WaitingLobbyReasonForWaitingMessageDTO(String playerSecondaryId, List<WSReasonForWaiting> reasons) {
             this(WSMessageType.NOTIFY_REASON_FOR_WAITING,
                     playerSecondaryId,
                     reasons.stream().map(r -> r.message).toList());
@@ -62,7 +62,8 @@ public class GameDTO {
             String script,
             String example,
             String strategy,
-            String username) implements MessageDTO {
+            String username,
+            Long timeBeforeVote) implements MessageDTO {
         public WaitingLobbyGameAssignmentMessageDTO(
                 String playerSecondaryId,
                 String conversationSecondaryId,
@@ -70,7 +71,8 @@ public class GameDTO {
                 String script,
                 String example,
                 String strategy,
-                String username) {
+                String username,
+                Long timeBeforeVote) {
             this(WSMessageType.GAME_ASSIGNED,
                     playerSecondaryId,
                     conversationSecondaryId,
@@ -78,7 +80,8 @@ public class GameDTO {
                     script,
                     example,
                     strategy,
-                    username);
+                    username, 
+                    timeBeforeVote);
         }
 
         @Override
@@ -133,9 +136,10 @@ public class GameDTO {
     @RegisterForReflection
     public static record WaitingLobbyGameStartingMessageDTO(
             WSMessageType type,
+            Long timeBeforeVote,
             String playerSecondaryId) implements MessageDTO {
-        public WaitingLobbyGameStartingMessageDTO(String playerSecondaryId) {
-            this(WSMessageType.GAME_STARTING, playerSecondaryId);
+        public WaitingLobbyGameStartingMessageDTO(Long timeBeforeVote, String playerSecondaryId) {
+            this(WSMessageType.GAME_STARTING, timeBeforeVote, playerSecondaryId);
         }
 
         @Override
@@ -148,9 +152,9 @@ public class GameDTO {
     public static record GameCancelledMessageDTO(
             WSMessageType type,
             String playerSecondaryId,
-            String reason) implements MessageDTO {
-        public GameCancelledMessageDTO(String playerSecondaryId, WSReasonForEvent reason) {
-            this(WSMessageType.GAME_CANCELLED, playerSecondaryId, reason.message);
+            int reason) implements MessageDTO {
+        public GameCancelledMessageDTO(String playerSecondaryId, TransitionReason reason) {
+            this(WSMessageType.GAME_CANCELLED, playerSecondaryId, reason.ordinal());
         }
 
         @Override

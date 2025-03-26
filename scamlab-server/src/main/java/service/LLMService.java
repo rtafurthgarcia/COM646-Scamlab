@@ -17,6 +17,7 @@ public interface LLMService {
             Use British English. Always stick to British English.
             You are part of a conversation that is happening. Your name is {{username}}. Here's the background to what's happening: {{script}}.
             IF you don't know how to handle this situation, just {{example}}.
+            This is an instant chat, so make sentences that reflect that sort of situation.
             """)
     @UserMessage(
         """

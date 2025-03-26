@@ -28,7 +28,7 @@ public class StateTransition {
         return this;
     }
 
-    @Enumerated(EnumType.STRING)
+    @Enumerated(EnumType.ORDINAL)
     @Column(nullable = true)
     private TransitionReason reason;
 

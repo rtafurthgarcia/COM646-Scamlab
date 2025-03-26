@@ -34,7 +34,7 @@ import model.dto.GameDTO.GameReconcileStateMessageDTO;
 import model.dto.GameDTO.LeaveRequestInternalDTO;
 import model.dto.GameDTO.VoteAcknowledgedMessageDTO;
 import model.dto.GameDTO.VoteStartRequestInternalDTO;
-import model.dto.GameDTO.WSReasonForEvent;
+import model.dto.GameDTO.WSReasonForWaiting;
 import model.dto.GameDTO.WaitingLobbyGameAssignmentMessageDTO;
 import model.dto.GameDTO.WaitingLobbyGameStartingMessageDTO;
 import model.dto.GameDTO.WaitingLobbyReadyToStartMessageDTO;
@@ -62,6 +62,10 @@ public class LobbyService {
     @Inject
     @ConfigProperty(name = "scamlab.timeout-lobby-in-seconds")
     Long timeOutForWaitingLobby;
+
+    @Inject
+    @ConfigProperty(name = "scamlab.time-before-vote-in-seconds")
+    Long timeBeforeVote;
 
     @Inject
     @Channel("notify-reason-for-waiting")
@@ -158,13 +162,13 @@ public class LobbyService {
     }
 
     public void sendReasonForTheWaitingIfAny(Conversation conversation) {
-        List<WSReasonForEvent> reasonsList = new ArrayList<>();
+        List<WSReasonForWaiting> reasonsList = new ArrayList<>();
 
         var tooLittlePlayers = conversation.getParticipants()
                 .size() != conversation.getTestingScenario().numberOfHumans;
 
         if (tooLittlePlayers) {
-            reasonsList.add(WSReasonForEvent.NOT_ENOUGH_PLAYERS);
+            reasonsList.add(WSReasonForWaiting.NOT_ENOUGH_PLAYERS);
         }
 
         var ongoingGamesCount = entityManager.createQuery(
@@ -178,11 +182,11 @@ public class LobbyService {
                 .getSingleResult();
 
         if (ongoingGamesCount == maxOngoingGamesCount) {
-            reasonsList.add(WSReasonForEvent.ALL_LOBBIES_OCCUPIED);
+            reasonsList.add(WSReasonForWaiting.ALL_LOBBIES_OCCUPIED);
         }
 
         if (reasonsList.isEmpty()) {
-            reasonsList.add(WSReasonForEvent.SYNCHRONISING);
+            reasonsList.add(WSReasonForWaiting.SYNCHRONISING);
         }
 
         for (var player : conversation.getParticipants()) {
@@ -296,7 +300,7 @@ public class LobbyService {
             notifyReasonForWaitingEmitter.send(
                     new WaitingLobbyReasonForWaitingMessageDTO(
                             p.getParticipationId().getPlayer().getSecondaryId().toString(),
-                            Arrays.asList(WSReasonForEvent.START_CANCELLED_TIEMOUT)));
+                            Arrays.asList(WSReasonForWaiting.START_CANCELLED_TIEMOUT)));
         });
         var players = conversation.getParticipants().stream()
                 .map(p -> p.getParticipationId().getPlayer()).toList();
@@ -337,7 +341,8 @@ public class LobbyService {
                 strategyByRole.getScript(),
                 strategyByRole.getExample(),
                 strategy.getName(),
-                playersParticipation.getUserName());
+                playersParticipation.getUserName(),
+                timeBeforeVote);
     }
 
     @Incoming(value = "register-start-game")
@@ -384,7 +389,10 @@ public class LobbyService {
                     .map(p -> p.getParticipationId().getPlayer())
                     .filter(p -> !p.getIsBot())
                     .forEach(p -> {
-                        notifyGameStarting.send(new WaitingLobbyGameStartingMessageDTO(p.getSecondaryId().toString()));
+                        notifyGameStarting.send(new WaitingLobbyGameStartingMessageDTO(
+                            timeBeforeVote,
+                            p.getSecondaryId().toString()
+                        ));
                         voteRegistry.unregister(p.getId());
                     });
         }
@@ -431,8 +439,8 @@ public class LobbyService {
                 notifyReasonForWaitingEmitter.send(
                         new WaitingLobbyReasonForWaitingMessageDTO(
                                 p.getParticipationId().getPlayer().getSecondaryId().toString(),
-                                Arrays.asList(WSReasonForEvent.OTHER_PLAYERS_LEFT,
-                                        WSReasonForEvent.NOT_ENOUGH_PLAYERS)));
+                                Arrays.asList(WSReasonForWaiting.OTHER_PLAYERS_LEFT,
+                                        WSReasonForWaiting.NOT_ENOUGH_PLAYERS)));
             });
             var playersLeft = conversation.getParticipants().stream().map(p -> p.getParticipationId().getPlayer())
                     .toList();

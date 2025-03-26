@@ -24,7 +24,6 @@ import jakarta.transaction.Transactional;
 import model.dto.GameDTO.GameCancelledMessageDTO;
 import model.dto.GameDTO.GamePlayersMessageDTO;
 import model.dto.GameDTO.LeaveRequestInternalDTO;
-import model.dto.GameDTO.WSReasonForEvent;
 import model.entity.Conversation;
 import model.entity.Message;
 import model.entity.Participation;
@@ -51,6 +50,10 @@ public class GameService {
     @Inject
     @ConfigProperty(name = "scamlab.timeout-inactivity-in-seconds")
     Long timeOutForInactivity;
+
+    @Inject
+    @ConfigProperty(name = "scamlab.number-of-votes")
+    Long numberOfVotes;
 
     @Inject
     Scheduler scheduler;
@@ -161,13 +164,6 @@ public class GameService {
                 .setParameter("role", role.getId())
                 .getSingleResult();
 
-        /*var wholeConversation = "";
-        for (Message message : conversation.getMessages()) {
-            wholeConversation += message.getParticipation().getUserName() + "\n";
-            wholeConversation += message.getMessage();
-            wholeConversation += message.getCreation().toString();
-        }*/
-
         var reply = service.generateReply(
                 botParticipant.getUserName(),
                 strategyByRole.getScript(),
@@ -242,13 +238,9 @@ public class GameService {
                 .map(p -> p.getParticipationId().getPlayer())
                 .filter(p -> !p.getIsBot())
                 .forEach(p -> {
-                var reason = WSReasonForEvent.OTHER_PLAYERS_LEFT;
-                if (request.reason().equals(TransitionReason.PlayerInactivity)) {
-                    reason = WSReasonForEvent.TIMEOUT;
-                }
                 notifyReasonForAbruptEndOfGame.send(
                         new GameCancelledMessageDTO(p.getSecondaryId().toString(),
-                        reason));
+                        request.reason()));
             });
             entityManager.persist(conversation);
 

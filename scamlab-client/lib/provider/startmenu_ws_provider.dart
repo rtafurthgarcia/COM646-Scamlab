@@ -1,11 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:scamlab/model/game.dart';
 import 'package:scamlab/model/ws_message.dart';
+import 'package:scamlab/service/game_service.dart';
 import 'package:scamlab/service/startmenu_ws_service.dart';
 
 class StartMenuWSProvider extends ChangeNotifier {
   final StartmenuWsService _wsService;
+  final GameService _gameService;
+  Game get game => _gameService.game;
+  set game(Game newGame) => _gameService.game = newGame;
+  
   int? _playersCount;
 
   set jwtToken(String? newJwtToken) {
@@ -17,7 +23,8 @@ class StartMenuWSProvider extends ChangeNotifier {
 
   late StreamSubscription _subscription;
 
-  StartMenuWSProvider({required StartmenuWsService wsService}) : _wsService = wsService;
+  StartMenuWSProvider({required StartmenuWsService wsService, required GameService gameService}) : 
+    _wsService = wsService, _gameService = gameService;
 
   bool get isListening => _wsService.isListening;
   void stopListening() {

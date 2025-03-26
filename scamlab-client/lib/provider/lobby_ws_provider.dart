@@ -166,11 +166,6 @@ class LobbyWSProvider extends RetryableProvider {
   void dispose() {
     stopListening();
     _timer?.cancel();
-
-    if (game.currentState != game.isRunning) {
-      _gameService.game = Game();
-    }
-
     super.dispose();
   }
 

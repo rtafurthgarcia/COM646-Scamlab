@@ -75,6 +75,16 @@ public class GameWSResource {
         ).get().sendText(message);
     }
 
+    @Incoming("notify-reason-for-abrupt-end-of-game")
+    public Uni<Void> sendReply(GameCancelledMessageDTO message) {
+        //Log.info("Player " + message.playerSecondaryId() + " is about to receive a message from Player " + message.playerSecondaryId());
+        Log.info("Notifying player " + message.playerSecondaryId() + " that their game has been interrupted");
+        
+        return connectionManager.findByConnectionId(
+            registry.getConnectionId(message.playerSecondaryId())
+        ).get().sendText(message);
+    }
+
     @OnClose
     public void onClose() {
         Log.info("WS connection closed: " + connection.endpointId());

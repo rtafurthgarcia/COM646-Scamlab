@@ -12,6 +12,9 @@ class Game {
     _stateMachine.name = "Game ID: ${_gameAssignment!.conversationSecondaryId}";
   }
 
+  WSCancellationReason? reasonForCancellation;
+  Exception? error;
+
   String? get username => _gameAssignment?.username;
   String? get conversationSecondaryId => _gameAssignment?.conversationSecondaryId;
   String? get playerSecondaryId => _gameAssignment?.playerSecondaryId;
@@ -19,6 +22,7 @@ class Game {
   String? get strategy => _gameAssignment?.strategy;
   String? get script => _gameAssignment?.script;
   String? get example => _gameAssignment?.example;
+  int? get timeBeforeVote => _gameAssignment?.timeBeforeVote;
   bool get isGameAssigned => _gameAssignment != null;
 
   late State isWaiting;

@@ -102,15 +102,26 @@ class ChatWSProvider extends RetryableProvider {
       game.reachedEndGame();
     }
     if (message is GameCancelledMessage) {
+      game.reasonForCancellation = message.reason;
       game.gameGotInterrupted();
     }
   }
 
+  T? getLastMessageOfType<T extends WsMessage>() {
+    // As _bufferedMessages is keyed by sequence, iterate its values.
+    return _messages.whereType<T>().lastOrNull;
+  }
+
   void _onErrorReceived(dynamic error) {
-    exception = error;
-    if (!_wsService.isListening) {
-      game.gameGotInterrupted();
+    if (error is Exception) {
+      exception = error;
+      if (!_wsService.isListening) {
+        game.gameGotInterrupted();
+      }
+    } else {
+      developer.log("Error of type {$error}", name: "chat_ws_provider", time: DateTime.now(), error: error);
     }
+
     notifyListeners();
   }
 
@@ -124,7 +135,6 @@ class ChatWSProvider extends RetryableProvider {
   @override
   void dispose() {
     stopListening();
-    _gameService.game = Game();
     _messagesController.close();
     super.dispose();
   }

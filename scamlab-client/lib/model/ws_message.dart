@@ -18,6 +18,16 @@ enum WsMessageType {
   final int value;
 }
 
+enum WSCancellationReason {
+  playerWillingfullyCancelled(value: 1, message: "One of the players cancelled the game."),
+  connectionGotTerminated(value: 2, message: "The game suffered connection or server issues."), 
+  playerInactivity(value: 3, message: "One of the players was inactive for too long.");
+
+  const WSCancellationReason({required this.value, required this.message});
+  final String message;
+  final int value;
+}
+
 class WsMessage {
   final WsMessageType type;
   final int sequence;
@@ -41,15 +51,8 @@ class WsMessage {
   }
 }
 
-WsMessageType wsMessageTypeFromInt(int value) {
-  return WsMessageType.values.firstWhere(
-    (e) => e.value == value,
-    orElse: () => throw JsonUnsupportedObjectError("Invalid WsMessageType value: $value"),
-  );
-}
-
 WsMessage deserialiseMessage({required Map<String, dynamic> json, required int sequence}) {
-  final type = wsMessageTypeFromInt(json['type'] as int);
+  final type = WsMessageType.values.firstWhere((x) => x.value == json['type'] as int);
 
   switch (type) {
     case WsMessageType.notifyStartMenuStatistics:
@@ -82,6 +85,8 @@ String serialiseMessage({required WsMessage message}) {
     case GamePlayersMessage m:
       return m.toJsonString();
     case WaitingLobbyGameStartingMessage m:
+      return m.toJsonString();
+    case GameCancelledMessage m:
       return m.toJsonString();
     default: 
       throw JsonUnsupportedObjectError(message);
@@ -131,6 +136,7 @@ class WaitingLobbyGameAssignmentMessage extends WsMessage {
   final String example;
   final String strategy;
   final String username;
+  final int timeBeforeVote;
 
   WaitingLobbyGameAssignmentMessage({
     required this.playerSecondaryId,
@@ -140,6 +146,7 @@ class WaitingLobbyGameAssignmentMessage extends WsMessage {
     required this.example,
     required this.strategy,
     required this.username,
+    required this.timeBeforeVote,
     required super.sequence,
   }) : super(type: WsMessageType.gameAssigned);
 
@@ -152,6 +159,7 @@ class WaitingLobbyGameAssignmentMessage extends WsMessage {
       example: json['example'] as String,
       strategy: json['strategy'] as String,
       username: json['username'] as String,
+      timeBeforeVote: json['timeBeforeVote'] as int,
       sequence: sequence
     );
   }
@@ -209,7 +217,9 @@ class WaitingLobbyVoteAcknowledgedMessage extends WsMessage {
 }
 
 class WaitingLobbyGameStartingMessage extends WsMessage {
-  WaitingLobbyGameStartingMessage({required super.sequence})
+  WaitingLobbyGameStartingMessage({
+    required super.sequence
+  })
       : super(type: WsMessageType.gameStarting);
 
   factory WaitingLobbyGameStartingMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
@@ -226,13 +236,23 @@ class WaitingLobbyGameStartingMessage extends WsMessage {
 }
 
 class GameCancelledMessage extends WsMessage {
-  GameCancelledMessage({required super.sequence})
+  final WSCancellationReason reason;
+
+  GameCancelledMessage({required super.sequence, required this.reason})
       : super(type: WsMessageType.gameCancelled);
 
   factory GameCancelledMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
     return GameCancelledMessage(
-      sequence: sequence
+      sequence: sequence,
+      reason: WSCancellationReason.values.firstWhere((x) => x.value == json['reason'] as int)
     );
+  }
+
+  String toJsonString() {
+    return json.encode({
+      'type': super.type.value,
+      'reason': reason.value
+    });
   }
 }
 

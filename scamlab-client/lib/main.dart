@@ -39,10 +39,10 @@ void main() {
           authenticationService: context.read(),
           settingsService: context.read()
         )),
-        ChangeNotifierProxyProvider<AuthenticationProvider,StartMenuWSProvider>(
-          create: (BuildContext context) => StartMenuWSProvider(wsService: context.read()),
+        ChangeNotifierProxyProvider<AuthenticationProvider, StartMenuWSProvider>(
+          create: (BuildContext context) => StartMenuWSProvider(wsService: context.read(), gameService: context.read()),
           update: (context, authenticationProvider, startMenuWSProvider) {
-            startMenuWSProvider ??= StartMenuWSProvider(wsService: context.read());
+            startMenuWSProvider ??= StartMenuWSProvider(wsService: context.read(), gameService: context.read());
   
             if (startMenuWSProvider.isListening) {
               startMenuWSProvider.stopListening();

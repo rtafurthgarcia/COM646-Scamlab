@@ -137,7 +137,8 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
                       } else if (provider.exception != null) {
                         _hasNavigated = true;
                         WidgetsBinding.instance.addPostFrameCallback((_) {
-                          Navigator.of(context).pop(provider.exception);
+                          provider.game.error = provider.exception;
+                          Navigator.of(context).pop();
                         });
                       }
                     }

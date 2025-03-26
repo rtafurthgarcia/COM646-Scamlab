@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:scamlab/model/game.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/startmenu_ws_provider.dart';
 import 'package:scamlab/view/widget/rules_card_widget.dart';
@@ -33,15 +34,37 @@ class _HomePageState extends State<HomePage> with RouteAware {
 
   @override
   void didPopNext() {
-    context.read<StartMenuWSProvider>().startListening();
+    var provider = context.read<StartMenuWSProvider>()..startListening();
+
+    onBackOnHomePage(provider.game);
+
+    provider.game = Game();
   }
 
-  void onBackOnHomePage(dynamic value) {
-    if (value is Error || value is Exception) {
+  void onBackOnHomePage(Game game) {
+    if (game.error is Error || game.error is Exception) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: SelectableText(
-            "Your gameplay got unexpectedly interrupted: $value",
+            "Your gameplay got unexpectedly interrupted: ${game.error}",
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.onErrorContainer),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.errorContainer,
+          showCloseIcon: true,
+          closeIconColor: Theme.of(context).colorScheme.onErrorContainer,
+          duration: Duration(seconds: 60)
+        ),
+      );
+    }
+
+    if (game.reasonForCancellation != null) {
+      var message = "Your game got interrupted due to the following reason: ${game.reasonForCancellation?.message}";
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: SelectableText(
+            message,
+            //style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.onSurface)
             style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.onErrorContainer),
           ),
           backgroundColor: Theme.of(context).colorScheme.errorContainer,
@@ -66,7 +89,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
             onPressed:
                 () =>
                     provider.player != null
-                      ? Navigator.pushNamed(context, '/lobby').then(onBackOnHomePage)
+                      ? Navigator.pushNamed(context, '/lobby')
                       : null,
             icon: Icon(Icons.videogame_asset),
             label: Text('New game'),
