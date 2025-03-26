@@ -12,6 +12,17 @@ class ChatWSProvider extends RetryableProvider {
   final GameService _gameService;
   Game get game => _gameService.game;
 
+  final Stopwatch _stopWatch = Stopwatch()..start();
+  int get timeLeft {
+    var timeLeft = game.timeBeforeVote! - _stopWatch.elapsed.inSeconds;
+
+    if (timeLeft >= 0) {
+      return timeLeft;
+    } else {
+      return 0;
+    }
+  }
+
   // Internal list to hold messages
   final List<GamePlayersMessage> _messages = [];
   

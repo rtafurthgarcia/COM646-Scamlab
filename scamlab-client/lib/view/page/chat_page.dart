@@ -11,6 +11,7 @@ import 'package:scamlab/provider/chat_ws_provider.dart';
 import 'package:scamlab/view/widget/chat_bubble_widget.dart';
 import 'package:scamlab/view/widget/rules_card_widget.dart';
 import 'package:scamlab/view/widget/timout_timer_widget.dart';
+import 'package:state_machine/state_machine.dart' as sm;
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -141,9 +142,10 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    buildChatView(context), 
+                    buildChatView(context),
                     buildChatBox(context),
-                    buildSelector()],
+                    buildSelector(),
+                  ],
                 ),
               ),
             ),
@@ -180,8 +182,11 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   Drawer buildDrawer() {
     return Drawer(
       width: 440,
-      child: Consumer<ChatWSProvider>(
-        builder: (context, provider, child) {
+      child: Selector<ChatWSProvider, sm.State?>(
+        selector: (context, provider) => provider.game.currentState,
+        builder: (context, state, child) {
+          var game = context.read<ChatWSProvider>().game;
+          var timeBeforeVote = context.read<ChatWSProvider>().timeLeft;
           return Padding(
             padding: const EdgeInsets.all(8.0),
             child: Column(
@@ -189,45 +194,42 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text("Time before next vote:"),
-                TimoutTimer(duration: Duration(seconds: 300)),
+                TimoutTimer(
+                  duration: Duration(seconds: timeBeforeVote),
+                ),
                 Divider(),
                 InstructionsCard(
                   title: "1. This game's scenario:",
-                  text: provider.game.script!,
+                  text: game.script!,
                   icon: const Icon(Icons.menu_book),
                   withoutCard: true,
                 ),
                 InstructionsCard(
                   title: "2. Your role as a player:",
-                  text: provider.game.role!.replaceFirst(
-                    provider.game.role![0],
-                    provider.game.role![0].toUpperCase(),
+                  text: game.role!.replaceFirst(
+                    game.role![0],
+                    game.role![0].toUpperCase(),
                   ),
                   icon: const Icon(Icons.person),
                   withoutCard: true,
                 ),
                 InstructionsCard(
                   title: "3. Example of what you can say:",
-                  text: "\"${provider.game.example}\"",
+                  text: "\"${game.example}\"",
                   icon: const Icon(Icons.message),
                   withoutCard: true,
                 ),
                 Divider(),
                 Spacer(),
-                Consumer<ChatWSProvider>(
-                  builder: (context, provider, child) {
-                    return ElevatedButton.icon(
-                      icon: Icon(Icons.exit_to_app),
-                      label: Text('Leave game'),
-                      onPressed: () async {
-                        if (provider.game.currentState ==
-                            provider.game.isWaiting) {
-                          Navigator.pop(context);
-                        } else {
-                          await askBeforeQuitting();
-                        }
-                      },
-                    );
+                ElevatedButton.icon(
+                  icon: Icon(Icons.exit_to_app),
+                  label: Text('Leave game'),
+                  onPressed: () async {
+                    if (game.currentState == game.isWaiting) {
+                      Navigator.pop(context);
+                    } else {
+                      await askBeforeQuitting();
+                    }
                   },
                 ),
               ],

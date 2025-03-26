@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:timer_flutter/timer_flutter.dart';
 
 class TimoutTimer extends StatelessWidget {
-  final Duration duration;
+  final Duration _duration;
 
-  const TimoutTimer({super.key, required this.duration});
+  TimoutTimer({super.key, required Duration duration}) : _duration = duration;
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +16,7 @@ class TimoutTimer extends StatelessWidget {
           listeningDelay: const Duration(milliseconds: 100),
           timeFormate: "MM:SS",
           isCountdown: true,
-          duration: duration,
+          duration: _duration, 
         ),
         radius: 24,
         decoraton: CircularTimerDecoraton(

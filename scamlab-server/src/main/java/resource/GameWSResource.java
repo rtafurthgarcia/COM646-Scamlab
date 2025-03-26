@@ -77,7 +77,6 @@ public class GameWSResource {
 
     @Incoming("notify-reason-for-abrupt-end-of-game")
     public Uni<Void> sendReply(GameCancelledMessageDTO message) {
-        //Log.info("Player " + message.playerSecondaryId() + " is about to receive a message from Player " + message.playerSecondaryId());
         Log.info("Notifying player " + message.playerSecondaryId() + " that their game has been interrupted");
         
         return connectionManager.findByConnectionId(
