@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/model/game.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
-import 'package:scamlab/provider/startmenu_ws_provider.dart';
+import 'package:scamlab/provider/startmenu_provider.dart';
 import 'package:scamlab/view/widget/rules_card_widget.dart';
 
 class HomePage extends StatefulWidget  {
@@ -29,12 +29,12 @@ class _HomePageState extends State<HomePage> with RouteAware {
 
   @override
   void didPushNext() {
-    context.read<StartMenuWSProvider>().stopListening();
+    context.read<StartMenuProvider>().stopListening();
   }
 
   @override
   void didPopNext() {
-    var provider = context.read<StartMenuWSProvider>()..startListening();
+    var provider = context.read<StartMenuProvider>()..startListening();
 
     onBackOnHomePage(provider.game);
 
@@ -156,7 +156,7 @@ class _HomePageState extends State<HomePage> with RouteAware {
                   child: SizedBox(
                     width: 150,
                     child: Center(
-                      child: Consumer<StartMenuWSProvider>(
+                      child: Consumer<StartMenuProvider>(
                         builder: (context, provider, child) {
                           return Text(
                             "Players online: ${provider.playersCount ?? "-"}",

@@ -11,6 +11,10 @@ class Game {
     _gameAssignment = assignment;
     _stateMachine.name = "Game ID: ${_gameAssignment!.conversationSecondaryId}";
   }
+  GameCallToVoteMessage? _gameCallToVoteMessage;
+  set callToVote(GameCallToVoteMessage message) {
+    _gameCallToVoteMessage = message;
+  }
 
   WSCancellationReason? reasonForCancellation;
   Exception? error;
@@ -23,6 +27,9 @@ class Game {
   String? get script => _gameAssignment?.script;
   String? get example => _gameAssignment?.example;
   int? get timeBeforeVote => _gameAssignment?.timeBeforeVote;
+  int? get voteTimeout => _gameCallToVoteMessage?.voteTimeout;
+  Map<String, String>? get playersToChooseFrom => _gameCallToVoteMessage?.playersToChoseFrom;
+
   bool get isGameAssigned => _gameAssignment != null;
 
   late State isWaiting;

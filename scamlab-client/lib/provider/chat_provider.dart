@@ -7,7 +7,7 @@ import 'package:scamlab/service/chat_ws_service.dart';
 import 'package:scamlab/service/game_service.dart';
 import 'dart:developer' as developer;
 
-class ChatWSProvider extends RetryableProvider {
+class ChatProvider extends RetryableProvider {
   final ChatWSService _wsService;
   final GameService _gameService;
   Game get game => _gameService.game;
@@ -31,7 +31,7 @@ class ChatWSProvider extends RetryableProvider {
 
   Stream<List<GamePlayersMessage>> get messagesStream => _messagesController.stream;
 
-  ChatWSProvider({
+  ChatProvider({
     required GameService gameService,
     required ChatWSService wsService,
   })  : _wsService = wsService,
@@ -106,12 +106,14 @@ class ChatWSProvider extends RetryableProvider {
 
   void _processMessage(WsMessage message) {
     if (message is GameCallToVoteMessage) {
+      game.callToVote = message;
       game.voteCalled();
-      Timer(Duration(seconds: message.voteTimeout), () => triggerTimeout());
     }
+
     if (message is GameFinishedMessage) {
       game.reachedEndGame();
     }
+
     if (message is GameCancelledMessage) {
       game.reasonForCancellation = message.reason;
       game.gameGotInterrupted();
@@ -134,13 +136,6 @@ class ChatWSProvider extends RetryableProvider {
     }
 
     notifyListeners();
-  }
-
-  void triggerTimeout() {
-    if (game.startTimedOut.canCall()) {
-      game.startTimedOut();
-      notifyListeners();
-    }
   }
 
   @override

@@ -401,7 +401,7 @@ public class LobbyService {
                         voteRegistry.unregister(p.getId());
                     });
 
-            scheduler.newJob("C" + conversation.getId().toString())
+            scheduler.newJob("V" + conversation.getId().toString())
                 .setInterval("PT" + timeBeforeVote.toString() + "S")
                 .setDelayed("PT" + timeBeforeVote.toString() + "S")
                 .setConcurrentExecution(ConcurrentExecution.SKIP)

@@ -4,7 +4,7 @@ import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
-import 'package:scamlab/provider/lobby_ws_provider.dart';
+import 'package:scamlab/provider/lobby_provider.dart';
 import 'package:scamlab/view/widget/rules_card_widget.dart';
 import 'package:scamlab/view/widget/timout_timer_widget.dart';
 
@@ -82,7 +82,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create:
-          (BuildContext context) => LobbyWSProvider(
+          (BuildContext context) => LobbyProvider(
             gameService:
                 context.read()
                   ..jwtToken =
@@ -96,7 +96,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
       builder:
           (context, child) => Scaffold(
             appBar: AppBar(
-              leading: Consumer<LobbyWSProvider>(
+              leading: Consumer<LobbyProvider>(
                 builder: (context, provider, child) {
                   return IconButton(
                     icon: Icon(Icons.arrow_back),
@@ -118,7 +118,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
               children: [
                 buildBody(),
                 // Consumer that listens for game state change to IsRunning
-                Consumer<LobbyWSProvider>(
+                Consumer<LobbyProvider>(
                   builder: (context, provider, child) {
                     if (!_hasNavigated) {
                       if (provider.game.currentState ==
@@ -151,8 +151,8 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
     );
   }
 
-  Consumer<LobbyWSProvider> buildTitle() {
-    return Consumer<LobbyWSProvider>(
+  Consumer<LobbyProvider> buildTitle() {
+    return Consumer<LobbyProvider>(
       builder: (context, provider, child) {
         return Row(
           children: [
@@ -175,7 +175,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
           mainAxisSize: MainAxisSize.min, // Constrain the height to the content
           spacing: 16,
           children: [
-            Consumer<LobbyWSProvider>(
+            Consumer<LobbyProvider>(
               builder: (context, provider, child) {
                 var children = List<Widget>.empty(growable: true);
                 var lastMessage = provider.getLastMessage();
@@ -213,7 +213,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
                 );
               },
             ),
-            Consumer<LobbyWSProvider>(
+            Consumer<LobbyProvider>(
               builder: (context, provider, child) {
                 var assignedStrategy =
                     provider
@@ -257,7 +257,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
             ),
             Row(
               children: [
-                Consumer<LobbyWSProvider>(
+                Consumer<LobbyProvider>(
                   builder: (context, provider, child) {
                     return ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
@@ -277,7 +277,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
                   },
                 ),
                 SizedBox.square(dimension: 8.0),
-                Consumer<LobbyWSProvider>(
+                Consumer<LobbyProvider>(
                   builder: (context, provider, child) {
                     if (provider.game.currentState == provider.game.isReady) {
                       var timeout =
@@ -295,7 +295,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
                   },
                 ),
                 Spacer(),
-                Consumer<LobbyWSProvider>(
+                Consumer<LobbyProvider>(
                   builder: (context, lobbyWSProvider, child) {
                     return Flexible(
                       child: CheckboxListTile(

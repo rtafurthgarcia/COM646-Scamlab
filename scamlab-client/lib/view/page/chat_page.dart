@@ -7,7 +7,7 @@ import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
-import 'package:scamlab/provider/chat_ws_provider.dart';
+import 'package:scamlab/provider/chat_provider.dart';
 import 'package:scamlab/view/widget/chat_bubble_widget.dart';
 import 'package:scamlab/view/widget/rules_card_widget.dart';
 import 'package:scamlab/view/widget/timout_timer_widget.dart';
@@ -42,6 +42,17 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   void dispose() {
     _observer.unsubscribe(this);
     super.dispose();
+  }
+
+  
+  @override
+  void didPushNext() {
+    context.read<ChatProvider>().stopListening();
+  }
+
+  @override
+  void didPopNext() {
+    context.read<ChatProvider>().startListening();
   }
 
   Future askBeforeQuitting() {
@@ -116,7 +127,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
               defaultValue: 'ws://127.0.0.1:8080',
             );
 
-            return ChatWSProvider(
+            return ChatProvider(
               wsService:
                   context.read()
                     ..wsUrl = "$wsURL/ws/games/$_id"
@@ -127,7 +138,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
           },
         ),
         StreamProvider<List<GamePlayersMessage>>(
-          create: (context) => context.read<ChatWSProvider>().messagesStream,
+          create: (context) => context.read<ChatProvider>().messagesStream,
           initialData: <GamePlayersMessage>[],
         ),
       ],
@@ -153,9 +164,9 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
     );
   }
 
-  Consumer<ChatWSProvider> buildSelector() {
+  Consumer<ChatProvider> buildSelector() {
     // Consumer that listens for game state change
-    return Consumer<ChatWSProvider>(
+    return Consumer<ChatProvider>(
       builder: (context, provider, child) {
         if (!_hasNavigated) {
           if (provider.game.currentState == provider.game.isCancelled) {
@@ -166,11 +177,17 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
             });
           }
 
-          if (provider.game.currentState == provider.game.isFinished) {
+          if (provider.game.currentState == provider.game.isVoting) {
             // Schedule the navigation after the current frame
             _hasNavigated = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              Navigator.of(context).pop();
+              Navigator.pushNamed(
+                context,
+                '/votes',
+                arguments: {
+                  'id': provider.game.conversationSecondaryId,
+                },
+              );
             });
           }
         }
@@ -182,11 +199,11 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   Drawer buildDrawer() {
     return Drawer(
       width: 440,
-      child: Selector<ChatWSProvider, sm.State?>(
+      child: Selector<ChatProvider, sm.State?>(
         selector: (context, provider) => provider.game.currentState,
         builder: (context, state, child) {
-          var game = context.read<ChatWSProvider>().game;
-          var timeBeforeVote = context.read<ChatWSProvider>().timeLeft;
+          var game = context.read<ChatProvider>().game;
+          var timeBeforeVote = context.read<ChatProvider>().timeLeft;
           return Padding(
             padding: const EdgeInsets.all(8.0),
             child: Column(
@@ -275,7 +292,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                   TextInputAction.send, // shows "send" on the keyboard
               onSubmitted: (value) {
                 // Send the message when Enter is pressed.
-                context.read<ChatWSProvider>().sendNewMessage(value);
+                context.read<ChatProvider>().sendNewMessage(value);
                 _textEditingController.clear();
                 _focusNode.requestFocus();
               },
@@ -290,7 +307,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                   margin: EdgeInsets.all(8.0),
                   child: IconButton(
                     onPressed: () {
-                      context.read<ChatWSProvider>().sendNewMessage(
+                      context.read<ChatProvider>().sendNewMessage(
                         _textEditingController.text,
                       );
                       _textEditingController.clear();

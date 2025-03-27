@@ -133,13 +133,15 @@ public class GameService {
 
     public Conversation findConversationBySecondaryId(UUID secondaryId) {
         return entityManager
-                .createQuery("SELECT c FROM Conversation c WHERE secondaryId = :secondaryId", Conversation.class)
+                .createQuery("SELECT c FROM Conversation c WHERE secondaryId = :secondaryId",
+                        Conversation.class)
                 .setParameter("secondaryId", secondaryId)
                 .getSingleResult();
     }
 
     public Player findPlayerBySecondaryId(UUID secondaryId) {
-        return entityManager.createQuery("SELECT p FROM Player p WHERE secondaryId = :secondaryId", Player.class)
+        return entityManager
+                .createQuery("SELECT p FROM Player p WHERE secondaryId = :secondaryId", Player.class)
                 .setParameter("secondaryId", secondaryId)
                 .getSingleResult();
     }
@@ -165,7 +167,8 @@ public class GameService {
             scheduler.newJob("B" + conversation.getId().toString())
                     .setInterval("PT" + seconds.toString() + "S")
                     .setConcurrentExecution(ConcurrentExecution.SKIP)
-                    .setTask(t -> createNewBotReplyTriggered(conversation.getId(), message)).schedule();
+                    .setTask(t -> createNewBotReplyTriggered(conversation.getId(), message))
+                    .schedule();
         }
 
         conversation.getParticipants()
@@ -200,7 +203,8 @@ public class GameService {
         scheduler.unscheduleJob("P" + playerSecondaryId);
 
         handlePlayerLeavingGame(
-                new LeaveRequestInternalDTO(UUID.fromString(playerSecondaryId), TransitionReason.PlayerInactivity));
+                new LeaveRequestInternalDTO(UUID.fromString(playerSecondaryId),
+                        TransitionReason.PlayerInactivity));
     }
 
     @Transactional
@@ -217,7 +221,8 @@ public class GameService {
                 """
                         SELECT sbr FROM StrategyByRole sbr
                         WHERE sbr.strategyByRoleId.strategy.id = :strategy AND sbr.strategyByRoleId.role.id = :role
-                            """, StrategyByRole.class)
+                            """,
+                StrategyByRole.class)
                 .setParameter("strategy", conversation.getStrategy().getId())
                 .setParameter("role", role.getId())
                 .getSingleResult();
@@ -231,7 +236,8 @@ public class GameService {
                 conversationId.intValue());
 
         if (service.isReplyHarmful(reply)) {
-            reply = service.generateAlternativeReply(strategyByRole.getEvasionExample(), conversationId.intValue());
+            reply = service.generateAlternativeReply(strategyByRole.getEvasionExample(),
+                    conversationId.intValue());
         }
 
         var newReply = new Message()
@@ -248,7 +254,8 @@ public class GameService {
                 .forEach(p -> {
                     sendReplyEmitter.send(
                             new GamePlayersMessageDTO(
-                                    botParticipant.getParticipationId().getPlayer().getSecondaryId().toString(),
+                                    botParticipant.getParticipationId().getPlayer()
+                                            .getSecondaryId().toString(),
                                     botParticipant.getUserName(),
                                     p.getSecondaryId().toString(),
                                     newReply.getMessage(),
@@ -297,7 +304,8 @@ public class GameService {
                     .filter(p -> !p.getIsBot())
                     .forEach(p -> {
                         notifyReasonForAbruptEndOfGame.send(
-                                new GameCancelledMessageDTO(p.getSecondaryId().toString(),
+                                new GameCancelledMessageDTO(
+                                        p.getSecondaryId().toString(),
                                         request.reason()));
                     });
             entityManager.persist(conversation);
@@ -322,10 +330,38 @@ public class GameService {
                 .filter(p -> !p.getIsBot())
                 .forEach(p -> {
                     callToVoteEmitter.send(
-                            new GameCallToVoteMessageDTO(timeoutForVote, p.getSecondaryId().toString()));
+                            new GameCallToVoteMessageDTO(
+                                    timeoutForVote,
+                                    p.getSecondaryId().toString(),
+                                    conversation.getParticipants()
+                                            .stream()
+                                            .map(p2 -> p2.getParticipationId()
+                                                    .getPlayer()
+                                                    .getSecondaryId()
+                                                    .toString())
+                                            .filter(p2 -> !p2.equals(p
+                                                    .getSecondaryId()
+                                                    .toString()))
+                                            .toList()));
                 });
 
         entityManager.persist(conversation);
+
+        scheduler.newJob("VT" + conversation.getId().toString())
+                        .setInterval("PT" + timeBeforeVote.toString() + "S")
+                        .setDelayed("PT" + timeBeforeVote.toString() + "S")
+                        .setConcurrentExecution(ConcurrentExecution.SKIP)
+                        .setTask(t -> voteTimeoutTriggered(conversation.getId()))
+                        .schedule();
+    }
+
+    @Transactional
+    public void voteTimeoutTriggered(Long conversationId) {
+        scheduler.unscheduleJob("VT" + conversationId.toString());
+
+        var conversation = entityManager.find(Conversation.class, conversationId);
+
+        verifyOutcomeOfVote(conversation, true);
     }
 
     @Incoming(value = "register-vote")
@@ -347,27 +383,55 @@ public class GameService {
                         .setConversation(conversation)
                         .setPlayer(player)
                         .setPlayerVotedAgainst(playerOnBallot));
+        
+        entityManager.persist(vote);
+        conversation.getVotes().add(vote);
 
+        verifyOutcomeOfVote(conversation, false);
+    }
+
+    private void verifyOutcomeOfVote(Conversation conversation, Boolean hasTimedout) {
         boolean everyOneHasVotedToStart = conversation.getParticipants()
                 .stream()
                 .allMatch(p -> voteRegistry.hasVoted(p.getParticipationId().getPlayer().getId()));
 
+        if (! everyOneHasVotedToStart && hasTimedout) {
+            conversation.getParticipants()
+                .stream()
+                .map(p -> p.getParticipationId().getPlayer())
+                .filter(p -> ! voteRegistry.hasVoted(p.getId()))
+                .forEach(p -> {
+                    var vote = new Vote();
+                    vote.setVoteId(
+                            new VoteId()
+                                    .setConversation(conversation)
+                                    .setPlayer(p)
+                                    .setPlayerVotedAgainst(null));
+                    
+                    entityManager.persist(vote);
+                    conversation.getVotes().add(vote);
+                });
+
+            everyOneHasVotedToStart = true;
+        }
+
         if (everyOneHasVotedToStart) {
-            scheduler.unscheduleJob("C" + conversation.getId().toString());
+            scheduler.unscheduleJob("VT" + conversation.getId().toString());
 
             if (conversation.getVotes().size() == numberOfVotes * conversation.getParticipants().size()) {
-                conversation.setCurrentState(entityManager.find(State.class, StateValue.FINISHED.value));
+                conversation.setCurrentState(
+                        entityManager.find(State.class, StateValue.FINISHED.value));
             } else {
                 conversation.setCurrentState(entityManager.find(State.class, StateValue.RUNNING.value));
 
-                scheduler.newJob("C" + conversation.getId().toString())
-                    .setInterval("PT" + timeBeforeVote.toString() + "S")
-                    .setDelayed("PT" + timeBeforeVote.toString() + "S")
-                    .setConcurrentExecution(ConcurrentExecution.SKIP)
-                    .setTask(t -> internallyCallToVoteEmitter.send(conversation.getId())).schedule();
+                scheduler.newJob("V" + conversation.getId().toString())
+                        .setInterval("PT" + timeBeforeVote.toString() + "S")
+                        .setDelayed("PT" + timeBeforeVote.toString() + "S")
+                        .setConcurrentExecution(ConcurrentExecution.SKIP)
+                        .setTask(t -> internallyCallToVoteEmitter.send(conversation.getId()))
+                        .schedule();
             }
 
-            entityManager.persist(vote);
             entityManager.persist(conversation);
 
             conversation.getParticipants()
@@ -375,7 +439,8 @@ public class GameService {
                     .map(p -> p.getParticipationId().getPlayer())
                     .filter(p -> !p.getIsBot())
                     .forEach(p -> {
-                        if (conversation.getCurrentState().getId().equals(StateValue.FINISHED.value)) {
+                        if (conversation.getCurrentState().getId()
+                                .equals(StateValue.FINISHED.value)) {
                             declareGameAsFinishedEmitter.send(
                                     new GameFinishedMessageDTO(
                                             p.getSecondaryId().toString()));

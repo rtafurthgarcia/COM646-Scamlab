@@ -64,7 +64,7 @@ WsMessage deserialiseMessage({required Map<String, dynamic> json, required int s
     case WsMessageType.readyToStart:
       return WaitingLobbyReadyToStartMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.voteAcknowledged:
-      return WaitingLobbyVoteAcknowledgedMessage.fromJson(json: json, sequence: sequence);
+      return GameVoteAcknowledgedMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.gameStartingOrContinuing:
       return GameStartingOrContinuingMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.castVote:
@@ -200,16 +200,16 @@ class WaitingLobbyVoteToStartMessage extends WsMessage {
   }
 }
 
-class WaitingLobbyVoteAcknowledgedMessage extends WsMessage {
+class GameVoteAcknowledgedMessage extends WsMessage {
   final String playerSecondaryId;
 
-  WaitingLobbyVoteAcknowledgedMessage({
+  GameVoteAcknowledgedMessage({
     required this.playerSecondaryId,
     required super.sequence,
   }) : super(type: WsMessageType.voteAcknowledged);
 
-  factory WaitingLobbyVoteAcknowledgedMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
-    return WaitingLobbyVoteAcknowledgedMessage(
+  factory GameVoteAcknowledgedMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
+    return GameVoteAcknowledgedMessage(
       playerSecondaryId: json['playerSecondaryId'] as String,
       sequence: sequence
     );
@@ -258,15 +258,18 @@ class GameCancelledMessage extends WsMessage {
 
 class GameCallToVoteMessage extends WsMessage {
   final int voteTimeout;
+  final Map<String, String> playersToChoseFrom;
 
   GameCallToVoteMessage({
     required this.voteTimeout,
+    required this.playersToChoseFrom,
     required super.sequence,
   }) : super(type: WsMessageType.callToVote);
 
   factory GameCallToVoteMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
     return GameCallToVoteMessage(
       voteTimeout: json['voteTimeout'] as int,
+      playersToChoseFrom: Map<String, String>.from(json['playersToChoseFrom']),
       sequence: sequence
     );
   }

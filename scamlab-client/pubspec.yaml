@@ -18,6 +18,7 @@ dependencies:
   shared_preferences: ^2.5.2
   state_machine: ^3.0.1
   timer_flutter: ^0.2.3-beta
+  url_launcher: ^6.3.1
   web_socket_channel: ^3.0.2
 
 dev_dependencies:

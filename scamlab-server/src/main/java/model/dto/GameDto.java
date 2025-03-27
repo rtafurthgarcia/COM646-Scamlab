@@ -1,6 +1,7 @@
 package model.dto;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
@@ -167,9 +168,10 @@ public class GameDTO {
     public static record GameCallToVoteMessageDTO(
             WSMessageType type,
             String playerSecondaryId,
+            List<String> playersToChoseFrom,
             Long voteTimeout) implements MessageDTO {
-        public GameCallToVoteMessageDTO(Long voteTimeout, String playerSecondaryId) {
-            this(WSMessageType.CALL_TO_VOTE, playerSecondaryId, voteTimeout);
+        public GameCallToVoteMessageDTO(Long voteTimeout, String playerSecondaryId, List<String> playersToChoseFrom) {
+            this(WSMessageType.CALL_TO_VOTE, playerSecondaryId, playersToChoseFrom, voteTimeout);
         }
 
         @Override

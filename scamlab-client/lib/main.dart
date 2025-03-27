@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/model/game.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
-import 'package:scamlab/provider/startmenu_ws_provider.dart';
+import 'package:scamlab/provider/startmenu_provider.dart';
 import 'package:scamlab/service/chat_ws_service.dart';
 import 'package:scamlab/service/lobby_ws_service.dart';
 import 'package:scamlab/service/settings_service.dart';
@@ -12,6 +12,7 @@ import 'package:scamlab/service/game_service.dart';
 import 'package:scamlab/theme.dart';
 import 'package:scamlab/view/page/chat_page.dart';
 import 'package:scamlab/view/page/home_page.dart';
+import 'package:scamlab/view/page/vote_page.dart';
 import 'package:scamlab/view/page/waiting_lobby_page.dart';
 import 'package:scamlab/view/widget/clearable_exception_listener.dart';
 
@@ -39,10 +40,10 @@ void main() {
           authenticationService: context.read(),
           settingsService: context.read()
         )),
-        ChangeNotifierProxyProvider<AuthenticationProvider, StartMenuWSProvider>(
-          create: (BuildContext context) => StartMenuWSProvider(wsService: context.read(), gameService: context.read()),
+        ChangeNotifierProxyProvider<AuthenticationProvider, StartMenuProvider>(
+          create: (BuildContext context) => StartMenuProvider(wsService: context.read(), gameService: context.read()),
           update: (context, authenticationProvider, startMenuWSProvider) {
-            startMenuWSProvider ??= StartMenuWSProvider(wsService: context.read(), gameService: context.read());
+            startMenuWSProvider ??= StartMenuProvider(wsService: context.read(), gameService: context.read());
   
             if (startMenuWSProvider.isListening) {
               startMenuWSProvider.stopListening();
@@ -87,7 +88,8 @@ class MainApp extends StatelessWidget {
               child: const HomePage(),
             ),
             '/lobby': (BuildContext context) => const WaitingLobbyPage(), 
-            '/games': (BuildContext context) => const ChatPage()
+            '/games': (BuildContext context) => const ChatPage(),
+            '/votes': (BuildContext context) => const VotePage(),
           },
         );
       }

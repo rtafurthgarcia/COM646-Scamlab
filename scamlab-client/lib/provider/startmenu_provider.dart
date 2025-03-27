@@ -6,7 +6,7 @@ import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/service/game_service.dart';
 import 'package:scamlab/service/startmenu_ws_service.dart';
 
-class StartMenuWSProvider extends ChangeNotifier {
+class StartMenuProvider extends ChangeNotifier {
   final StartmenuWsService _wsService;
   final GameService _gameService;
   Game get game => _gameService.game;
@@ -23,7 +23,7 @@ class StartMenuWSProvider extends ChangeNotifier {
 
   late StreamSubscription _subscription;
 
-  StartMenuWSProvider({required StartmenuWsService wsService, required GameService gameService}) : 
+  StartMenuProvider({required StartmenuWsService wsService, required GameService gameService}) : 
     _wsService = wsService, _gameService = gameService;
 
   bool get isListening => _wsService.isListening;
