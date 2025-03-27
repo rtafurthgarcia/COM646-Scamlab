@@ -19,7 +19,6 @@ class _VotePageState extends State<VotePage> {
   var _alertShowing = false;
   late String _id;
   bool _hasNavigated = false; // Flag to ensure navigation only happens once
-  late RouteObserver<PageRoute> _observer;
 
   Future askBeforeQuitting() {
     return showDialog(
@@ -177,7 +176,7 @@ class _VotePageState extends State<VotePage> {
                     provider.castVote(id);
                   },
                   child: Text(
-                    provider.game.playersToChooseFrom!.entries.first.value,
+                    "Vote out ${provider.game.playersToChooseFrom!.entries.first.value}",
                   ),
                 ),
                 ElevatedButton(
@@ -187,7 +186,17 @@ class _VotePageState extends State<VotePage> {
                     provider.castVote(id);
                   },
                   child: Text(
-                    provider.game.playersToChooseFrom!.entries.last.value,
+                    "Vote out ${provider.game.playersToChooseFrom!.entries.last.value}",
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    var id =
+                        provider.game.playersToChooseFrom!.entries.last.key;
+                    provider.castVote(id);
+                  },
+                  child: Text(
+                    "Blank vote"
                   ),
                 ),
               ],

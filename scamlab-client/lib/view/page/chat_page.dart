@@ -44,7 +44,6 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
     super.dispose();
   }
 
-  
   @override
   void didPushNext() {
     context.read<ChatProvider>().stopListening();
@@ -184,9 +183,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
               Navigator.pushNamed(
                 context,
                 '/votes',
-                arguments: {
-                  'id': provider.game.conversationSecondaryId,
-                },
+                arguments: {'id': provider.game.conversationSecondaryId},
               );
             });
           }
@@ -211,9 +208,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text("Time before next vote:"),
-                TimoutTimer(
-                  duration: Duration(seconds: timeBeforeVote),
-                ),
+                TimoutTimer(duration: Duration(seconds: timeBeforeVote)),
                 Divider(),
                 InstructionsCard(
                   title: "1. This game's scenario:",
@@ -401,20 +396,19 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   }
 
   Widget buildTitle() {
-    bool isScreenSmall = MediaQuery.of(context).size.width < 600;
-    String titleSuffix = _id;
-    // Shorten the ID if on mobile and if it's long enough.
-    String displayedId = titleSuffix;
-    if (isScreenSmall && titleSuffix.length > 10) {
-      displayedId =
-          "${titleSuffix.substring(0, 4)}...${titleSuffix.substring(titleSuffix.length - 2)}";
-    }
+    return Consumer<ChatProvider>(
+      builder: (context, provider, child) {
+        String titleSuffix = provider.game.conversationSecondaryId!;
+        String displayedId = titleSuffix;
+        if (titleSuffix.length > 10) {
+          displayedId =
+              "${titleSuffix.substring(0, 4)}...${titleSuffix.substring(titleSuffix.length - 2)}";
+        }
 
-    return Row(
-      children: [
-        Text("Scamlab - Conversation ID:"),
-        isScreenSmall
-            ? GestureDetector(
+        return Row(
+          children: [
+            Text("Scamlab - Conversation ID:"),
+            GestureDetector(
               onTap: () {
                 Clipboard.setData(ClipboardData(text: titleSuffix));
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -427,9 +421,12 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                 displayedId,
                 style: const TextStyle(decoration: TextDecoration.underline),
               ),
-            )
-            : SelectableText(titleSuffix),
-      ],
+            ),
+            Text(", you are playing as: "),
+            SelectableText(provider.game.username!)
+          ],
+        );
+      }
     );
   }
 }

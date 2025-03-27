@@ -73,7 +73,8 @@ public class GameWSResource {
         Log.info("Player " + securityIdentity.getPrincipal().getName() + "joined conversation: " + connection.pathParam("conversationSecondaryId"));
         registry.register(securityIdentity.getPrincipal().getName(), connection.id());
 
-        startInactivityTimeoutEmitter.send(securityIdentity.getPrincipal().getName());
+        // provokes too much chaos
+        //startInactivityTimeoutEmitter.send(securityIdentity.getPrincipal().getName());
     }
 
     @Incoming("send-reply")
