@@ -44,8 +44,8 @@ public class MessageDTODecoder implements TextMessageCodec<Record> {
         return switch (messageType) {
             case VOTE_TO_START -> 
                 objectMapper.readValue(json, GameDTO.WaitingLobbyVoteToStartMessageDTO.class);
-            case GAME_STARTING -> 
-                objectMapper.readValue(json, GameDTO.WaitingLobbyGameStartingMessageDTO.class);
+            case GAME_STARTING_OR_CONTINUING -> 
+                objectMapper.readValue(json, GameDTO.GameStartingOrContinuingMessageDTO.class);
             case GAME_CANCELLED -> 
                 objectMapper.readValue(json, GameDTO.GameCancelledMessageDTO.class);
             case CAST_VOTE -> 

@@ -15,7 +15,7 @@ import jakarta.enterprise.context.ApplicationScoped;
  */
 @ApplicationScoped
 @Lock(value = Type.WRITE, time = 1, unit = TimeUnit.SECONDS)
-public class VoteToStartRegistry {
+public class VoteRegistry {
 
     // Map player's secondary ID to conversation ID
     private final Map<Long, Long> VoteMap = Collections.synchronizedMap(new HashMap<Long, Long>());

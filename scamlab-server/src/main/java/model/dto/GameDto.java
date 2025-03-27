@@ -134,12 +134,12 @@ public class GameDTO {
     }
 
     @RegisterForReflection
-    public static record WaitingLobbyGameStartingMessageDTO(
+    public static record GameStartingOrContinuingMessageDTO(
             WSMessageType type,
             Long timeBeforeVote,
             String playerSecondaryId) implements MessageDTO {
-        public WaitingLobbyGameStartingMessageDTO(Long timeBeforeVote, String playerSecondaryId) {
-            this(WSMessageType.GAME_STARTING, timeBeforeVote, playerSecondaryId);
+        public GameStartingOrContinuingMessageDTO(Long timeBeforeVote, String playerSecondaryId) {
+            this(WSMessageType.GAME_STARTING_OR_CONTINUING, timeBeforeVote, playerSecondaryId);
         }
 
         @Override
@@ -166,9 +166,10 @@ public class GameDTO {
     @RegisterForReflection
     public static record GameCallToVoteMessageDTO(
             WSMessageType type,
+            String playerSecondaryId,
             Long voteTimeout) implements MessageDTO {
-        public GameCallToVoteMessageDTO(Long voteTimeout) {
-            this(WSMessageType.CALL_TO_VOTE, voteTimeout);
+        public GameCallToVoteMessageDTO(Long voteTimeout, String playerSecondaryId) {
+            this(WSMessageType.CALL_TO_VOTE, playerSecondaryId, voteTimeout);
         }
 
         @Override
@@ -180,9 +181,11 @@ public class GameDTO {
     @RegisterForReflection
     public static record GameCastVoteMessageDTO(
             WSMessageType type,
-            String playerSecondaryId) implements MessageDTO {
-        public GameCastVoteMessageDTO(String playerSecondaryId) {
-            this(WSMessageType.CAST_VOTE, playerSecondaryId);
+            String conversationSecondaryId,
+            String voterSecondaryId, 
+            String playerOnBallotSecondaryId) implements MessageDTO {
+        public GameCastVoteMessageDTO(String voterSecondaryId, String playerOnBallotSecondaryId, String conversationSecondaryId) {
+            this(WSMessageType.CAST_VOTE, voterSecondaryId, playerOnBallotSecondaryId, conversationSecondaryId);
         }
 
         @Override
@@ -193,9 +196,10 @@ public class GameDTO {
 
     @RegisterForReflection
     public static record GameFinishedMessageDTO(
-            WSMessageType type) implements MessageDTO {
-        public GameFinishedMessageDTO() {
-            this(WSMessageType.GAME_FINISHED);
+            WSMessageType type, 
+            String playerSecondaryId) implements MessageDTO {
+        public GameFinishedMessageDTO(String playerSecondaryId) {
+            this(WSMessageType.GAME_FINISHED, playerSecondaryId);
         }
 
         @Override

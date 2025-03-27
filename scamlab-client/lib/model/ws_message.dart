@@ -7,7 +7,7 @@ enum WsMessageType {
   readyToStart(value: 4),
   voteToStart(value: 5),
   voteAcknowledged(value: 6),
-  gameStarting(value: 7),
+  gameStartingOrContinuing(value: 7),
   gameCancelled(value: 8),
   callToVote(value: 9),
   castVote(value: 10),
@@ -65,8 +65,8 @@ WsMessage deserialiseMessage({required Map<String, dynamic> json, required int s
       return WaitingLobbyReadyToStartMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.voteAcknowledged:
       return WaitingLobbyVoteAcknowledgedMessage.fromJson(json: json, sequence: sequence);
-    case WsMessageType.gameStarting:
-      return WaitingLobbyGameStartingMessage.fromJson(json: json, sequence: sequence);
+    case WsMessageType.gameStartingOrContinuing:
+      return GameStartingOrContinuingMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.castVote:
       return GameCastVoteMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.gameCancelled:
@@ -84,7 +84,7 @@ String serialiseMessage({required WsMessage message}) {
       return m.toJsonString();
     case GamePlayersMessage m:
       return m.toJsonString();
-    case WaitingLobbyGameStartingMessage m:
+    case GameStartingOrContinuingMessage m:
       return m.toJsonString();
     case GameCancelledMessage m:
       return m.toJsonString();
@@ -216,14 +216,14 @@ class WaitingLobbyVoteAcknowledgedMessage extends WsMessage {
   }
 }
 
-class WaitingLobbyGameStartingMessage extends WsMessage {
-  WaitingLobbyGameStartingMessage({
+class GameStartingOrContinuingMessage extends WsMessage {
+  GameStartingOrContinuingMessage({
     required super.sequence
   })
-      : super(type: WsMessageType.gameStarting);
+      : super(type: WsMessageType.gameStartingOrContinuing);
 
-  factory WaitingLobbyGameStartingMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
-    return WaitingLobbyGameStartingMessage(
+  factory GameStartingOrContinuingMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
+    return GameStartingOrContinuingMessage(
       sequence: sequence
     );
   }

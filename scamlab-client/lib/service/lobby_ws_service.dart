@@ -12,6 +12,6 @@ class LobbyWsService extends WSService {
   }
 
   void gameStarting() {
-    sendMessage(WaitingLobbyGameStartingMessage(sequence: -1));
+    sendMessage(GameStartingOrContinuingMessage(sequence: -1));
   }
 }

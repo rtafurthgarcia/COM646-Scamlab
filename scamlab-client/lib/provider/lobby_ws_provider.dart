@@ -143,7 +143,7 @@ class LobbyWSProvider extends RetryableProvider {
       game.playerStarted();
     }
 
-    if (message is WaitingLobbyGameStartingMessage) {
+    if (message is GameStartingOrContinuingMessage) {
       game.allPlayersStarted();
       _wsService.gameStarting();
     }

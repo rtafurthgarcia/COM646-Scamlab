@@ -22,9 +22,14 @@ import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import model.dto.MessageDTODecoder;
+import model.dto.GameDTO.GameCallToVoteMessageDTO;
 import model.dto.GameDTO.GameCancelledMessageDTO;
+import model.dto.GameDTO.GameCastVoteMessageDTO;
+import model.dto.GameDTO.GameFinishedMessageDTO;
 import model.dto.GameDTO.GamePlayersMessageDTO;
+import model.dto.GameDTO.GameStartingOrContinuingMessageDTO;
 import model.dto.GameDTO.LeaveRequestInternalDTO;
+import model.dto.GameDTO.VoteAcknowledgedMessageDTO;
 import model.entity.TransitionReason;
 
 @Authenticated
@@ -58,6 +63,11 @@ public class GameWSResource {
     @Broadcast
     Emitter<String> startInactivityTimeoutEmitter;
 
+    @Inject
+    @Channel("register-vote")
+    @Broadcast
+    Emitter<GameCastVoteMessageDTO> registerVoteEmitter;
+
     @OnOpen
     public void onOpen() {
         Log.info("Player " + securityIdentity.getPrincipal().getName() + "joined conversation: " + connection.pathParam("conversationSecondaryId"));
@@ -76,8 +86,44 @@ public class GameWSResource {
     }
 
     @Incoming("notify-reason-for-abrupt-end-of-game")
-    public Uni<Void> sendReply(GameCancelledMessageDTO message) {
+    public Uni<Void> notifyOfGameCancellation(GameCancelledMessageDTO message) {
         Log.info("Notifying player " + message.playerSecondaryId() + " that their game has been interrupted");
+        
+        return connectionManager.findByConnectionId(
+            registry.getConnectionId(message.playerSecondaryId())
+        ).get().sendText(message);
+    }
+
+    @Incoming("call-to-vote")
+    public Uni<Void> callToVote(GameCallToVoteMessageDTO message) {
+        Log.info("Calling player " + message.playerSecondaryId() + " to vote");
+        
+        return connectionManager.findByConnectionId(
+            registry.getConnectionId(message.playerSecondaryId())
+        ).get().sendText(message);
+    }
+
+    @Incoming("acknowledge-vote")
+    public Uni<Void> acknowledgeVote(VoteAcknowledgedMessageDTO message) {
+        Log.info("Notify player " + message.playerSecondaryId() + " that their start vote has been acknowledged");
+        
+        return connectionManager.findByConnectionId(
+            registry.getConnectionId(message.playerSecondaryId())
+        ).get().sendText(message);
+    }
+
+    @Incoming("notify-game-as-continuing")
+    public Uni<Void> continueGame(GameStartingOrContinuingMessageDTO message) {
+        Log.info("Notify player " + message.playerSecondaryId() + " that the game is continuing");
+        
+        return connectionManager.findByConnectionId(
+            registry.getConnectionId(message.playerSecondaryId())
+        ).get().sendText(message);
+    }
+
+    @Incoming("declare-game-as-finished")
+    public Uni<Void> declareGameAsFinished(GameFinishedMessageDTO message) {
+        Log.info("Notify player " + message.playerSecondaryId() + " that their start vote has been acknowledged");
         
         return connectionManager.findByConnectionId(
             registry.getConnectionId(message.playerSecondaryId())
@@ -104,6 +150,12 @@ public class GameWSResource {
             }
 
             replyReceivedEmitter.send((GamePlayersMessageDTO)message);
+        }
+
+        if (message instanceof GameCastVoteMessageDTO) {
+            registerVoteEmitter.send(
+                (GameCastVoteMessageDTO)message
+            );
         }
 
         if (message instanceof GameCancelledMessageDTO) {

@@ -8,9 +8,10 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-
 import helper.DefaultKeyValues;
+import helper.DefaultKeyValues.StateValue;
 import helper.PlayerConnectionRegistry;
+import helper.VoteRegistry;
 import io.quarkus.arc.Lock;
 import io.quarkus.logging.Log;
 import io.quarkus.scheduler.Scheduled.ConcurrentExecution;
@@ -21,15 +22,23 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import model.dto.GameDTO.GameCallToVoteMessageDTO;
 import model.dto.GameDTO.GameCancelledMessageDTO;
+import model.dto.GameDTO.GameCastVoteMessageDTO;
+import model.dto.GameDTO.GameFinishedMessageDTO;
 import model.dto.GameDTO.GamePlayersMessageDTO;
 import model.dto.GameDTO.LeaveRequestInternalDTO;
+import model.dto.GameDTO.VoteAcknowledgedMessageDTO;
+import model.dto.GameDTO.GameStartingOrContinuingMessageDTO;
 import model.entity.Conversation;
 import model.entity.Message;
 import model.entity.Participation;
+import model.entity.Player;
 import model.entity.State;
 import model.entity.StrategyByRole;
 import model.entity.TransitionReason;
+import model.entity.Vote;
+import model.entity.VoteId;
 
 @ApplicationScoped
 @Transactional
@@ -48,6 +57,31 @@ public class GameService {
     Emitter<GameCancelledMessageDTO> notifyReasonForAbruptEndOfGame;
 
     @Inject
+    @Channel("call-to-vote")
+    @Broadcast
+    Emitter<GameCallToVoteMessageDTO> callToVoteEmitter;
+
+    @Inject
+    @Channel("acknowledge-vote")
+    @Broadcast
+    Emitter<VoteAcknowledgedMessageDTO> acknowledgeVoteEmitter;
+
+    @Inject
+    @Channel("notify-game-as-continuing")
+    @Broadcast
+    Emitter<GameStartingOrContinuingMessageDTO> notifyGameAsContinuiningEmitter;
+
+    @Inject
+    @Channel("declare-game-as-finished")
+    @Broadcast
+    Emitter<GameFinishedMessageDTO> declareGameAsFinishedEmitter;
+
+    @Inject
+    @Channel("internal-call-to-vote")
+    @Broadcast
+    Emitter<Long> internallyCallToVoteEmitter;
+
+    @Inject
     @ConfigProperty(name = "scamlab.timeout-inactivity-in-seconds")
     Long timeOutForInactivity;
 
@@ -56,7 +90,18 @@ public class GameService {
     Long numberOfVotes;
 
     @Inject
+    @ConfigProperty(name = "scamlab.timeout-lobby-in-seconds")
+    Long timeoutForVote;
+
+    @Inject
+    @ConfigProperty(name = "scamlab.time-before-vote-in-seconds")
+    Long timeBeforeVote;
+
+    @Inject
     Scheduler scheduler;
+
+    @Inject
+    VoteRegistry voteRegistry;
 
     @Inject
     LLMService service;
@@ -86,6 +131,19 @@ public class GameService {
                 .getSingleResult();
     }
 
+    public Conversation findConversationBySecondaryId(UUID secondaryId) {
+        return entityManager
+                .createQuery("SELECT c FROM Conversation c WHERE secondaryId = :secondaryId", Conversation.class)
+                .setParameter("secondaryId", secondaryId)
+                .getSingleResult();
+    }
+
+    public Player findPlayerBySecondaryId(UUID secondaryId) {
+        return entityManager.createQuery("SELECT p FROM Player p WHERE secondaryId = :secondaryId", Player.class)
+                .setParameter("secondaryId", secondaryId)
+                .getSingleResult();
+    }
+
     @Incoming(value = "reply-received")
     @RunOnVirtualThread
     public void saveNewReply(GamePlayersMessageDTO message) {
@@ -105,9 +163,9 @@ public class GameService {
         if (scheduler.getScheduledJob("B" + conversation.getId().toString()) == null) {
             Integer seconds = random.nextInt(10, 45);
             scheduler.newJob("B" + conversation.getId().toString())
-                .setInterval("PT" + seconds.toString() + "S")
-                .setConcurrentExecution(ConcurrentExecution.SKIP)
-                .setTask(t -> createNewBotReplyTriggered(conversation.getId(), message)).schedule();
+                    .setInterval("PT" + seconds.toString() + "S")
+                    .setConcurrentExecution(ConcurrentExecution.SKIP)
+                    .setTask(t -> createNewBotReplyTriggered(conversation.getId(), message)).schedule();
         }
 
         conversation.getParticipants()
@@ -168,8 +226,8 @@ public class GameService {
                 botParticipant.getUserName(),
                 strategyByRole.getScript(),
                 strategyByRole.getExample(),
-                newMessage.senderUsername(), 
-                newMessage.text(), 
+                newMessage.senderUsername(),
+                newMessage.text(),
                 conversationId.intValue());
 
         if (service.isReplyHarmful(reply)) {
@@ -177,8 +235,8 @@ public class GameService {
         }
 
         var newReply = new Message()
-            .setParticipation(botParticipant)
-            .setMessage(reply);
+                .setParticipation(botParticipant)
+                .setMessage(reply);
 
         entityManager.persist(newReply);
 
@@ -234,17 +292,102 @@ public class GameService {
                     request.reason());
 
             conversation.getParticipants()
+                    .stream()
+                    .map(p -> p.getParticipationId().getPlayer())
+                    .filter(p -> !p.getIsBot())
+                    .forEach(p -> {
+                        notifyReasonForAbruptEndOfGame.send(
+                                new GameCancelledMessageDTO(p.getSecondaryId().toString(),
+                                        request.reason()));
+                    });
+            entityManager.persist(conversation);
+
+            connectionRegistry.unregister(request.player().toString());
+        }
+    }
+
+    @Incoming("internal-call-to-vote")
+    @RunOnVirtualThread
+    void timeToVoteTriggered(Long conversationId) {
+        Log.info("Players are called to cast their vote in game " + conversationId.toString());
+        scheduler.unscheduleJob("C" + conversationId.toString());
+
+        var conversation = entityManager.find(Conversation.class, conversationId);
+
+        conversation.setCurrentState(entityManager.find(State.class, StateValue.VOTING.value));
+
+        conversation.getParticipants()
                 .stream()
                 .map(p -> p.getParticipationId().getPlayer())
                 .filter(p -> !p.getIsBot())
                 .forEach(p -> {
-                notifyReasonForAbruptEndOfGame.send(
-                        new GameCancelledMessageDTO(p.getSecondaryId().toString(),
-                        request.reason()));
-            });
+                    callToVoteEmitter.send(
+                            new GameCallToVoteMessageDTO(timeoutForVote, p.getSecondaryId().toString()));
+                });
+
+        entityManager.persist(conversation);
+    }
+
+    @Incoming(value = "register-vote")
+    @RunOnVirtualThread
+    @Lock(value = Lock.Type.WRITE, time = 1, unit = TimeUnit.SECONDS)
+    public void registerVote(GameCastVoteMessageDTO message) {
+        var conversation = findConversationBySecondaryId(UUID.fromString(message.conversationSecondaryId()));
+        var player = findPlayerBySecondaryId(UUID.fromString(message.voterSecondaryId()));
+        var playerOnBallot = findPlayerBySecondaryId(UUID.fromString(message.playerOnBallotSecondaryId()));
+
+        if (!voteRegistry.hasVoted(player.getId())) {
+            voteRegistry.register(player.getId(), conversation.getId());
+            acknowledgeVoteEmitter.send(new VoteAcknowledgedMessageDTO(player.getSecondaryId().toString()));
+        }
+
+        var vote = new Vote();
+        vote.setVoteId(
+                new VoteId()
+                        .setConversation(conversation)
+                        .setPlayer(player)
+                        .setPlayerVotedAgainst(playerOnBallot));
+
+        boolean everyOneHasVotedToStart = conversation.getParticipants()
+                .stream()
+                .allMatch(p -> voteRegistry.hasVoted(p.getParticipationId().getPlayer().getId()));
+
+        if (everyOneHasVotedToStart) {
+            scheduler.unscheduleJob("C" + conversation.getId().toString());
+
+            if (conversation.getVotes().size() == numberOfVotes * conversation.getParticipants().size()) {
+                conversation.setCurrentState(entityManager.find(State.class, StateValue.FINISHED.value));
+            } else {
+                conversation.setCurrentState(entityManager.find(State.class, StateValue.RUNNING.value));
+
+                scheduler.newJob("C" + conversation.getId().toString())
+                    .setInterval("PT" + timeBeforeVote.toString() + "S")
+                    .setDelayed("PT" + timeBeforeVote.toString() + "S")
+                    .setConcurrentExecution(ConcurrentExecution.SKIP)
+                    .setTask(t -> internallyCallToVoteEmitter.send(conversation.getId())).schedule();
+            }
+
+            entityManager.persist(vote);
             entityManager.persist(conversation);
 
-            connectionRegistry.unregister(request.player().toString());
+            conversation.getParticipants()
+                    .stream()
+                    .map(p -> p.getParticipationId().getPlayer())
+                    .filter(p -> !p.getIsBot())
+                    .forEach(p -> {
+                        if (conversation.getCurrentState().getId().equals(StateValue.FINISHED.value)) {
+                            declareGameAsFinishedEmitter.send(
+                                    new GameFinishedMessageDTO(
+                                            p.getSecondaryId().toString()));
+                        } else {
+                            notifyGameAsContinuiningEmitter.send(
+                                    new GameStartingOrContinuingMessageDTO(
+                                            timeBeforeVote,
+                                            p.getSecondaryId().toString()));
+                        }
+
+                        voteRegistry.unregister(p.getId());
+                    });
         }
     }
 }

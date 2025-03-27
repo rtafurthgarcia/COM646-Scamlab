@@ -17,7 +17,7 @@ import com.thedeanda.lorem.LoremIpsum;
 import helper.DefaultKeyValues;
 import helper.MathHelper;
 import helper.PlayerConnectionRegistry;
-import helper.VoteToStartRegistry;
+import helper.VoteRegistry;
 import helper.DefaultKeyValues.RoleValue;
 import helper.DefaultKeyValues.StateValue;
 import io.quarkus.arc.Lock;
@@ -36,7 +36,7 @@ import model.dto.GameDTO.VoteAcknowledgedMessageDTO;
 import model.dto.GameDTO.VoteStartRequestInternalDTO;
 import model.dto.GameDTO.WSReasonForWaiting;
 import model.dto.GameDTO.WaitingLobbyGameAssignmentMessageDTO;
-import model.dto.GameDTO.WaitingLobbyGameStartingMessageDTO;
+import model.dto.GameDTO.GameStartingOrContinuingMessageDTO;
 import model.dto.GameDTO.WaitingLobbyReadyToStartMessageDTO;
 import model.dto.GameDTO.WaitingLobbyReasonForWaitingMessageDTO;
 import model.entity.Conversation;
@@ -85,18 +85,23 @@ public class LobbyService {
     @Inject
     @Channel("acknowledge-start-vote")
     @Broadcast
-    Emitter<VoteAcknowledgedMessageDTO> acknowledgeStartVoteEmitter;
+    Emitter<VoteAcknowledgedMessageDTO> acknowledgeVoteEmitter;
 
     @Inject
     @Channel("notify-game-as-starting")
     @Broadcast
-    Emitter<WaitingLobbyGameStartingMessageDTO> notifyGameStarting;
+    Emitter<GameStartingOrContinuingMessageDTO> notifyGameStarting;
+
+    @Inject
+    @Channel("internal-call-to-vote")
+    @Broadcast
+    Emitter<Long> internallyCallToVoteEmitter;
 
     @Inject
     Scheduler scheduler;
 
     @Inject
-    VoteToStartRegistry voteRegistry;
+    VoteRegistry voteRegistry;
 
     @Inject
     PlayerConnectionRegistry connectionRegistry;
@@ -354,7 +359,7 @@ public class LobbyService {
 
         if (!voteRegistry.hasVoted(player.getId())) {
             voteRegistry.register(player.getId(), conversation.getId());
-            acknowledgeStartVoteEmitter.send(new VoteAcknowledgedMessageDTO(player.getSecondaryId().toString()));
+            acknowledgeVoteEmitter.send(new VoteAcknowledgedMessageDTO(player.getSecondaryId().toString()));
         }
 
         var everyOneHasVotedToStart = conversation.getParticipants()
@@ -389,12 +394,18 @@ public class LobbyService {
                     .map(p -> p.getParticipationId().getPlayer())
                     .filter(p -> !p.getIsBot())
                     .forEach(p -> {
-                        notifyGameStarting.send(new WaitingLobbyGameStartingMessageDTO(
+                        notifyGameStarting.send(new GameStartingOrContinuingMessageDTO(
                             timeBeforeVote,
                             p.getSecondaryId().toString()
                         ));
                         voteRegistry.unregister(p.getId());
                     });
+
+            scheduler.newJob("C" + conversation.getId().toString())
+                .setInterval("PT" + timeBeforeVote.toString() + "S")
+                .setDelayed("PT" + timeBeforeVote.toString() + "S")
+                .setConcurrentExecution(ConcurrentExecution.SKIP)
+                .setTask(t -> internallyCallToVoteEmitter.send(conversation.getId())).schedule();
         }
     }
 

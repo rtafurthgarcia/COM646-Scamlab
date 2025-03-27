@@ -26,7 +26,7 @@ import model.dto.GameDTO.LeaveRequestInternalDTO;
 import model.dto.GameDTO.VoteAcknowledgedMessageDTO;
 import model.dto.GameDTO.VoteStartRequestInternalDTO;
 import model.dto.GameDTO.WaitingLobbyGameAssignmentMessageDTO;
-import model.dto.GameDTO.WaitingLobbyGameStartingMessageDTO;
+import model.dto.GameDTO.GameStartingOrContinuingMessageDTO;
 import model.dto.GameDTO.WaitingLobbyReadyToStartMessageDTO;
 import model.dto.GameDTO.WaitingLobbyReasonForWaitingMessageDTO;
 import model.dto.GameDTO.WaitingLobbyVoteToStartMessageDTO;
@@ -111,7 +111,7 @@ public class LobbyWSResource {
     }
 
     @Incoming("notify-game-as-starting")
-    public Uni<Void> startGame(WaitingLobbyGameStartingMessageDTO message) {
+    public Uni<Void> startGame(GameStartingOrContinuingMessageDTO message) {
         Log.info("Notify player " + message.playerSecondaryId() + " that their game is starting");
         
         return connectionManager.findByConnectionId(
