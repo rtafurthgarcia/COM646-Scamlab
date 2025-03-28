@@ -3,6 +3,7 @@ package service;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Channel;
@@ -332,17 +333,7 @@ public class GameService {
                     callToVoteEmitter.send(
                             new GameCallToVoteMessageDTO(
                                     timeoutForVote,
-                                    p.getSecondaryId().toString(),
-                                    conversation.getParticipants()
-                                            .stream()
-                                            .map(p2 -> p2.getParticipationId()
-                                                    .getPlayer()
-                                                    .getSecondaryId()
-                                                    .toString())
-                                            .filter(p2 -> !p2.equals(p
-                                                    .getSecondaryId()
-                                                    .toString()))
-                                            .toList()));
+                                    p.getSecondaryId().toString()));
                 });
 
         entityManager.persist(conversation);
@@ -448,7 +439,13 @@ public class GameService {
                             notifyGameAsContinuiningEmitter.send(
                                     new GameStartingOrContinuingMessageDTO(
                                             timeBeforeVote,
-                                            p.getSecondaryId().toString()));
+                                            p.getSecondaryId().toString(),
+                                            conversation.getParticipants()
+                                        .stream()
+                                        .filter(p2 -> !p2.getParticipationId().getPlayer().equals(p))
+                                        .collect(Collectors.toMap(
+                                                p2 -> p2.getParticipationId().getPlayer().getSecondaryId().toString(),
+                                                p2 -> p2.getUserName()))));
                         }
 
                         voteRegistry.unregister(p.getId());

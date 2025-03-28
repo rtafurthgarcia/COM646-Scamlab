@@ -19,9 +19,18 @@ enum WsMessageType {
 }
 
 enum WSCancellationReason {
-  playerWillingfullyCancelled(value: 1, message: "One of the players cancelled the game."),
-  connectionGotTerminated(value: 2, message: "The game suffered connection or server issues."), 
-  playerInactivity(value: 3, message: "One of the players was inactive for too long.");
+  playerWillingfullyCancelled(
+    value: 1,
+    message: "One of the players cancelled the game.",
+  ),
+  connectionGotTerminated(
+    value: 2,
+    message: "The game suffered connection or server issues.",
+  ),
+  playerInactivity(
+    value: 3,
+    message: "One of the players was inactive for too long.",
+  );
 
   const WSCancellationReason({required this.value, required this.message});
   final String message;
@@ -51,22 +60,45 @@ class WsMessage {
   }
 }
 
-WsMessage deserialiseMessage({required Map<String, dynamic> json, required int sequence}) {
-  final type = WsMessageType.values.firstWhere((x) => x.value == json['type'] as int);
+WsMessage deserialiseMessage({
+  required Map<String, dynamic> json,
+  required int sequence,
+}) {
+  final type = WsMessageType.values.firstWhere(
+    (x) => x.value == json['type'] as int,
+  );
 
   switch (type) {
     case WsMessageType.notifyStartMenuStatistics:
-      return StartMenuStatisticsMessage.fromJson(json: json, sequence: sequence);
+      return StartMenuStatisticsMessage.fromJson(
+        json: json,
+        sequence: sequence,
+      );
     case WsMessageType.notifyReasonForWaiting:
-      return WaitingLobbyReasonForWaitingMessage.fromJson(json: json, sequence: sequence);
+      return WaitingLobbyReasonForWaitingMessage.fromJson(
+        json: json,
+        sequence: sequence,
+      );
     case WsMessageType.gameAssigned:
-      return WaitingLobbyGameAssignmentMessage.fromJson(json: json, sequence: sequence);
+      return WaitingLobbyGameAssignmentMessage.fromJson(
+        json: json,
+        sequence: sequence,
+      );
     case WsMessageType.readyToStart:
-      return WaitingLobbyReadyToStartMessage.fromJson(json: json, sequence: sequence);
+      return WaitingLobbyReadyToStartMessage.fromJson(
+        json: json,
+        sequence: sequence,
+      );
     case WsMessageType.voteAcknowledged:
-      return GameVoteAcknowledgedMessage.fromJson(json: json, sequence: sequence);
+      return GameVoteAcknowledgedMessage.fromJson(
+        json: json,
+        sequence: sequence,
+      );
     case WsMessageType.gameStartingOrContinuing:
-      return GameStartingOrContinuingMessage.fromJson(json: json, sequence: sequence);
+      return GameStartingOrContinuingMessage.fromJson(
+        json: json,
+        sequence: sequence,
+      );
     case WsMessageType.castVote:
       return GameCastVoteMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.gameCancelled:
@@ -88,7 +120,7 @@ String serialiseMessage({required WsMessage message}) {
       return m.toJsonString();
     case GameCancelledMessage m:
       return m.toJsonString();
-    default: 
+    default:
       throw JsonUnsupportedObjectError(message);
   }
 }
@@ -101,10 +133,13 @@ class StartMenuStatisticsMessage extends WsMessage {
     required super.sequence,
   }) : super(type: WsMessageType.notifyStartMenuStatistics);
 
-  factory StartMenuStatisticsMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
+  factory StartMenuStatisticsMessage.fromJson({
+    required Map<String, dynamic> json,
+    required int sequence,
+  }) {
     return StartMenuStatisticsMessage(
       playersConnectedCount: json['playersConnectedCount'] as int,
-      sequence: sequence
+      sequence: sequence,
     );
   }
 }
@@ -119,11 +154,14 @@ class WaitingLobbyReasonForWaitingMessage extends WsMessage {
     required super.sequence,
   }) : super(type: WsMessageType.notifyReasonForWaiting);
 
-  factory WaitingLobbyReasonForWaitingMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
+  factory WaitingLobbyReasonForWaitingMessage.fromJson({
+    required Map<String, dynamic> json,
+    required int sequence,
+  }) {
     return WaitingLobbyReasonForWaitingMessage(
       playerSecondaryId: json['playerSecondaryId'] as String,
       reasons: List<String>.from(json['reasons']),
-      sequence: sequence
+      sequence: sequence,
     );
   }
 }
@@ -150,7 +188,10 @@ class WaitingLobbyGameAssignmentMessage extends WsMessage {
     required super.sequence,
   }) : super(type: WsMessageType.gameAssigned);
 
-  factory WaitingLobbyGameAssignmentMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
+  factory WaitingLobbyGameAssignmentMessage.fromJson({
+    required Map<String, dynamic> json,
+    required int sequence,
+  }) {
     return WaitingLobbyGameAssignmentMessage(
       playerSecondaryId: json['playerSecondaryId'] as String,
       conversationSecondaryId: json['conversationSecondaryId'] as String,
@@ -160,7 +201,7 @@ class WaitingLobbyGameAssignmentMessage extends WsMessage {
       strategy: json['strategy'] as String,
       username: json['username'] as String,
       timeBeforeVote: json['timeBeforeVote'] as int,
-      sequence: sequence
+      sequence: sequence,
     );
   }
 }
@@ -175,11 +216,14 @@ class WaitingLobbyReadyToStartMessage extends WsMessage {
     required super.sequence,
   }) : super(type: WsMessageType.readyToStart);
 
-  factory WaitingLobbyReadyToStartMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
+  factory WaitingLobbyReadyToStartMessage.fromJson({
+    required Map<String, dynamic> json,
+    required int sequence,
+  }) {
     return WaitingLobbyReadyToStartMessage(
       voteTimeout: json['voteTimeout'] as int,
       playerSecondaryId: json['playerSecondaryId'] as String,
-      sequence: sequence
+      sequence: sequence,
     );
   }
 }
@@ -189,13 +233,13 @@ class WaitingLobbyVoteToStartMessage extends WsMessage {
 
   WaitingLobbyVoteToStartMessage({
     required this.conversationSecondaryId,
-    required super.sequence
+    required super.sequence,
   }) : super(type: WsMessageType.voteToStart);
 
   String toJsonString() {
     return json.encode({
       'type': super.type.value,
-      'conversationSecondaryId': conversationSecondaryId
+      'conversationSecondaryId': conversationSecondaryId,
     });
   }
 }
@@ -208,30 +252,37 @@ class GameVoteAcknowledgedMessage extends WsMessage {
     required super.sequence,
   }) : super(type: WsMessageType.voteAcknowledged);
 
-  factory GameVoteAcknowledgedMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
+  factory GameVoteAcknowledgedMessage.fromJson({
+    required Map<String, dynamic> json,
+    required int sequence,
+  }) {
     return GameVoteAcknowledgedMessage(
       playerSecondaryId: json['playerSecondaryId'] as String,
-      sequence: sequence
+      sequence: sequence,
     );
   }
 }
 
 class GameStartingOrContinuingMessage extends WsMessage {
-  GameStartingOrContinuingMessage({
-    required super.sequence
-  })
-      : super(type: WsMessageType.gameStartingOrContinuing);
+  final Map<String, String>? otherPlayers;
 
-  factory GameStartingOrContinuingMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
+  GameStartingOrContinuingMessage({
+    this.otherPlayers,
+    required super.sequence,
+  }) : super(type: WsMessageType.gameStartingOrContinuing);
+
+  factory GameStartingOrContinuingMessage.fromJson({
+    required Map<String, dynamic> json,
+    required int sequence,
+  }) {
     return GameStartingOrContinuingMessage(
-      sequence: sequence
+      otherPlayers: Map<String, String>.from(json['otherPlayers']),
+      sequence: sequence,
     );
   }
 
   String toJsonString() {
-    return json.encode({
-      'type': super.type.value,
-    });
+    return json.encode({'type': super.type.value});
   }
 }
 
@@ -239,38 +290,38 @@ class GameCancelledMessage extends WsMessage {
   final WSCancellationReason reason;
 
   GameCancelledMessage({required super.sequence, required this.reason})
-      : super(type: WsMessageType.gameCancelled);
+    : super(type: WsMessageType.gameCancelled);
 
-  factory GameCancelledMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
+  factory GameCancelledMessage.fromJson({
+    required Map<String, dynamic> json,
+    required int sequence,
+  }) {
     return GameCancelledMessage(
       sequence: sequence,
-      reason: WSCancellationReason.values.firstWhere((x) => x.value == json['reason'] as int)
+      reason: WSCancellationReason.values.firstWhere(
+        (x) => x.value == json['reason'] as int,
+      ),
     );
   }
 
   String toJsonString() {
-    return json.encode({
-      'type': super.type.value,
-      'reason': reason.value
-    });
+    return json.encode({'type': super.type.value, 'reason': reason.value});
   }
 }
 
 class GameCallToVoteMessage extends WsMessage {
   final int voteTimeout;
-  final Map<String, String> playersToChoseFrom;
 
-  GameCallToVoteMessage({
-    required this.voteTimeout,
-    required this.playersToChoseFrom,
-    required super.sequence,
-  }) : super(type: WsMessageType.callToVote);
+  GameCallToVoteMessage({required this.voteTimeout, required super.sequence})
+    : super(type: WsMessageType.callToVote);
 
-  factory GameCallToVoteMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
+  factory GameCallToVoteMessage.fromJson({
+    required Map<String, dynamic> json,
+    required int sequence,
+  }) {
     return GameCallToVoteMessage(
       voteTimeout: json['voteTimeout'] as int,
-      playersToChoseFrom: Map<String, String>.from(json['playersToChoseFrom']),
-      sequence: sequence
+      sequence: sequence,
     );
   }
 }
@@ -283,24 +334,35 @@ class GameCastVoteMessage extends WsMessage {
     required super.sequence,
   }) : super(type: WsMessageType.castVote);
 
-  factory GameCastVoteMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
+  factory GameCastVoteMessage.fromJson({
+    required Map<String, dynamic> json,
+    required int sequence,
+  }) {
     return GameCastVoteMessage(
       playerSecondaryId: json['playerSecondaryId'] as String,
-      sequence: sequence
+      sequence: sequence,
     );
   }
 }
 
 class GameFinishedMessage extends WsMessage {
   GameFinishedMessage({required super.sequence})
-      : super(type: WsMessageType.gameFinished);
+    : super(type: WsMessageType.gameFinished);
 
-  factory GameFinishedMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
-    return GameFinishedMessage(
-      sequence: sequence
-    );
+  factory GameFinishedMessage.fromJson({
+    required Map<String, dynamic> json,
+    required int sequence,
+  }) {
+    return GameFinishedMessage(sequence: sequence);
   }
 }
+
+enum MessageOrigin {
+  me, 
+  other, 
+  system
+}
+  
 
 class GamePlayersMessage extends WsMessage {
   String senderSecondaryId;
@@ -308,24 +370,27 @@ class GamePlayersMessage extends WsMessage {
   String text;
   String? imagePath;
   DateTime time = DateTime.now();
-  bool isSender;
+  MessageOrigin origin;
 
   GamePlayersMessage({
-    required super.sequence, 
-    required this.senderSecondaryId, 
+    required super.sequence,
+    required this.senderSecondaryId,
     required this.senderUsername,
-    this.isSender = false,
-    required this.text, 
-    this.imagePath})
-      : super(type: WsMessageType.playersMessage);
+    this.origin = MessageOrigin.me,
+    required this.text,
+    this.imagePath,
+  }) : super(type: WsMessageType.playersMessage);
 
-  factory GamePlayersMessage.fromJson({required Map<String, dynamic> json, required int sequence}) {
+  factory GamePlayersMessage.fromJson({
+    required Map<String, dynamic> json,
+    required int sequence,
+  }) {
     return GamePlayersMessage(
       senderSecondaryId: json['senderSecondaryId'] as String,
       senderUsername: json['senderUsername'] as String,
       text: json['text'] as String,
       imagePath: json['imagePath'] as String,
-      sequence: sequence
+      sequence: sequence,
     );
   }
 
@@ -335,7 +400,7 @@ class GamePlayersMessage extends WsMessage {
       'senderSecondaryId': senderSecondaryId,
       'senderUsername': senderUsername,
       'text': text,
-      'imagePath': imagePath
+      'imagePath': imagePath,
     });
   }
 }

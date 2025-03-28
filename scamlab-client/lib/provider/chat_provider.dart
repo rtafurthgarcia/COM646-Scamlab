@@ -25,22 +25,24 @@ class ChatProvider extends RetryableProvider {
 
   // Internal list to hold messages
   final List<GamePlayersMessage> _messages = [];
-  
-  // A stream controller to broadcast updated lists
-  final StreamController<List<GamePlayersMessage>> _messagesController = StreamController.broadcast();
 
-  Stream<List<GamePlayersMessage>> get messagesStream => _messagesController.stream;
+  // A stream controller to broadcast updated lists
+  final StreamController<List<GamePlayersMessage>> _messagesController =
+      StreamController.broadcast();
+
+  Stream<List<GamePlayersMessage>> get messagesStream =>
+      _messagesController.stream;
 
   ChatProvider({
     required GameService gameService,
     required ChatWSService wsService,
-  })  : _wsService = wsService,
-        _gameService = gameService;
+  }) : _wsService = wsService,
+       _gameService = gameService;
 
   late StreamSubscription _subscription;
 
   bool get isListening => _wsService.isListening;
-  
+
   void stopListening() {
     _subscription.cancel();
     _wsService.disconnect();
@@ -59,7 +61,6 @@ class ChatProvider extends RetryableProvider {
         GamePlayersMessage(
           senderSecondaryId: game.playerSecondaryId!,
           senderUsername: game.username!,
-          isSender: true,
           text: message,
           imagePath: "",
           sequence: -1,
@@ -78,8 +79,30 @@ class ChatProvider extends RetryableProvider {
       );
       notifyListeners();
     });
-    
+
     _wsService.connect();
+
+    // Show who are the other players on the first launch
+    if (_messages.isEmpty) {
+      _messages.addAll([
+        GamePlayersMessage(
+          sequence: 0,
+          senderSecondaryId: "",
+          senderUsername: "",
+          text: "${game.otherPlayers?.entries.first.value} joined...",
+          origin: MessageOrigin.system,
+        ),
+        GamePlayersMessage(
+          sequence: 0,
+          senderSecondaryId: "",
+          senderUsername: "",
+          text: "${game.otherPlayers?.entries.last.value} joined...",
+          origin: MessageOrigin.system,
+        ),
+      ]);
+
+      _messagesController.add(List.unmodifiable(_messages));
+    }
 
     // Listen to incoming WebSocket messages.
     _subscription = _wsService.stream.listen(
@@ -93,7 +116,10 @@ class ChatProvider extends RetryableProvider {
   Future<void> _onMessageReceived(WsMessage message) async {
     if (message is GamePlayersMessage) {
       // Process the message and mark sender.
-      message.isSender = message.senderSecondaryId == game.playerSecondaryId;
+      message.origin =
+          message.senderSecondaryId == game.playerSecondaryId
+              ? MessageOrigin.me
+              : MessageOrigin.other;
       _messages.add(message);
       // Emit the updated list.
       _messagesController.add(List.unmodifiable(_messages));
@@ -132,7 +158,12 @@ class ChatProvider extends RetryableProvider {
         game.gameGotInterrupted();
       }
     } else {
-      developer.log("Error of type {$error}", name: "chat_ws_provider", time: DateTime.now(), error: error);
+      developer.log(
+        "Error of type {$error}",
+        name: "chat_ws_provider",
+        time: DateTime.now(),
+        error: error,
+      );
     }
 
     notifyListeners();

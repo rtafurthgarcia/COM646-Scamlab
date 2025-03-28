@@ -1,6 +1,7 @@
 package model.dto;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -138,9 +139,10 @@ public class GameDTO {
     public static record GameStartingOrContinuingMessageDTO(
             WSMessageType type,
             Long timeBeforeVote,
-            String playerSecondaryId) implements MessageDTO {
-        public GameStartingOrContinuingMessageDTO(Long timeBeforeVote, String playerSecondaryId) {
-            this(WSMessageType.GAME_STARTING_OR_CONTINUING, timeBeforeVote, playerSecondaryId);
+            String playerSecondaryId,
+            Map<String, String> otherPlayers) implements MessageDTO {
+        public GameStartingOrContinuingMessageDTO(Long timeBeforeVote, String playerSecondaryId, Map<String, String> otherPlayers) {
+            this(WSMessageType.GAME_STARTING_OR_CONTINUING, timeBeforeVote, playerSecondaryId, otherPlayers);
         }
 
         @Override
@@ -168,10 +170,9 @@ public class GameDTO {
     public static record GameCallToVoteMessageDTO(
             WSMessageType type,
             String playerSecondaryId,
-            List<String> playersToChoseFrom,
             Long voteTimeout) implements MessageDTO {
-        public GameCallToVoteMessageDTO(Long voteTimeout, String playerSecondaryId, List<String> playersToChoseFrom) {
-            this(WSMessageType.CALL_TO_VOTE, playerSecondaryId, playersToChoseFrom, voteTimeout);
+        public GameCallToVoteMessageDTO(Long voteTimeout, String playerSecondaryId) {
+            this(WSMessageType.CALL_TO_VOTE, playerSecondaryId, voteTimeout);
         }
 
         @Override

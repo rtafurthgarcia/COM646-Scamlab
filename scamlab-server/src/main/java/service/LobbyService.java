@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Channel;
@@ -372,8 +373,8 @@ public class LobbyService {
             conversation.setCurrentState(entityManager.find(State.class, StateValue.RUNNING.value));
 
             var newBotPlayer = new Player()
-                .setIsBot(true)
-                .setIpAddress("127.0.0.1");
+                    .setIsBot(true)
+                    .setIpAddress("127.0.0.1");
             entityManager.persist(newBotPlayer);
 
             var newBotParticipant = new Participation().setParticipationId(
@@ -395,17 +396,22 @@ public class LobbyService {
                     .filter(p -> !p.getIsBot())
                     .forEach(p -> {
                         notifyGameStarting.send(new GameStartingOrContinuingMessageDTO(
-                            timeBeforeVote,
-                            p.getSecondaryId().toString()
-                        ));
+                                timeBeforeVote,
+                                p.getSecondaryId().toString(),
+                                conversation.getParticipants()
+                                        .stream()
+                                        .filter(p2 -> !p2.getParticipationId().getPlayer().equals(p))
+                                        .collect(Collectors.toMap(
+                                                p2 -> p2.getParticipationId().getPlayer().getSecondaryId().toString(),
+                                                p2 -> p2.getUserName()))));
                         voteRegistry.unregister(p.getId());
                     });
 
             scheduler.newJob("V" + conversation.getId().toString())
-                .setInterval("PT" + timeBeforeVote.toString() + "S")
-                .setDelayed("PT" + timeBeforeVote.toString() + "S")
-                .setConcurrentExecution(ConcurrentExecution.SKIP)
-                .setTask(t -> internallyCallToVoteEmitter.send(conversation.getId())).schedule();
+                    .setInterval("PT" + timeBeforeVote.toString() + "S")
+                    .setDelayed("PT" + timeBeforeVote.toString() + "S")
+                    .setConcurrentExecution(ConcurrentExecution.SKIP)
+                    .setTask(t -> internallyCallToVoteEmitter.send(conversation.getId())).schedule();
         }
     }
 

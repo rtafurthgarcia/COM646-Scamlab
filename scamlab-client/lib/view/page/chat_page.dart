@@ -125,7 +125,6 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
               'WS_URL',
               defaultValue: 'ws://127.0.0.1:8080',
             );
-
             return ChatProvider(
               wsService:
                   context.read()
@@ -154,7 +153,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                   children: [
                     buildChatView(context),
                     buildChatBox(context),
-                    buildSelector(),
+                    buildEventListener(),
                   ],
                 ),
               ),
@@ -163,7 +162,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
     );
   }
 
-  Consumer<ChatProvider> buildSelector() {
+  Widget buildEventListener() {
     // Consumer that listens for game state change
     return Consumer<ChatProvider>(
       builder: (context, provider, child) {
@@ -347,7 +346,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
 
               List<Widget> children = List.empty(growable: true);
 
-              if (!message.isSender) {
+              if (message.origin == MessageOrigin.other) {
                 children.add(
                   isPreviousMessageFromSamePlayer
                       ? SizedBox(width: 48, height: 48)
@@ -361,30 +360,42 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                 );
               }
 
-              children.add(
-                message.isSender
-                    ? OutChatBubble(
+              var alignment = MainAxisAlignment.center;
+              switch (message.origin) {
+                case MessageOrigin.me:
+                  children.add(OutChatBubble(
                       message: message.text,
                       time: message.time,
                       fromSamePersonAsPreviousOne:
                           isPreviousMessageFromSamePlayer,
-                    )
-                    : InChatBubble(
+                    ));
+                  alignment = MainAxisAlignment.end;
+                  break;
+                case MessageOrigin.other:
+                  children.add(
+                    InChatBubble(
                       message: message.text,
                       from: message.senderUsername,
                       time: message.time,
                       fromSamePersonAsPreviousOne:
                           isPreviousMessageFromSamePlayer,
-                    ),
-              );
+                    )
+                  );
+                  alignment = MainAxisAlignment.start;
+                case MessageOrigin.system:
+                  children.add(
+                    InnerChatBubble(
+                      message: message.text,
+                      time: message.time,
+                    )
+                  );
+                  alignment = MainAxisAlignment.center;
+              }
 
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment:
-                    message.isSender
-                        ? MainAxisAlignment.end
-                        : MainAxisAlignment.start,
+                mainAxisAlignment: alignment,
                 spacing: 16.0,
                 children: children,
               );

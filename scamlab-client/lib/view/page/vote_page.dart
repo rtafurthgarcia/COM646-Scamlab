@@ -172,27 +172,27 @@ class _VotePageState extends State<VotePage> {
                 ElevatedButton(
                   onPressed: () {
                     var id =
-                        provider.game.playersToChooseFrom!.entries.first.key;
+                        provider.game.otherPlayers!.entries.first.key;
                     provider.castVote(id);
                   },
                   child: Text(
-                    "Vote out ${provider.game.playersToChooseFrom!.entries.first.value}",
+                    "Vote out ${provider.game.otherPlayers!.entries.first.value}",
                   ),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     var id =
-                        provider.game.playersToChooseFrom!.entries.last.key;
+                        provider.game.otherPlayers!.entries.last.key;
                     provider.castVote(id);
                   },
                   child: Text(
-                    "Vote out ${provider.game.playersToChooseFrom!.entries.last.value}",
+                    "Vote out ${provider.game.otherPlayers!.entries.last.value}",
                   ),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     var id =
-                        provider.game.playersToChooseFrom!.entries.last.key;
+                        provider.game.otherPlayers!.entries.last.key;
                     provider.castVote(id);
                   },
                   child: Text(

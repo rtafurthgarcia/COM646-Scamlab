@@ -121,3 +121,61 @@ class InChatBubble extends StatelessWidget {
     );
   }
 }
+
+class InnerChatBubble extends StatelessWidget {
+  final String message;
+  final DateTime time;
+  const InnerChatBubble({
+    super.key,
+    required this.message,
+    required this.time,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 2.0, bottom: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.only(
+                    topRight: Radius.circular(19),
+                    bottomLeft: Radius.circular(19),
+                    bottomRight: Radius.circular(19),
+                    topLeft: Radius.circular(19),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      textAlign: TextAlign.justify,
+                      message,
+                      style: const TextStyle(color: Colors.black, fontSize: 15),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      textAlign: TextAlign.right,
+                      DateFormat.Hm().format(time),
+                      style: const TextStyle(color: Colors.black54, fontSize: 10)
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
