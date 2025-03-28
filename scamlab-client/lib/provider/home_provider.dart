@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:scamlab/model/game.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/service/game_service.dart';
+import 'package:scamlab/service/settings_service.dart';
 import 'package:scamlab/service/startmenu_ws_service.dart';
 
-class StartMenuProvider extends ChangeNotifier {
+class HomeProvider extends ChangeNotifier {
   final StartmenuWsService _wsService;
   final GameService _gameService;
   Game get game => _gameService.game;
@@ -23,7 +24,7 @@ class StartMenuProvider extends ChangeNotifier {
 
   late StreamSubscription _subscription;
 
-  StartMenuProvider({required StartmenuWsService wsService, required GameService gameService}) : 
+  HomeProvider({required StartmenuWsService wsService, required GameService gameService, required SettingsService setingsService}) : 
     _wsService = wsService, _gameService = gameService;
 
   bool get isListening => _wsService.isListening;

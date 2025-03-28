@@ -1,8 +1,13 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/model/game.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
-import 'package:scamlab/provider/startmenu_provider.dart';
+import 'package:scamlab/provider/home_provider.dart';
 import 'package:scamlab/service/chat_ws_service.dart';
 import 'package:scamlab/service/lobby_ws_service.dart';
 import 'package:scamlab/service/settings_service.dart';
@@ -16,52 +21,92 @@ import 'package:scamlab/view/page/vote_page.dart';
 import 'package:scamlab/view/page/waiting_lobby_page.dart';
 import 'package:scamlab/view/widget/clearable_exception_listener.dart';
 
-void main() {
-  const apiURL = String.fromEnvironment(
-    'API_URL',
-    defaultValue: 'http://127.0.0.1:8080',
-  );
-  const wsURL = String.fromEnvironment(
-    'WS_URL',
-    defaultValue: 'ws://127.0.0.1:8080',
+import 'appconfig.dart';
+
+Future<AppConfig> loadConfig() async {
+  final configString = await rootBundle.loadString('assets/config.json');
+  final jsonMap = json.decode(configString);
+  return AppConfig.fromJson(jsonMap);
+}
+
+Future<void> main() async {
+  // Define a ZoneSpecification that overrides print.
+  final zoneSpecification = ZoneSpecification(
+    print: (self, parent, zone, line) {
+      parent.print(zone, line);
+      final logFile = File('logs.txt');
+      logFile.writeAsStringSync('$line\n', mode: FileMode.append, flush: true);
+    },
   );
 
-  runApp(
-    MultiProvider(
-      providers: [
-        Provider(create: (context) => AuthenticationService(baseUrl: '$apiURL/api')),
-        Provider(create: (context) => GameService(baseUrl: '$apiURL/api', game: Game())),
-        Provider(create: (context) => StartmenuWsService(wsUrl: "$wsURL/ws/start-menu")),
-        Provider(create: (context) => LobbyWsService(wsUrl: "$wsURL/ws/lobby")),
-        Provider(create: (context) => ChatWSService(wsUrl: "")),
-        Provider(create: (context) => SettingsService()),
-        Provider(create: (context) => RouteObserver<PageRoute>()),
-        ChangeNotifierProvider(create: (context) => AuthenticationProvider(
-          authenticationService: context.read(),
-          settingsService: context.read()
-        )),
-        ChangeNotifierProxyProvider<AuthenticationProvider, StartMenuProvider>(
-          create: (BuildContext context) => StartMenuProvider(wsService: context.read(), gameService: context.read()),
-          update: (context, authenticationProvider, startMenuWSProvider) {
-            startMenuWSProvider ??= StartMenuProvider(wsService: context.read(), gameService: context.read());
-  
-            if (startMenuWSProvider.isListening) {
-              startMenuWSProvider.stopListening();
-            }
+  // Execute all initialization inside the zone.
+  runZonedGuarded(() async {
+    // Initialize Flutter bindings.
+    WidgetsFlutterBinding.ensureInitialized();
 
-            if (startMenuWSProvider.jwtToken != authenticationProvider.player?.jwtToken) {
-              startMenuWSProvider.jwtToken = authenticationProvider.player?.jwtToken;
-              if (startMenuWSProvider.jwtToken != null) {
-                startMenuWSProvider.startListening();
+    // Now load the configuration asset.
+    final config = await loadConfig();
+
+    runApp(
+      MultiProvider(
+        providers: [
+          Provider<AppConfig>.value(value: config),
+          Provider(
+              create: (context) => AuthenticationService(
+                  baseUrl: '${config.apiURL}/api')),
+          Provider(
+              create: (context) =>
+                  GameService(baseUrl: '${config.apiURL}/api', game: Game())),
+          Provider(
+              create: (context) =>
+                  StartmenuWsService(wsUrl: "${config.wsURL}/ws/start-menu")),
+          Provider(
+              create: (context) =>
+                  LobbyWsService(wsUrl: "${config.wsURL}/ws/lobby")),
+          Provider(create: (context) => ChatWSService(wsUrl: "")),
+          Provider(
+              create: (context) => SettingsService(appConfig: config)),
+          Provider(create: (context) => RouteObserver<PageRoute>()),
+          ChangeNotifierProvider(
+            create: (context) => AuthenticationProvider(
+              authenticationService: context.read<AuthenticationService>(),
+              settingsService: context.read<SettingsService>(),
+            ),
+          ),
+          ChangeNotifierProxyProvider<AuthenticationProvider, HomeProvider>(
+            create: (BuildContext context) => HomeProvider(
+              wsService: context.read(), 
+              gameService: context.read(), 
+              setingsService: context.read(),
+            ),
+            update: (context, authenticationProvider, homeProvider) {
+              homeProvider ??= HomeProvider(
+                wsService: context.read(), 
+                gameService: context.read(), 
+                setingsService: context.read(),
+              );
+      
+              if (homeProvider.isListening) {
+                homeProvider.stopListening();
               }
-            }
-            return startMenuWSProvider;
-          }
-        )
-      ],
-      child: MainApp(),
-    ),
-  );
+      
+              if (homeProvider.jwtToken != authenticationProvider.player?.jwtToken) {
+                homeProvider.jwtToken = authenticationProvider.player?.jwtToken;
+                if (homeProvider.jwtToken != null) {
+                  homeProvider.startListening();
+                }
+              }
+              return homeProvider;
+            },
+          ),
+        ],
+        child: const MainApp(),
+      ),
+    );
+  }, (error, stack) {
+    print('Uncaught error: $error');
+    print('Stack trace: $stack');
+  }, zoneSpecification: zoneSpecification);
 }
 
 class MainApp extends StatelessWidget {
@@ -84,15 +129,15 @@ class MainApp extends StatelessWidget {
           initialRoute: '/',
           routes: <String, WidgetBuilder>{
             '/': (BuildContext context) => ClearableExceptionListener<AuthenticationProvider>(
-              message: "Couldn't get a new identity.",
-              child: const HomePage(),
-            ),
-            '/lobby': (BuildContext context) => const WaitingLobbyPage(), 
+                  message: "Couldn't get a new identity.",
+                  child: const HomePage(),
+                ),
+            '/lobby': (BuildContext context) => const WaitingLobbyPage(),
             '/games': (BuildContext context) => const ChatPage(),
             '/votes': (BuildContext context) => const VotePage(),
           },
         );
-      }
+      },
     );
   }
 }

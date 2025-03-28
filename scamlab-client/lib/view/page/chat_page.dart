@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/chat_provider.dart';
+import 'package:scamlab/service/settings_service.dart';
 import 'package:scamlab/view/widget/chat_bubble_widget.dart';
 import 'package:scamlab/view/widget/rules_card_widget.dart';
 import 'package:scamlab/view/widget/timout_timer_widget.dart';
@@ -112,10 +113,8 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
       providers: [
         ChangeNotifierProvider(
           create: (context) {
-            const wsURL = String.fromEnvironment(
-              'WS_URL',
-              defaultValue: 'ws://127.0.0.1:8080',
-            );
+            var wsURL = context.read<SettingsService>().wsURL;
+
             return ChatProvider(
               wsService:
                   context.read()
