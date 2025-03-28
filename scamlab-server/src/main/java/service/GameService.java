@@ -161,7 +161,7 @@ public class GameService {
                         .equals(message.senderSecondaryId()))
                 .findFirst().orElseThrow();
 
-        entityManager.persist(new Message().setParticipation(participation).setMessage(message.text()));
+        entityManager.persist(new Message().setParticipation(participation).setMessage(message.text().strip()));
 
         if (scheduler.getScheduledJob("B" + conversation.getId().toString()) == null) {
             Integer seconds = random.nextInt(10, 45);
@@ -232,9 +232,10 @@ public class GameService {
                 botParticipant.getUserName(),
                 strategyByRole.getScript(),
                 strategyByRole.getExample(),
+                role.getName(),
                 newMessage.senderUsername(),
                 newMessage.text(),
-                conversationId.intValue());
+                conversationId.intValue()).strip();
 
         if (service.isReplyHarmful(reply)) {
             reply = service.generateAlternativeReply(strategyByRole.getEvasionExample(),

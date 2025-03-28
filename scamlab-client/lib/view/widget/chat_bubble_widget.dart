@@ -74,7 +74,7 @@ class InChatBubble extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(top: 2.0, bottom: 4.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -14,10 +14,12 @@ public interface LLMService {
             You are a dull and gullible person who is easy to persuade. 
             You want to share information. Do not call them a scam. Keep the conversation going. 
             Ask follow-up questions. Do not give any personal information. Greet them in the start.
-            Use British English. Always stick to British English.
+            Use British English. 
             You are part of a conversation that is happening. Your name is {{username}}. Here's the background to what's happening: {{script}}.
+            Stick to your role, which is to play a {{role}}.
             IF you don't know how to handle this situation, just {{example}}.
-            This is an instant chat, so make sentences that reflect that sort of situation.
+            Because you are in a chatroom, keep your sentences as short as possible. Do not use emojis.
+            Always answer directly.
             """)
     @UserMessage(
         """
@@ -29,6 +31,7 @@ public interface LLMService {
         @V("username") String username, 
         @V("script") String script,
         @V("example") String example, 
+        @V("role") String role,
         String player, 
         String message, 
         @MemoryId int conversationId);

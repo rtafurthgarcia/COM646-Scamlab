@@ -54,9 +54,8 @@ class ChatProvider extends RetryableProvider {
     notifyListeners();
   }
 
-  void sendNewMessage(String message) {
-    if (game.currentState == game.isRunning && game.isGameAssigned) {
-      _wsService.sendMessage(
+  Future sendNewMessage(String message) {
+    return _wsService.sendMessage(
         GamePlayersMessage(
           senderSecondaryId: game.playerSecondaryId!,
           senderUsername: game.username!,
@@ -65,7 +64,6 @@ class ChatProvider extends RetryableProvider {
           sequence: -1,
         ),
       );
-    }
   }
 
   Future<void> startListening() async {

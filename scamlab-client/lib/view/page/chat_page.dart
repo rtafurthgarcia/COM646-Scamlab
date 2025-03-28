@@ -45,16 +45,6 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
     super.dispose();
   }
 
-  @override
-  void didPushNext() {
-    context.read<ChatProvider>().stopListening();
-  }
-
-  @override
-  void didPopNext() {
-    context.read<ChatProvider>().startListening();
-  }
-
   Future askBeforeQuitting() {
     return showDialog(
       context: context,
@@ -118,52 +108,54 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
         ModalRoute.of(context)?.settings.arguments as Map<dynamic, dynamic>?;
     _id = arguments?['id'];
 
-    return Builder(
-      builder: (context) {
-        return MultiProvider(
-          providers: [
-            ChangeNotifierProvider(
-              create: (context) {
-                const wsURL = String.fromEnvironment(
-                  'WS_URL',
-                  defaultValue: 'ws://127.0.0.1:8080',
-                );
-                return ChatProvider(
-                  wsService:
-                      context.read()
-                        ..wsUrl = "$wsURL/ws/games/$_id"
-                        ..jwtToken =
-                            context.read<AuthenticationProvider>().player?.jwtToken,
-                  gameService: context.read(),
-                )..startListening();
-              },
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (context) {
+            const wsURL = String.fromEnvironment(
+              'WS_URL',
+              defaultValue: 'ws://127.0.0.1:8080',
+            );
+            return ChatProvider(
+              wsService:
+                  context.read()
+                    ..wsUrl = "$wsURL/ws/games/$_id"
+                    ..jwtToken =
+                        context
+                            .read<AuthenticationProvider>()
+                            .player
+                            ?.jwtToken,
+              gameService: context.read(),
+            )..startListening();
+          },
+        ),
+        StreamProvider<List<GamePlayersMessage>>(
+          create: (context) => context.read<ChatProvider>().messagesStream,
+          initialData: <GamePlayersMessage>[],
+        ),
+      ],
+      builder:
+          (context, child) => Scaffold(
+            appBar: AppBar(
+              title: buildTitle(),
+              leading: buildLeading(context),
             ),
-            StreamProvider<List<GamePlayersMessage>>(
-              create: (context) => context.read<ChatProvider>().messagesStream,
-              initialData: <GamePlayersMessage>[],
-            ),
-          ],
-          builder:
-              (context, child) => Scaffold(
-                appBar: AppBar(title: buildTitle(), leading: buildLeading(context)),
-                drawer: buildDrawer(),
-                body: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 960),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        buildChatView(context),
-                        buildChatBox(context),
-                        buildEventListener(),
-                      ],
-                    ),
-                  ),
+            drawer: buildDrawer(),
+            body: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 960),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    buildChatView(context),
+                    buildChatBox(context),
+                    buildEventListener(),
+                  ],
                 ),
               ),
-        );
-      }
+            ),
+          ),
     );
   }
 
@@ -267,6 +259,24 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
     );
   }
 
+  void onError(dynamic message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: SelectableText(
+        message.toString(),
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.onErrorContainer),
+      ),
+      backgroundColor: Theme.of(context).colorScheme.errorContainer,
+      showCloseIcon: true,
+      closeIconColor: Theme.of(context).colorScheme.onErrorContainer,
+      duration: Duration(seconds: 15),
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.only(
+        bottom: MediaQuery.of(context).size.height - 100,
+        right: 20,
+        left: 20),
+    ));
+  }
+
   Widget buildChatBox(BuildContext context) {
     return SizedBox(
       child: Row(
@@ -289,9 +299,16 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
               controller: _textEditingController,
               textInputAction:
                   TextInputAction.send, // shows "send" on the keyboard
-              onSubmitted: (value) {
+              onSubmitted: (message) {
+                if (message.trim().isEmpty) {
+                  return;
+                }
+
                 // Send the message when Enter is pressed.
-                context.read<ChatProvider>().sendNewMessage(value);
+                context.read<ChatProvider>().sendNewMessage(message).onError((error, stackTrace) {
+                  onError(error);
+                  _textEditingController.text = message;
+                });
                 _textEditingController.clear();
                 _focusNode.requestFocus();
               },
@@ -306,9 +323,16 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                   margin: EdgeInsets.all(8.0),
                   child: IconButton(
                     onPressed: () {
-                      context.read<ChatProvider>().sendNewMessage(
-                        _textEditingController.text,
-                      );
+                      var message = _textEditingController.text;
+
+                      if (message.trim().isEmpty) {
+                        return;
+                      }
+
+                      context.read<ChatProvider>().sendNewMessage(message).onError((error, stackTrace) {
+                        onError(error);
+                        _textEditingController.text = message;
+                      });
                       _textEditingController.clear();
                       _focusNode.requestFocus();
                     },
@@ -368,12 +392,14 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
               var alignment = MainAxisAlignment.center;
               switch (message.origin) {
                 case MessageOrigin.me:
-                  children.add(OutChatBubble(
+                  children.add(
+                    OutChatBubble(
                       message: message.text,
                       time: message.time,
                       fromSamePersonAsPreviousOne:
                           isPreviousMessageFromSamePlayer,
-                    ));
+                    ),
+                  );
                   alignment = MainAxisAlignment.end;
                   break;
                 case MessageOrigin.other:
@@ -384,37 +410,34 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                       time: message.time,
                       fromSamePersonAsPreviousOne:
                           isPreviousMessageFromSamePlayer,
-                    )
+                    ),
                   );
                   alignment = MainAxisAlignment.start;
                 case MessageOrigin.system:
                   children.add(
-                    InnerChatBubble(
-                      message: message.text,
-                      time: message.time,
-                    )
+                    InnerChatBubble(message: message.text, time: message.time),
                   );
                   alignment = MainAxisAlignment.center;
               }
 
-              return index == messages.length -1 ? 
-                Animate(
-                  effects: [FadeEffect()],
-                  child: Row(
+              return index == messages.length - 1
+                  ? Animate(
+                    effects: [FadeEffect()],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: alignment,
+                      spacing: 16.0,
+                      children: children,
+                    ),
+                  )
+                  : Row(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: alignment,
                     spacing: 16.0,
                     children: children,
-                  ),
-                )
-              : Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: alignment,
-                spacing: 16.0,
-                children: children,
-              );
+                  );
             },
           );
         },
@@ -450,10 +473,10 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
               ),
             ),
             Text(", you are playing as: "),
-            SelectableText(provider.game.username!)
+            SelectableText(provider.game.username!),
           ],
         );
-      }
+      },
     );
   }
 }

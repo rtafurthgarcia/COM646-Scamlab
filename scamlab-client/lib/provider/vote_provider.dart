@@ -33,7 +33,11 @@ class VoteProvider extends RetryableProvider {
   void castVote(String playerOnBallotSecondaryId) {
     if (game.currentState == game.isVoting && game.isGameAssigned) {
       _timer?.cancel();
-      _wsService.castVote(game.conversationSecondaryId!);
+      _wsService.castVote(
+        game.conversationSecondaryId!,
+        game.playerSecondaryId!, 
+        playerOnBallotSecondaryId
+      );
     }
   }
 
@@ -97,6 +101,14 @@ class VoteProvider extends RetryableProvider {
       }
 
       game.keepOnPlaying();
+    }
+
+    if (message is GameCancelledMessage) {
+      if (! game.keepOnPlaying.canCall()) {
+        game.voteTimedOut();
+      }
+
+      game.gameGotInterrupted();
     }
 
     if (message is GameFinishedMessage) {

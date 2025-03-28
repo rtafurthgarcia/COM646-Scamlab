@@ -116,6 +116,8 @@ abstract class WSService {
         time: DateTime.now());
       _sequence++;
       _channel!.sink.add(serialiseMessage(message: message));
+    } else {
+      throw WebSocketChannelException("Couldn't send your message. Connection has been closed.");
     }
   }
 }

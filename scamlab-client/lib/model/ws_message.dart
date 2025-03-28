@@ -100,12 +100,7 @@ WsMessage deserialiseMessage({
         sequence: sequence,
       );
     case WsMessageType.callToVote:
-      return GameCallToVoteMessage.fromJson(
-        json: json,
-        sequence: sequence,
-      );
-    case WsMessageType.castVote:
-      return GameCastVoteMessage.fromJson(json: json, sequence: sequence);
+      return GameCallToVoteMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.gameCancelled:
       return GameCancelledMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.playersMessage:
@@ -124,6 +119,8 @@ String serialiseMessage({required WsMessage message}) {
     case GameStartingOrContinuingMessage m:
       return m.toJsonString();
     case GameCancelledMessage m:
+      return m.toJsonString();
+    case GameCastVoteMessage m:
       return m.toJsonString();
     default:
       throw JsonUnsupportedObjectError(message);
@@ -271,10 +268,8 @@ class GameVoteAcknowledgedMessage extends WsMessage {
 class GameStartingOrContinuingMessage extends WsMessage {
   final Map<String, String>? otherPlayers;
 
-  GameStartingOrContinuingMessage({
-    this.otherPlayers,
-    required super.sequence,
-  }) : super(type: WsMessageType.gameStartingOrContinuing);
+  GameStartingOrContinuingMessage({this.otherPlayers, required super.sequence})
+    : super(type: WsMessageType.gameStartingOrContinuing);
 
   factory GameStartingOrContinuingMessage.fromJson({
     required Map<String, dynamic> json,
@@ -332,21 +327,24 @@ class GameCallToVoteMessage extends WsMessage {
 }
 
 class GameCastVoteMessage extends WsMessage {
-  final String playerSecondaryId;
+  final String voterSecondaryId;
+  final String conversationSecondaryId;
+  final String playerOnBallotSecondaryId;
 
   GameCastVoteMessage({
-    required this.playerSecondaryId,
+    required this.voterSecondaryId,
+    required this.conversationSecondaryId,
+    required this.playerOnBallotSecondaryId,
     required super.sequence,
   }) : super(type: WsMessageType.castVote);
 
-  factory GameCastVoteMessage.fromJson({
-    required Map<String, dynamic> json,
-    required int sequence,
-  }) {
-    return GameCastVoteMessage(
-      playerSecondaryId: json['playerSecondaryId'] as String,
-      sequence: sequence,
-    );
+  toJsonString() {
+    return json.encode({
+      'type': super.type.value,
+      'voterSecondaryId': voterSecondaryId,
+      'conversationSecondaryId': conversationSecondaryId,
+      'playerOnBallotSecondaryId': playerOnBallotSecondaryId,
+    });
   }
 }
 
@@ -362,12 +360,7 @@ class GameFinishedMessage extends WsMessage {
   }
 }
 
-enum MessageOrigin {
-  me, 
-  other, 
-  system
-}
-  
+enum MessageOrigin { me, other, system }
 
 class GamePlayersMessage extends WsMessage {
   String senderSecondaryId;

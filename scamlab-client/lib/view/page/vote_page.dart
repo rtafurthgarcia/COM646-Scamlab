@@ -2,8 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:provider/provider.dart';
-import 'package:scamlab/provider/authentication_provider.dart';
-import 'package:scamlab/provider/chat_provider.dart';
 import 'package:scamlab/provider/vote_provider.dart';
 import 'package:scamlab/view/widget/timout_timer_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -17,7 +15,6 @@ class VotePage extends StatefulWidget {
 
 class _VotePageState extends State<VotePage> {
   var _alertShowing = false;
-  late String _id;
   bool _hasNavigated = false; // Flag to ensure navigation only happens once
 
   Future askBeforeQuitting() {
@@ -66,30 +63,17 @@ class _VotePageState extends State<VotePage> {
 
   @override
   Widget build(BuildContext context) {
-    final arguments =
-        ModalRoute.of(context)?.settings.arguments as Map<dynamic, dynamic>?;
-    _id = arguments?['id'];
-
     return ChangeNotifierProvider(
       create: (context) {
-        const wsURL = String.fromEnvironment(
-          'WS_URL',
-          defaultValue: 'ws://127.0.0.1:8080',
-        );
-
         return VoteProvider(
-          wsService:
-              context.read()
-                ..wsUrl = "$wsURL/ws/games/$_id"
-                ..jwtToken =
-                    context.read<AuthenticationProvider>().player?.jwtToken,
+          wsService: context.read(),
           gameService: context.read(),
-        )..startListening();
+        );
       },
       builder:
           (context, child) => Scaffold(
             appBar: AppBar(
-              leading: Consumer<ChatProvider>(
+              leading: Consumer<VoteProvider>(
                 builder: (context, provider, child) {
                   return IconButton(
                     icon: Icon(Icons.arrow_back),
@@ -111,9 +95,9 @@ class _VotePageState extends State<VotePage> {
     );
   }
 
-  Consumer<ChatProvider> buildEventsListener() {
+  Consumer<VoteProvider> buildEventsListener() {
     // Consumer that listens for game state change
-    return Consumer<ChatProvider>(
+    return Consumer<VoteProvider>(
       builder: (context, provider, child) {
         if (!_hasNavigated) {
           if (provider.game.currentState == provider.game.isCancelled) {
@@ -150,60 +134,70 @@ class _VotePageState extends State<VotePage> {
     );
   }
 
-  Column buildVotingBooth(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Row(
-          children: [
-            const Text("Time to vote for the player you think to be the bot."),
-            TimoutTimer(
-              duration: Duration(
-                seconds: context.read<VoteProvider>().game.voteTimeout!,
+  Widget buildVotingBooth(BuildContext context) {
+    return Center(
+      child: Column(
+        spacing: 8.0,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                "Time to vote for the player you think to be the bot.",
               ),
-            ),
-          ],
-        ),
-        buildEventsListener(),
-        Consumer<VoteProvider>(
-          builder: (context, provider, child) {
-            return Row(
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    var id =
-                        provider.game.otherPlayers!.entries.first.key;
-                    provider.castVote(id);
-                  },
-                  child: Text(
-                    "Vote out ${provider.game.otherPlayers!.entries.first.value}",
-                  ),
+              TimoutTimer(
+                duration: Duration(
+                  seconds: context.read<VoteProvider>().game.voteTimeout!,
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    var id =
-                        provider.game.otherPlayers!.entries.last.key;
-                    provider.castVote(id);
-                  },
-                  child: Text(
-                    "Vote out ${provider.game.otherPlayers!.entries.last.value}",
+              ),
+            ],
+          ),
+          buildEventsListener(),
+          Consumer<VoteProvider>(
+            builder: (context, provider, child) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                spacing: 8.0,
+                children: [
+                  ElevatedButton(
+                    onPressed:
+                        () =>
+                            provider.game.currentState == provider.game.isVoting
+                                ? provider.castVote(
+                                  provider.game.otherPlayers!.entries.first.key,
+                                )
+                                : null,
+                    child: Text(
+                      provider.game.otherPlayers!.entries.first.value,
+                    ),
                   ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    var id =
-                        provider.game.otherPlayers!.entries.last.key;
-                    provider.castVote(id);
-                  },
-                  child: Text(
-                    "Blank vote"
+                  ElevatedButton(
+                    onPressed:
+                        () =>
+                            provider.game.currentState == provider.game.isVoting
+                                ? provider.castVote(
+                                  provider.game.otherPlayers!.entries.last.key,
+                                )
+                                : null,
+                    child: Text(provider.game.otherPlayers!.entries.last.value),
                   ),
-                ),
-              ],
-            );
-          },
-        ),
-      ],
+                  ElevatedButton(
+                    onPressed:
+                        () =>
+                            provider.game.currentState == provider.game.isVoting
+                                ? provider.castVote(
+                                  "",
+                                )
+                                : null,
+                    child: Text("Blank vote"),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
