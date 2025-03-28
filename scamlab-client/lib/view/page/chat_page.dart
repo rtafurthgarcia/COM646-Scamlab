@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/model/ws_message.dart';
@@ -117,48 +118,52 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
         ModalRoute.of(context)?.settings.arguments as Map<dynamic, dynamic>?;
     _id = arguments?['id'];
 
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-          create: (context) {
-            const wsURL = String.fromEnvironment(
-              'WS_URL',
-              defaultValue: 'ws://127.0.0.1:8080',
-            );
-            return ChatProvider(
-              wsService:
-                  context.read()
-                    ..wsUrl = "$wsURL/ws/games/$_id"
-                    ..jwtToken =
-                        context.read<AuthenticationProvider>().player?.jwtToken,
-              gameService: context.read(),
-            )..startListening();
-          },
-        ),
-        StreamProvider<List<GamePlayersMessage>>(
-          create: (context) => context.read<ChatProvider>().messagesStream,
-          initialData: <GamePlayersMessage>[],
-        ),
-      ],
-      builder:
-          (context, child) => Scaffold(
-            appBar: AppBar(title: buildTitle(), leading: buildLeading(context)),
-            drawer: buildDrawer(),
-            body: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 960),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    buildChatView(context),
-                    buildChatBox(context),
-                    buildEventListener(),
-                  ],
+    return Builder(
+      builder: (context) {
+        return MultiProvider(
+          providers: [
+            ChangeNotifierProvider(
+              create: (context) {
+                const wsURL = String.fromEnvironment(
+                  'WS_URL',
+                  defaultValue: 'ws://127.0.0.1:8080',
+                );
+                return ChatProvider(
+                  wsService:
+                      context.read()
+                        ..wsUrl = "$wsURL/ws/games/$_id"
+                        ..jwtToken =
+                            context.read<AuthenticationProvider>().player?.jwtToken,
+                  gameService: context.read(),
+                )..startListening();
+              },
+            ),
+            StreamProvider<List<GamePlayersMessage>>(
+              create: (context) => context.read<ChatProvider>().messagesStream,
+              initialData: <GamePlayersMessage>[],
+            ),
+          ],
+          builder:
+              (context, child) => Scaffold(
+                appBar: AppBar(title: buildTitle(), leading: buildLeading(context)),
+                drawer: buildDrawer(),
+                body: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 960),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        buildChatView(context),
+                        buildChatBox(context),
+                        buildEventListener(),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
+        );
+      }
     );
   }
 
@@ -392,7 +397,18 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                   alignment = MainAxisAlignment.center;
               }
 
-              return Row(
+              return index == messages.length -1 ? 
+                Animate(
+                  effects: [FadeEffect()],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: alignment,
+                    spacing: 16.0,
+                    children: children,
+                  ),
+                )
+              : Row(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: alignment,

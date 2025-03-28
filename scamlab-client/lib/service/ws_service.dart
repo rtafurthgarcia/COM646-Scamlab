@@ -65,7 +65,7 @@ abstract class WSService {
     _isListening = true;
 
     _controller = StreamController.broadcast();
-    _controller.addStream(cancelOnError: true, _channel!.stream
+    _controller.addStream(_channel!.stream
       .map((data) => json.decode(data))
       .map((json) {
         var message = deserialiseMessage(json: json, sequence: _sequence);

@@ -146,7 +146,7 @@ class InnerChatBubble extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
                   borderRadius: BorderRadius.only(
                     topRight: Radius.circular(19),
                     bottomLeft: Radius.circular(19),

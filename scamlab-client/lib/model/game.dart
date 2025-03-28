@@ -18,7 +18,7 @@ class Game {
 
   GameStartingOrContinuingMessage? _gameStartingOrContinuingMessage;
   set startingOrContinuing(GameStartingOrContinuingMessage message) {
-    _gameStartingOrContinuingMessage = _gameStartingOrContinuingMessage;
+    _gameStartingOrContinuingMessage = message;
   }
 
   WSCancellationReason? reasonForCancellation;

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:rxdart/rxdart.dart';
 import 'package:scamlab/model/game.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/retryable_provider.dart';
@@ -27,11 +28,9 @@ class ChatProvider extends RetryableProvider {
   final List<GamePlayersMessage> _messages = [];
 
   // A stream controller to broadcast updated lists
-  final StreamController<List<GamePlayersMessage>> _messagesController =
-      StreamController.broadcast();
+  final BehaviorSubject<List<GamePlayersMessage>> _messagesSubject = BehaviorSubject();
 
-  Stream<List<GamePlayersMessage>> get messagesStream =>
-      _messagesController.stream;
+  Stream<List<GamePlayersMessage>> get messagesStream => _messagesSubject.stream;
 
   ChatProvider({
     required GameService gameService,
@@ -51,7 +50,7 @@ class ChatProvider extends RetryableProvider {
 
   void clearMessages() {
     _messages.clear();
-    _messagesController.add(List.unmodifiable(_messages));
+    _messagesSubject.add(List.unmodifiable(_messages));
     notifyListeners();
   }
 
@@ -74,7 +73,7 @@ class ChatProvider extends RetryableProvider {
     game.onStateChange.listen((event) {
       developer.log(
         "Game ${game.conversationSecondaryId} went from ${event.from.name} to ${event.to.name}",
-        name: "chat_ws_provider",
+        name: "chat_provider",
         time: DateTime.now(),
       );
       notifyListeners();
@@ -82,7 +81,12 @@ class ChatProvider extends RetryableProvider {
 
     _wsService.connect();
 
-    // Show who are the other players on the first launch
+    // Listen to incoming WebSocket messages.
+    _subscription = _wsService.stream.listen(
+      (message) => _onMessageReceived(message),
+      onError: _onErrorReceived,
+    );
+
     if (_messages.isEmpty) {
       _messages.addAll([
         GamePlayersMessage(
@@ -100,15 +104,8 @@ class ChatProvider extends RetryableProvider {
           origin: MessageOrigin.system,
         ),
       ]);
-
-      _messagesController.add(List.unmodifiable(_messages));
+      _messagesSubject.add(List.unmodifiable(_messages));
     }
-
-    // Listen to incoming WebSocket messages.
-    _subscription = _wsService.stream.listen(
-      (message) => _onMessageReceived(message),
-      onError: _onErrorReceived,
-    );
 
     notifyListeners();
   }
@@ -122,7 +119,7 @@ class ChatProvider extends RetryableProvider {
               : MessageOrigin.other;
       _messages.add(message);
       // Emit the updated list.
-      _messagesController.add(List.unmodifiable(_messages));
+      _messagesSubject.add(List.unmodifiable(_messages));
     } else {
       // Handle other types of messages.
       _processMessage(message);
@@ -160,7 +157,7 @@ class ChatProvider extends RetryableProvider {
     } else {
       developer.log(
         "Error of type {$error}",
-        name: "chat_ws_provider",
+        name: "chat_provider",
         time: DateTime.now(),
         error: error,
       );
@@ -172,7 +169,7 @@ class ChatProvider extends RetryableProvider {
   @override
   void dispose() {
     stopListening();
-    _messagesController.close();
+    _messagesSubject.close();
     super.dispose();
   }
 
