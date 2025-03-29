@@ -1,11 +1,10 @@
-import 'dart:math';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:provider/provider.dart';
+import 'package:scamlab/color_helper.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/chat_provider.dart';
@@ -13,7 +12,6 @@ import 'package:scamlab/service/settings_service.dart';
 import 'package:scamlab/view/widget/chat_bubble_widget.dart';
 import 'package:scamlab/view/widget/rules_card_widget.dart';
 import 'package:scamlab/view/widget/timout_timer_widget.dart';
-import 'package:state_machine/state_machine.dart' as sm;
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -90,19 +88,6 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
     }
   }
 
-  Color colorFromUsername(String username) {
-    // Create a seed by combining the char codes.
-    final seed = username.codeUnits.fold(0, (prev, curr) => prev + curr);
-    final random = Random(seed);
-
-    return Color.fromARGB(
-      255,
-      random.nextInt(256),
-      random.nextInt(256),
-      random.nextInt(256),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final arguments =
@@ -143,14 +128,17 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
             body: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 960),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    buildChatView(context),
-                    buildChatBox(context),
-                    buildEventListener(),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      buildChatView(context),
+                      buildChatBox(context),
+                      buildEventListener(),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -180,7 +168,10 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                 context,
                 '/votes',
                 arguments: {'id': provider.game.conversationSecondaryId},
-              ).then((value) => provider.resumeListening());
+              ).then((value) {
+                provider.resumeListening();
+                _hasNavigated = false;
+              });
             });
           }
         }
@@ -192,8 +183,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   Drawer buildDrawer() {
     return Drawer(
       width: 440,
-      child: Selector<ChatProvider, sm.State?>(
-        selector: (context, provider) => provider.game.currentState,
+      child: Consumer<ChatProvider>(
         builder: (context, state, child) {
           var game = context.read<ChatProvider>().game;
           var timeBeforeVote = context.read<ChatProvider>().timeLeft;
@@ -278,72 +268,72 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   }
 
   Widget buildChatBox(BuildContext context) {
-    return SizedBox(
-      child: Row(
-        children: <Widget>[
-          ElevatedButton(
-            onPressed: null,
-            style: ElevatedButton.styleFrom(
-              shape: CircleBorder(),
-              padding: EdgeInsets.all(24),
-              backgroundColor: Theme.of(context).colorScheme.secondary,
-              foregroundColor: Theme.of(context).colorScheme.onSecondary,
-              iconColor: Theme.of(context).colorScheme.onSecondary,
-            ),
-            child: Icon(Icons.photo_camera_back),
+    return Row(
+      mainAxisSize: MainAxisSize.max,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: <Widget>[
+        ElevatedButton(
+          onPressed: null,
+          style: ElevatedButton.styleFrom(
+            shape: CircleBorder(),
+            padding: EdgeInsets.all(24),
+            backgroundColor: Theme.of(context).colorScheme.secondary,
+            foregroundColor: Theme.of(context).colorScheme.onSecondary,
+            iconColor: Theme.of(context).colorScheme.onSecondary,
           ),
-          Flexible(
-            fit: FlexFit.loose,
-            child: TextField(
-              focusNode: _focusNode,
-              controller: _textEditingController,
-              textInputAction:
-                  TextInputAction.send, // shows "send" on the keyboard
-              onSubmitted: (message) {
-                if (message.trim().isEmpty) {
-                  return;
-                }
-
-                // Send the message when Enter is pressed.
-                context.read<ChatProvider>().sendNewMessage(message).onError((error, stackTrace) {
-                  onError(error);
-                  _textEditingController.text = message;
-                });
-                _textEditingController.clear();
-                _focusNode.requestFocus();
-              },
-              decoration: InputDecoration(
-                hintText: "Write message...",
-                hintStyle: Theme.of(context).primaryTextTheme.bodyLarge,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(32.0),
-                  borderSide: BorderSide(),
-                ),
-                suffixIcon: Container(
-                  margin: EdgeInsets.all(8.0),
-                  child: IconButton(
-                    onPressed: () {
-                      var message = _textEditingController.text;
-
-                      if (message.trim().isEmpty) {
-                        return;
-                      }
-
-                      context.read<ChatProvider>().sendNewMessage(message).onError((error, stackTrace) {
-                        onError(error);
-                        _textEditingController.text = message;
-                      });
-                      _textEditingController.clear();
-                      _focusNode.requestFocus();
-                    },
-                    icon: Icon(Icons.send),
-                  ),
+          child: Icon(Icons.photo_camera_back),
+        ),
+        Flexible(
+          fit: FlexFit.loose,
+          child: TextField(
+            focusNode: _focusNode,
+            controller: _textEditingController,
+            textInputAction:
+                TextInputAction.send, // shows "send" on the keyboard
+            onSubmitted: (message) {
+              if (message.trim().isEmpty) {
+                return;
+              }
+    
+              // Send the message when Enter is pressed.
+              context.read<ChatProvider>().sendNewMessage(message).onError((error, stackTrace) {
+                onError(error);
+                _textEditingController.text = message;
+              });
+              _textEditingController.clear();
+              _focusNode.requestFocus();
+            },
+            decoration: InputDecoration(
+              hintText: "Write message...",
+              hintStyle: Theme.of(context).primaryTextTheme.bodyLarge,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(32.0),
+                borderSide: BorderSide(),
+              ),
+              suffixIcon: Container(
+                margin: EdgeInsets.all(8.0),
+                child: IconButton(
+                  onPressed: () {
+                    var message = _textEditingController.text;
+    
+                    if (message.trim().isEmpty) {
+                      return;
+                    }
+    
+                    context.read<ChatProvider>().sendNewMessage(message).onError((error, stackTrace) {
+                      onError(error);
+                      _textEditingController.text = message;
+                    });
+                    _textEditingController.clear();
+                    _focusNode.requestFocus();
+                  },
+                  icon: Icon(Icons.send),
                 ),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -374,6 +364,8 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                       message.senderSecondaryId);
 
               List<Widget> children = List.empty(growable: true);
+              var backgroundColor = getColorFromUsername(message.senderUsername);
+              var textColor = getContrastingColor(backgroundColor);
 
               if (message.origin == MessageOrigin.other) {
                 children.add(
@@ -381,10 +373,13 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                       ? SizedBox(width: 48, height: 48)
                       : CircleAvatar(
                         radius: 24,
-                        backgroundColor: colorFromUsername(
-                          message.senderUsername,
+                        backgroundColor: backgroundColor,
+                        child: Text(
+                          message.senderUsername.substring(0, 1), 
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: textColor
+                          ),
                         ),
-                        child: Text(message.senderUsername.substring(0, 1)),
                       ),
                 );
               }

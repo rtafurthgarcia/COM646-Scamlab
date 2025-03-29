@@ -86,8 +86,8 @@ public class GameService {
     Long timeOutForInactivity;
 
     @Inject
-    @ConfigProperty(name = "scamlab.number-of-votes")
-    Long numberOfVotes;
+    @ConfigProperty(name = "scamlab.number-of-rounds")
+    Long numberOfRounds;
 
     @Inject
     @ConfigProperty(name = "scamlab.timeout-lobby-in-seconds")
@@ -400,7 +400,9 @@ public class GameService {
     private void verifyOutcomeOfVote(Conversation conversation, Boolean hasTimedout) {
         boolean everyOneHasVotedToStart = conversation.getParticipants()
                 .stream()
-                .allMatch(p -> voteRegistry.hasVoted(p.getParticipationId().getPlayer().getId()));
+                .map(p -> p.getParticipationId().getPlayer())
+                .filter(p -> ! p.getIsBot())
+                .allMatch(p -> voteRegistry.hasVoted(p.getId()));
 
         if (!everyOneHasVotedToStart && hasTimedout) {
             conversation.getParticipants()
@@ -431,19 +433,12 @@ public class GameService {
         if (everyOneHasVotedToStart) {
             scheduler.unscheduleJob("VT" + conversation.getSecondaryId().toString());
 
-            var expectedVotesCount = conversation.getParticipants().stream()
-                    .map(p -> p.getParticipationId().getPlayer())
-                    .filter(p -> !p.getIsBot())
-                    .count();
-
-            var botCount = conversation.getParticipants().stream()
-                    .map(p -> p.getParticipationId().getPlayer())
-                    .filter(p -> p.getIsBot())
-                    .count();
-
-            expectedVotesCount += botCount;
-
-            if (conversation.getVotes().size() == numberOfVotes * expectedVotesCount) {
+            Long currentRound = conversation.getVotes().stream()
+                .max((v1, v2) -> v1.compareTo(v2))
+                .map(v -> v.getVoteId().getRoundNo().longValue())
+                .orElse(1l);
+            
+            if (currentRound.equals(numberOfRounds)) {
                 conversation.setCurrentState(
                         entityManager.find(State.class, StateValue.FINISHED.value));
             } else {

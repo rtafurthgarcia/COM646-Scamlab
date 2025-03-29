@@ -99,6 +99,8 @@ WsMessage deserialiseMessage({
         json: json,
         sequence: sequence,
       );
+    case WsMessageType.gameFinished:
+      return GameFinishedMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.callToVote:
       return GameCallToVoteMessage.fromJson(json: json, sequence: sequence);
     case WsMessageType.gameCancelled:

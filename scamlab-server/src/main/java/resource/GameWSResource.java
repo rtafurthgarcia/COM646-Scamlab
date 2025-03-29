@@ -124,7 +124,7 @@ public class GameWSResource {
 
     @Incoming("declare-game-as-finished")
     public Uni<Void> declareGameAsFinished(GameFinishedMessageDTO message) {
-        Log.info("Notify player " + message.playerSecondaryId() + " that their start vote has been acknowledged");
+        Log.info("Notify player " + message.playerSecondaryId() + " that the game is over");
         
         return connectionManager.findByConnectionId(
             registry.getConnectionId(message.playerSecondaryId())

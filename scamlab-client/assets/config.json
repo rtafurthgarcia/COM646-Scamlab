@@ -1,4 +1,4 @@
 {
-    "apiURL": "https://trivia-relations-temple-lucas.trycloudflare.com",
-    "wsURL": "wss://trivia-relations-temple-lucas.trycloudflare.com"
+    "apiURL": "http://127.0.0.1:8080",
+    "wsURL": "ws://127.0.0.1:8080"
 }

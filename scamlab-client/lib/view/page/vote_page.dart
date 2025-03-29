@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:provider/provider.dart';
+import 'package:scamlab/color_helper.dart';
 import 'package:scamlab/provider/vote_provider.dart';
 import 'package:scamlab/view/widget/timout_timer_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -158,23 +159,29 @@ class _VotePageState extends State<VotePage> {
             builder: (context, provider, child) {
               var children = <Widget>[];
               if (provider.game.currentState == provider.game.isVoting) {
+                var user1 = provider.game.otherPlayers!.entries.first;
+                var user2 = provider.game.otherPlayers!.entries.last;
+
                 children.addAll([
                   ElevatedButton(
-                    onPressed:
-                        () => provider.castVote(
-                          provider.game.otherPlayers!.entries.first.key,
-                        ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: getColorFromUsername(user1.value), 
+                      foregroundColor: getContrastingColor(getColorFromUsername(user1.value))
+                    ),
+                    onPressed: () => provider.castVote(user1.key),
                     child: Text(
-                      provider.game.otherPlayers!.entries.first.value,
+                      user1.value
                     ),
                   ),
                   ElevatedButton(
-                    onPressed:
-                        () =>
-                            () => provider.castVote(
-                              provider.game.otherPlayers!.entries.last.key,
-                            ),
-                    child: Text(provider.game.otherPlayers!.entries.last.value),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: getColorFromUsername(user2.value), 
+                      foregroundColor: getContrastingColor(getColorFromUsername(user2.value))
+                    ),
+                    onPressed: () => provider.castVote(user2.key),
+                    child: Text(
+                      user2.value
+                    ),
                   ),
                   ElevatedButton(
                     onPressed: () => provider.castVote(""),
@@ -184,9 +191,7 @@ class _VotePageState extends State<VotePage> {
               } else {
                 children.add(CircularProgressIndicator());
                 children.add(
-                  Text(
-                    "Waiting on other player(s) to finish voting.",
-                  ),
+                  Text("Waiting on other player(s) to finish voting."),
                 );
               }
 

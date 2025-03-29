@@ -15,7 +15,7 @@ import jakarta.persistence.Table;
 @Table(name = "votes", indexes = {
     @Index(name = "idx_vote_creation", columnList = "creation")
 })
-public class Vote {
+public class Vote implements Comparable<Vote> {
     @EmbeddedId
     private VoteId voteId;
 
@@ -79,5 +79,10 @@ public class Vote {
         } else if (!creation.equals(other.creation))
             return false;
         return true;
+    }
+
+    @Override
+    public int compareTo(Vote o) {
+        return voteId.getRoundNo() - o.voteId.getRoundNo();
     }
 }
