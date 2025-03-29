@@ -51,6 +51,19 @@ public class Message {
         return this;
     }
 
+    @Column(name = "already_analysed_by_bot")
+    boolean hasBeenAlreadyAnalysedByBot = false;
+
+    public boolean isHasBeenAlreadyAnalysedByBot() {
+        return hasBeenAlreadyAnalysedByBot;
+    }
+
+    public Message setHasBeenAlreadyAnalysedByBot(boolean hasBeenAlreadyAnalysedByBot) {
+        this.hasBeenAlreadyAnalysedByBot = hasBeenAlreadyAnalysedByBot;
+
+        return this;
+    }
+
     @Column(name = "llm_token_count", nullable = false)
     private Integer llmTokenCount = 0;
     

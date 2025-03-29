@@ -165,7 +165,7 @@ public class GameService {
         entityManager.persist(new Message().setParticipation(participation).setMessage(message.text().strip()));
 
         if (scheduler.getScheduledJob("B" + conversation.getSecondaryId().toString()) == null
-        && conversation.getTestingScenario().equals(TestingScenario.OneBotTwoHumans)) {
+                && conversation.getTestingScenario().equals(TestingScenario.OneBotTwoHumans)) {
             Integer seconds = random.nextInt(15, 30);
             scheduler.newJob("B" + conversation.getSecondaryId().toString())
                     .setInterval("PT" + seconds.toString() + "S")
@@ -237,13 +237,27 @@ public class GameService {
                 .setParameter("role", role.getId())
                 .getSingleResult();
 
+        String stringBuilder = "";
+        for (Message message : conversation.getMessages().stream().filter(m -> !m.isHasBeenAlreadyAnalysedByBot())
+                .toList()) {
+            stringBuilder += message.getParticipation().getUserName() + " said \nat " + message.getCreation().toString()
+                    + ":\n";
+            stringBuilder += message.getMessage() + "\n---\n";
+        }
+
+        conversation.getMessages().stream()
+                .filter(m -> !m.isHasBeenAlreadyAnalysedByBot())
+                .forEach(m -> {
+                    m.setHasBeenAlreadyAnalysedByBot(true);
+                    entityManager.persist(m);
+                });
+
         var reply = service.generateReply(
                 botParticipant.getUserName(),
                 strategyByRole.getScript(),
                 strategyByRole.getExample(),
                 role.getName(),
-                newMessage.senderUsername(),
-                newMessage.text(),
+                stringBuilder,
                 conversationId.intValue()).strip();
 
         if (service.isReplyHarmful(reply)) {

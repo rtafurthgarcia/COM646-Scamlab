@@ -23,8 +23,7 @@ public interface LLMService {
             """)
     @UserMessage(
         """
-             {player} said:
-             {message}
+             {lastMessages}
                 """
     )
     String generateReply(
@@ -32,8 +31,7 @@ public interface LLMService {
         @V("script") String script,
         @V("example") String example, 
         @V("role") String role,
-        String player, 
-        String message, 
+        String lastMessages, 
         @MemoryId int conversationId);
     
     @UserMessage("""
