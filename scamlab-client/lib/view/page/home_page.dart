@@ -74,6 +74,20 @@ class _HomePageState extends State<HomePage> with RouteAware {
         ),
       );
     }
+
+    if (game.isFinished == game.currentState) {
+      var message = "Thanks for playing! Don't forget to participate in the post-game survey ❤️";
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: SelectableText(
+            message,
+          ),
+          showCloseIcon: true,
+          duration: Duration(seconds: 15)
+        ),
+      );
+    }
   }
 
   List<Widget> buildButtons(BuildContext context) {

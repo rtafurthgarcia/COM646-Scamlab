@@ -1,5 +1,6 @@
 package service;
 
+import java.time.LocalTime;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -37,6 +38,7 @@ import model.entity.Participation;
 import model.entity.Player;
 import model.entity.State;
 import model.entity.StrategyByRole;
+import model.entity.TestingScenario;
 import model.entity.Vote;
 import model.entity.VoteId;
 
@@ -162,7 +164,8 @@ public class GameService {
 
         entityManager.persist(new Message().setParticipation(participation).setMessage(message.text().strip()));
 
-        if (scheduler.getScheduledJob("B" + conversation.getSecondaryId().toString()) == null) {
+        if (scheduler.getScheduledJob("B" + conversation.getSecondaryId().toString()) == null
+        && conversation.getTestingScenario().equals(TestingScenario.OneBotTwoHumans)) {
             Integer seconds = random.nextInt(15, 30);
             scheduler.newJob("B" + conversation.getSecondaryId().toString())
                     .setInterval("PT" + seconds.toString() + "S")
@@ -212,7 +215,7 @@ public class GameService {
     @Transactional
     void createNewBotReplyTriggered(Long conversationId, GamePlayersMessageDTO newMessage) {
         // Not all replies should elicit a generated response
-        if (random.nextInt(1, 3) == 2) {
+        if (random.nextInt(1, 4) == 3) {
             return;
         }
 
@@ -305,6 +308,7 @@ public class GameService {
             conversation.setCurrentState(
                     entityManager.find(State.class, DefaultKeyValues.StateValue.CANCELLED.value),
                     request.reason());
+            conversation.setEnd(LocalTime.now());
 
             conversation.getParticipants()
                     .stream()
@@ -401,7 +405,7 @@ public class GameService {
         boolean everyOneHasVotedToStart = conversation.getParticipants()
                 .stream()
                 .map(p -> p.getParticipationId().getPlayer())
-                .filter(p -> ! p.getIsBot())
+                .filter(p -> !p.getIsBot())
                 .allMatch(p -> voteRegistry.hasVoted(p.getId()));
 
         if (!everyOneHasVotedToStart && hasTimedout) {
@@ -434,13 +438,19 @@ public class GameService {
             scheduler.unscheduleJob("VT" + conversation.getSecondaryId().toString());
 
             Long currentRound = conversation.getVotes().stream()
-                .max((v1, v2) -> v1.compareTo(v2))
-                .map(v -> v.getVoteId().getRoundNo().longValue())
-                .orElse(1l);
-            
+                    .max((v1, v2) -> v1.compareTo(v2))
+                    .map(v -> v.getVoteId().getRoundNo().longValue())
+                    .orElse(1l);
+
             if (currentRound.equals(numberOfRounds)) {
                 conversation.setCurrentState(
                         entityManager.find(State.class, StateValue.FINISHED.value));
+
+                conversation.setBotHasBeenUnmasked(conversation.getVotes().stream()
+                        .filter(v -> v.getVoteId().getRoundNo() == currentRound.intValue())
+                        .filter(v -> v.getPlayerVotedAgainst() != null)
+                        .allMatch(v -> v.getPlayerVotedAgainst().getIsBot()));
+                conversation.setEnd(LocalTime.now());
             } else {
                 conversation.setCurrentState(entityManager.find(State.class, StateValue.RUNNING.value));
 

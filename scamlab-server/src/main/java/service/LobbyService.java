@@ -1,5 +1,6 @@
 package service;
 
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 
+import com.aayushatharva.brotli4j.common.annotations.Local;
 import com.thedeanda.lorem.Lorem;
 import com.thedeanda.lorem.LoremIpsum;
 
@@ -141,7 +143,6 @@ public class LobbyService {
                             """,
                 Object[].class)
                 .setParameter("state1", DefaultKeyValues.StateValue.WAITING.value)
-                // .setParameter("state2", DefaultKeyValues.StateValue.READY.value)
                 .setParameter("scenario1", TestingScenario.OneBotTwoHumans)
                 .setParameter("scenario2", TestingScenario.ThreeHumans)
                 .setParameter("scenario1HumanCount", TestingScenario.OneBotTwoHumans.numberOfHumans)
@@ -152,15 +153,16 @@ public class LobbyService {
             var strategies = entityManager.createQuery("SELECT s FROM Strategy s", Strategy.class)
                     .getResultList();
 
-            var randomlyPickedStrategy = strategies.get(MathHelper.getRandomNumber(0, (int) strategies.size() - 1));
+            var randomlyPickedStrategy = strategies.get(MathHelper.getRandomNumber(0, (int) strategies.size()));
             var randomlyPickedScenario = TestingScenario.values()[MathHelper.getRandomNumber(0,
-                    TestingScenario.values().length - 1)];
+                    TestingScenario.values().length)];
 
             var newConversation = new Conversation()
                     .setCurrentState(
                             entityManager.find(State.class, helper.DefaultKeyValues.StateValue.WAITING.value))
                     .setStrategy(randomlyPickedStrategy)
-                    .setTestingScenario(randomlyPickedScenario);
+                    .setTestingScenario(randomlyPickedScenario)
+                    .setStart(LocalTime.now());
             entityManager.persist(newConversation);
 
             Log.info("Created new game ID: " + newConversation.getSecondaryId());

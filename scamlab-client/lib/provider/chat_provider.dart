@@ -53,7 +53,6 @@ class ChatProvider extends RetryableProvider {
   void pauseListening() { 
     _wsSubscription.pause();
     _stateSubscription.pause();
-    _stopWatch.stop();
   }
 
   void resumeListening() { 
