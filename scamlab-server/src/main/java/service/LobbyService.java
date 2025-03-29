@@ -285,7 +285,7 @@ public class LobbyService {
                                     p.getParticipationId().getPlayer().getSecondaryId().toString()));
                 });
 
-                scheduler.newJob("C" + conversation.getId().toString())
+                scheduler.newJob("C" + conversation.getSecondaryId().toString())
                         .setInterval("PT" + timeOutForWaitingLobby.toString() + "S")
                         .setDelayed("PT" + timeOutForWaitingLobby.toString() + "S")
                         .setConcurrentExecution(ConcurrentExecution.SKIP)
@@ -300,8 +300,9 @@ public class LobbyService {
 
     void timeoutTriggered(Long conversationId) {
         Log.info("Timeout triggered for start for game " + conversationId.toString());
-
         var conversation = entityManager.find(Conversation.class, conversationId);
+        scheduler.unscheduleJob("C" + conversation.getSecondaryId().toString());
+        
         conversation.getParticipants().forEach(p -> {
             notifyReasonForWaitingEmitter.send(
                     new WaitingLobbyReasonForWaitingMessageDTO(
@@ -316,8 +317,6 @@ public class LobbyService {
 
         entityManager.persist(conversation);
         entityManager.flush();
-
-        scheduler.unscheduleJob("C" + conversationId.toString());
 
         // put players back on the queue
         players.forEach(p -> {
@@ -368,7 +367,7 @@ public class LobbyService {
                 .allMatch(p -> voteRegistry.hasVoted(p.getParticipationId().getPlayer().getId()));
 
         if (everyOneHasVotedToStart) {
-            scheduler.unscheduleJob("C" + conversation.getId().toString());
+            scheduler.unscheduleJob("C" + conversation.getSecondaryId().toString());
 
             conversation.setCurrentState(entityManager.find(State.class, StateValue.RUNNING.value));
 
@@ -407,7 +406,7 @@ public class LobbyService {
                         voteRegistry.unregister(p.getId());
                     });
 
-            scheduler.newJob("V" + conversation.getId().toString())
+            scheduler.newJob("V" + conversation.getSecondaryId().toString())
                     .setInterval("PT" + timeBeforeVote.toString() + "S")
                     .setDelayed("PT" + timeBeforeVote.toString() + "S")
                     .setConcurrentExecution(ConcurrentExecution.SKIP)
@@ -442,9 +441,9 @@ public class LobbyService {
                     + " for the following reason: "
                     + request.reason().name());
 
-            if (conversation.getCurrentState().getId().equals(DefaultKeyValues.StateValue.READY.value)) {
-                scheduler.unscheduleJob("C" + conversation.getId().toString());
-            }
+            //if (conversation.getCurrentState().getId().equals(DefaultKeyValues.StateValue.READY.value)) {
+            scheduler.unscheduleJob("C" + conversation.getSecondaryId().toString());
+            //}
 
             conversation.setCurrentState(
                     entityManager.find(State.class, DefaultKeyValues.StateValue.WAITING.value),

@@ -58,10 +58,10 @@ public class GameWSResource {
     @Broadcast
     Emitter<GamePlayersMessageDTO> replyReceivedEmitter;
 
-    @Inject
+    /*@Inject
     @Channel("start-inactivity-timeout")
     @Broadcast
-    Emitter<String> startInactivityTimeoutEmitter;
+    Emitter<String> startInactivityTimeoutEmitter;*/
 
     @Inject
     @Channel("register-vote")

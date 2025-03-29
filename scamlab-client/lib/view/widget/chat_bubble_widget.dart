@@ -6,7 +6,12 @@ class OutChatBubble extends StatelessWidget {
   final DateTime time;
   final bool fromSamePersonAsPreviousOne;
 
-  const OutChatBubble({super.key, required this.message, required this.time, required this.fromSamePersonAsPreviousOne});
+  const OutChatBubble({
+    super.key,
+    required this.message,
+    required this.time,
+    required this.fromSamePersonAsPreviousOne,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +33,10 @@ class OutChatBubble extends StatelessWidget {
                     topLeft: Radius.circular(19),
                     bottomLeft: Radius.circular(19),
                     bottomRight: Radius.circular(19),
-                    topRight: fromSamePersonAsPreviousOne ? Radius.circular(19) : Radius.zero
+                    topRight:
+                        fromSamePersonAsPreviousOne
+                            ? Radius.circular(19)
+                            : Radius.zero,
                   ),
                 ),
                 child: Column(
@@ -43,13 +51,16 @@ class OutChatBubble extends StatelessWidget {
                     Text(
                       DateFormat.Hm().format(time),
                       textAlign: TextAlign.left,
-                      style: const TextStyle(color: Colors.white70, fontSize: 10),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -66,7 +77,7 @@ class InChatBubble extends StatelessWidget {
     required this.message,
     required this.from,
     required this.time,
-    required this.fromSamePersonAsPreviousOne
+    required this.fromSamePersonAsPreviousOne,
   });
 
   @override
@@ -89,7 +100,10 @@ class InChatBubble extends StatelessWidget {
                     topRight: Radius.circular(19),
                     bottomLeft: Radius.circular(19),
                     bottomRight: Radius.circular(19),
-                    topLeft: fromSamePersonAsPreviousOne ? Radius.circular(19) : Radius.zero
+                    topLeft:
+                        fromSamePersonAsPreviousOne
+                            ? Radius.circular(19)
+                            : Radius.zero,
                   ),
                 ),
                 child: Column(
@@ -98,7 +112,11 @@ class InChatBubble extends StatelessWidget {
                   children: [
                     Text(
                       from,
-                      style: const TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       textAlign: TextAlign.justify,
@@ -109,7 +127,10 @@ class InChatBubble extends StatelessWidget {
                     Text(
                       textAlign: TextAlign.right,
                       DateFormat.Hm().format(time),
-                      style: const TextStyle(color: Colors.black54, fontSize: 10)
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 10,
+                      ),
                     ),
                   ],
                 ),
@@ -125,11 +146,7 @@ class InChatBubble extends StatelessWidget {
 class InnerChatBubble extends StatelessWidget {
   final String message;
   final DateTime time;
-  const InnerChatBubble({
-    super.key,
-    required this.message,
-    required this.time,
-  });
+  const InnerChatBubble({super.key, required this.message, required this.time});
 
   @override
   Widget build(BuildContext context) {
@@ -146,7 +163,7 @@ class InnerChatBubble extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  color: Theme.of(context).colorScheme.primary,
                   borderRadius: BorderRadius.only(
                     topRight: Radius.circular(19),
                     bottomLeft: Radius.circular(19),
@@ -161,13 +178,19 @@ class InnerChatBubble extends StatelessWidget {
                     Text(
                       textAlign: TextAlign.justify,
                       message,
-                      style: const TextStyle(color: Colors.black, fontSize: 15),
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        fontSize: 15,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       textAlign: TextAlign.right,
                       DateFormat.Hm().format(time),
-                      style: const TextStyle(color: Colors.black54, fontSize: 10)
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        fontSize: 10,
+                      ),
                     ),
                   ],
                 ),

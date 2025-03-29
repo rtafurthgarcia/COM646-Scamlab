@@ -29,7 +29,8 @@ class LobbyProvider extends RetryableProvider {
   );
 
   Timer? _timer;
-  StreamSubscription? _subscription;
+  StreamSubscription? _wsSubscription;
+  StreamSubscription? _stateSubscription;
 
   LobbyProvider({
     required GameService gameService,
@@ -41,7 +42,8 @@ class LobbyProvider extends RetryableProvider {
 
   bool get isListening => _wsService.isListening;
   void stopListening() {
-    _subscription?.cancel();
+    _wsSubscription?.cancel();
+    _stateSubscription?.cancel();
     _wsService.disconnect();
     _messages.clear();
     notifyListeners();
@@ -73,7 +75,7 @@ class LobbyProvider extends RetryableProvider {
       _wsService.connect();
       await _gameService.joinNewGame();
       game.startFrom(game.isWaiting);
-      game.onStateChange.listen((event) {
+      _stateSubscription = game.onStateChange.listen((event) {
         developer.log(
           "Game ${game.conversationSecondaryId} went from ${event.from.name} to ${event.to.name}",
           name: "lobby_ws_provider", 
@@ -81,7 +83,7 @@ class LobbyProvider extends RetryableProvider {
         );
         notifyListeners();
       });
-      _subscription = _wsService.stream.listen(
+      _wsSubscription = _wsService.stream.listen(
         (message) => _onMessageReceived(message),
         onDone: () {
           if (_wsService.errorCode != null) {
@@ -101,7 +103,7 @@ class LobbyProvider extends RetryableProvider {
     try {
       _processMessage(message);
     } on IllegalStateTransition catch (e) {
-      _subscription?.pause();
+      _wsSubscription?.pause();
       developer.log(
         "Transition ${e.transition} impossible from ${e.from} to ${e.to}",
         name: "lobby_ws_provider",
@@ -110,7 +112,7 @@ class LobbyProvider extends RetryableProvider {
       await _gameService.reconcileStateIfNecessary(
         game.conversationSecondaryId!,
       );
-      _subscription?.resume();
+      _wsSubscription?.resume();
     }
     notifyListeners();
   }

@@ -17,10 +17,6 @@ public class VoteId implements Serializable {
     @JoinColumn(name = "conversation_id", referencedColumnName = "id")
     private Conversation conversation;
 
-    @ManyToOne
-    @JoinColumn(name = "player_voted_against_id", referencedColumnName = "id", nullable = true)
-    private Player playerVotedAgainst;
-
     @Column(name = "round_no")
     private Integer RoundNo;
 
@@ -30,7 +26,6 @@ public class VoteId implements Serializable {
         int result = 1;
         result = prime * result + ((player == null) ? 0 : player.hashCode());
         result = prime * result + ((conversation == null) ? 0 : conversation.hashCode());
-        result = prime * result + ((playerVotedAgainst == null) ? 0 : playerVotedAgainst.hashCode());
         result = prime * result + ((RoundNo == null) ? 0 : RoundNo.hashCode());
         return result;
     }
@@ -53,11 +48,6 @@ public class VoteId implements Serializable {
             if (other.conversation != null)
                 return false;
         } else if (!conversation.equals(other.conversation))
-            return false;
-        if (playerVotedAgainst == null) {
-            if (other.playerVotedAgainst != null)
-                return false;
-        } else if (!playerVotedAgainst.equals(other.playerVotedAgainst))
             return false;
         if (RoundNo == null) {
             if (other.RoundNo != null)
@@ -83,16 +73,6 @@ public class VoteId implements Serializable {
 
     public VoteId setConversation(Conversation conversation) {
         this.conversation = conversation;
-
-        return this;
-    }
-
-    public Player getPlayerVotedAgainst() {
-        return playerVotedAgainst;
-    }
-
-    public VoteId setPlayerVotedAgainst(Player playerVotedAgainst) {
-        this.playerVotedAgainst = playerVotedAgainst;
 
         return this;
     }

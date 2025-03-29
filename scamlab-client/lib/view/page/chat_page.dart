@@ -175,11 +175,12 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
             // Schedule the navigation after the current frame
             _hasNavigated = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
+              provider.pauseListening();
               Navigator.pushNamed(
                 context,
                 '/votes',
                 arguments: {'id': provider.game.conversationSecondaryId},
-              );
+              ).then((value) => provider.resumeListening());
             });
           }
         }

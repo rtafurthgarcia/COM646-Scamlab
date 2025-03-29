@@ -38,14 +38,28 @@ class ChatProvider extends RetryableProvider {
   }) : _wsService = wsService,
        _gameService = gameService;
 
-  late StreamSubscription _subscription;
+  late StreamSubscription _wsSubscription;
+  late StreamSubscription _stateSubscription;
 
   bool get isListening => _wsService.isListening;
 
   void stopListening() {
-    _subscription.cancel();
+    _wsSubscription.cancel();
+    _stateSubscription.cancel();
     _wsService.disconnect();
     notifyListeners();
+  }
+
+  void pauseListening() { 
+    _wsSubscription.pause();
+    _stateSubscription.pause();
+    _stopWatch.stop();
+  }
+
+  void resumeListening() { 
+    _wsSubscription.resume(); 
+    _stateSubscription.resume();
+    _stopWatch.reset();
   }
 
   void clearMessages() {
@@ -68,7 +82,7 @@ class ChatProvider extends RetryableProvider {
 
   Future<void> startListening() async {
     // Listen for state changes if needed.
-    game.onStateChange.listen((event) {
+    _stateSubscription = game.onStateChange.listen((event) {
       developer.log(
         "Game ${game.conversationSecondaryId} went from ${event.from.name} to ${event.to.name}",
         name: "chat_provider",
@@ -80,7 +94,7 @@ class ChatProvider extends RetryableProvider {
     _wsService.connect();
 
     // Listen to incoming WebSocket messages.
-    _subscription = _wsService.stream.listen(
+    _wsSubscription = _wsService.stream.listen(
       (message) => _onMessageReceived(message),
       onError: _onErrorReceived,
     );

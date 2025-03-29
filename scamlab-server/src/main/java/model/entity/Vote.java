@@ -7,6 +7,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -23,6 +25,20 @@ public class Vote {
 
     public Vote setVoteId(VoteId voteId) {
         this.voteId = voteId;
+
+        return this;
+    }
+
+    @ManyToOne
+    @JoinColumn(name = "player_voted_against_id", referencedColumnName = "id", nullable = true)
+    private Player playerVotedAgainst;
+
+    public Player getPlayerVotedAgainst() {
+        return playerVotedAgainst;
+    }
+
+    public Vote setPlayerVotedAgainst(Player playerVotedAgainst) {
+        this.playerVotedAgainst = playerVotedAgainst;
 
         return this;
     }

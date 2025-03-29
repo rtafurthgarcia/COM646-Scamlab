@@ -68,7 +68,7 @@ class _VotePageState extends State<VotePage> {
         return VoteProvider(
           wsService: context.read(),
           gameService: context.read(),
-        );
+        )..setupSubscribersAndTimers();
       },
       builder:
           (context, child) => Scaffold(
@@ -156,18 +156,14 @@ class _VotePageState extends State<VotePage> {
           buildEventsListener(),
           Consumer<VoteProvider>(
             builder: (context, provider, child) {
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                spacing: 8.0,
-                children: [
+              var children = <Widget>[];
+              if (provider.game.currentState == provider.game.isVoting) {
+                children.addAll([
                   ElevatedButton(
                     onPressed:
-                        () =>
-                            provider.game.currentState == provider.game.isVoting
-                                ? provider.castVote(
-                                  provider.game.otherPlayers!.entries.first.key,
-                                )
-                                : null,
+                        () => provider.castVote(
+                          provider.game.otherPlayers!.entries.first.key,
+                        ),
                     child: Text(
                       provider.game.otherPlayers!.entries.first.value,
                     ),
@@ -175,24 +171,29 @@ class _VotePageState extends State<VotePage> {
                   ElevatedButton(
                     onPressed:
                         () =>
-                            provider.game.currentState == provider.game.isVoting
-                                ? provider.castVote(
-                                  provider.game.otherPlayers!.entries.last.key,
-                                )
-                                : null,
+                            () => provider.castVote(
+                              provider.game.otherPlayers!.entries.last.key,
+                            ),
                     child: Text(provider.game.otherPlayers!.entries.last.value),
                   ),
                   ElevatedButton(
-                    onPressed:
-                        () =>
-                            provider.game.currentState == provider.game.isVoting
-                                ? provider.castVote(
-                                  "",
-                                )
-                                : null,
+                    onPressed: () => provider.castVote(""),
                     child: Text("Blank vote"),
                   ),
-                ],
+                ]);
+              } else {
+                children.add(CircularProgressIndicator());
+                children.add(
+                  Text(
+                    "Waiting on other player(s) to finish voting.",
+                  ),
+                );
+              }
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                spacing: 8.0,
+                children: children,
               );
             },
           ),

@@ -15,7 +15,8 @@ class VoteProvider extends RetryableProvider {
   final GameService _gameService;
   Game get game => _gameService.game;
   Timer? _timer;
-  StreamSubscription? _subscription;
+  StreamSubscription? _wsSubscription;
+  StreamSubscription? _stateSubscription;
 
   VoteProvider({
     required GameService gameService,
@@ -25,8 +26,8 @@ class VoteProvider extends RetryableProvider {
 
   bool get isListening => _wsService.isListening;
   void stopListening() {
-    _subscription?.cancel();
-    _wsService.disconnect();
+    _wsSubscription?.cancel();
+    _stateSubscription?.cancel();
     notifyListeners();
   }
 
@@ -41,10 +42,9 @@ class VoteProvider extends RetryableProvider {
     }
   }
 
-  Future<void> startListening() async {
+  Future<void> setupSubscribersAndTimers() async {
     try {
-      _wsService.connect();
-      game.onStateChange.listen((event) {
+      _stateSubscription = game.onStateChange.listen((event) {
         developer.log(
           "Game ${game.conversationSecondaryId} went from ${event.from.name} to ${event.to.name}",
           name: "lobby_ws_provider", 
@@ -52,7 +52,7 @@ class VoteProvider extends RetryableProvider {
         );
         notifyListeners();
       });
-      _subscription = _wsService.stream.listen(
+      _wsSubscription = _wsService.stream.listen(
         (message) => _onMessageReceived(message),
         onDone: () {
           if (_wsService.errorCode != null) {
@@ -76,7 +76,7 @@ class VoteProvider extends RetryableProvider {
     try {
       _processMessage(message);
     } on IllegalStateTransition catch (e) {
-      _subscription?.pause();
+      _wsSubscription?.pause();
       developer.log(
         "Transition ${e.transition} impossible from ${e.from} to ${e.to}",
         name: "lobby_ws_provider",
@@ -85,7 +85,7 @@ class VoteProvider extends RetryableProvider {
       await _gameService.reconcileStateIfNecessary(
         game.conversationSecondaryId!,
       );
-      _subscription?.resume();
+      _wsSubscription?.resume();
     }
     notifyListeners();
   }
@@ -143,6 +143,6 @@ class VoteProvider extends RetryableProvider {
   @override
   Future<void> tryAgain() async {
     stopListening();
-    await startListening();
+    await setupSubscribersAndTimers();
   }
 }
