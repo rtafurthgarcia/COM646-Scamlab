@@ -49,20 +49,6 @@ class _VotePageState extends State<VotePage> {
   }
 
   @override
-  void initState() {
-    super.initState();
-
-    if (!kDebugMode) {
-      FlutterWindowClose.setWindowShouldCloseHandler(() async {
-        if (_alertShowing) return false;
-        _alertShowing = true;
-
-        return await askBeforeQuitting();
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) {

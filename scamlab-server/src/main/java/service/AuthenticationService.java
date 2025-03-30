@@ -33,16 +33,17 @@ public class AuthenticationService {
     String issuer;
 
     public Player registerNewPlayer(String ipAddress) {
-        if (! launchMode.isDevOrTest()) {
-            var isPlayerAlreadyAssignedToken = ! entityManager.createQuery(
-                "SELECT p FROM Player p WHERE p.ipAddress = :ipAddress AND p.token IS NOT NULL", 
+        // if (! launchMode.isDevOrTest()) {
+        var isPlayerAlreadyAssignedToken = !entityManager.createQuery(
+                "SELECT p FROM Player p WHERE p.ipAddress = :ipAddress AND p.token IS NOT NULL",
                 Player.class)
                 .setParameter("ipAddress", ipAddress).getResultList().isEmpty();
-    
-            if (isPlayerAlreadyAssignedToken) {
-                throw new PlayerException("One device cannot play more than once at the same time");
-            }
+
+        if (isPlayerAlreadyAssignedToken) {
+            Log.warn("Duplicate entry for IP " + ipAddress + " identified");
+            //throw new PlayerException("One device cannot play more than once at the same time");
         }
+        // }
 
         var player = new Player().setIpAddress(ipAddress).setIsBot(false);
 
@@ -66,8 +67,8 @@ public class AuthenticationService {
 
     public Player findUserBySecondaryId(UUID secondaryId) {
         return entityManager.createQuery("SELECT p FROM Player p WHERE secondaryId = :secondaryId", Player.class)
-            .setParameter("secondaryId", secondaryId)
-            .getSingleResult();   
+                .setParameter("secondaryId", secondaryId)
+                .getSingleResult();
     }
 
     private String generateToken(UUID secondaryId, String ipAddress, SystemRole role) {
@@ -77,14 +78,16 @@ public class AuthenticationService {
         }
 
         try {
-            String token = Jwt.issuer(issuer) // This value must match the server-side mp.jwt.verify.issuer configuration for the token to be considered valid.
-                .upn(secondaryId.toString()) // Using the player's secondaryId as the subject -> makes it easier to search within the SecurityContext
-                .groups(embeddedRole) 
-                .claim("address", ipAddress)
-                .audience("using-jwt")
-                // Set token expiration in seconds (e.g., 3600 seconds = 60 minutes)
-                .expiresIn(TOKEN_EXPIRATION_SECONDS)
-                .sign();
+            String token = Jwt.issuer(issuer) // This value must match the server-side mp.jwt.verify.issuer
+                                              // configuration for the token to be considered valid.
+                    .upn(secondaryId.toString()) // Using the player's secondaryId as the subject -> makes it easier to
+                                                 // search within the SecurityContext
+                    .groups(embeddedRole)
+                    .claim("address", ipAddress)
+                    .audience("using-jwt")
+                    // Set token expiration in seconds (e.g., 3600 seconds = 60 minutes)
+                    .expiresIn(TOKEN_EXPIRATION_SECONDS)
+                    .sign();
 
             Log.info("TOKEN generated: " + token);
             return token;

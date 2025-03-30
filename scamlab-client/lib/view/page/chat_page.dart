@@ -75,20 +75,6 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   }
 
   @override
-  void initState() {
-    super.initState();
-
-    if (!kDebugMode) {
-      FlutterWindowClose.setWindowShouldCloseHandler(() async {
-        if (_alertShowing) return false;
-        _alertShowing = true;
-
-        return await askBeforeQuitting();
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     final arguments =
         ModalRoute.of(context)?.settings.arguments as Map<dynamic, dynamic>?;
