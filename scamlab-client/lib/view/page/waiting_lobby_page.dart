@@ -1,12 +1,11 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/model/ws_message.dart';
 import 'package:scamlab/provider/authentication_provider.dart';
 import 'package:scamlab/provider/lobby_provider.dart';
 import 'package:scamlab/view/widget/rules_card_widget.dart';
 import 'package:scamlab/view/widget/timout_timer_widget.dart';
+import 'dart:developer' as developer;
 
 class WaitingLobbyPage extends StatefulWidget {
   const WaitingLobbyPage({super.key});
@@ -16,7 +15,6 @@ class WaitingLobbyPage extends StatefulWidget {
 }
 
 class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
-  var _alertShowing = false;
   bool _hasNavigated = false; // Flag to ensure navigation only happens once
   late RouteObserver<PageRoute> _observer;
 
@@ -47,14 +45,12 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).popUntil(ModalRoute.withName('/'));
-                _alertShowing = false;
               },
               child: const Text('Yes'),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop(false);
-                _alertShowing = false;
               },
               child: const Text('No'),
             ),
@@ -272,6 +268,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
                                 WaitingLobbyReadyToStartMessage
                               >()
                               ?.voteTimeout;
+                      developer.log("For some reason, its at: $timeout s");
                       return TimoutTimer(
                         duration: Duration(seconds: timeout ?? 0),
                       );

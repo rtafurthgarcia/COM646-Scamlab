@@ -1,8 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/color_helper.dart';
 import 'package:scamlab/model/ws_message.dart';
@@ -21,7 +19,6 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> with RouteAware {
-  var _alertShowing = false;
   late String _id;
   bool _hasNavigated = false; // Flag to ensure navigation only happens once
   late RouteObserver<PageRoute> _observer;
@@ -57,14 +54,12 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).popUntil(ModalRoute.withName('/'));
-                _alertShowing = false;
               },
               child: const Text('Yes'),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop(false);
-                _alertShowing = false;
               },
               child: const Text('No'),
             ),

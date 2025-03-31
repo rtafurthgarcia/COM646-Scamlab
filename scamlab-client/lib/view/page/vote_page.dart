@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_window_close/flutter_window_close.dart';
 import 'package:provider/provider.dart';
 import 'package:scamlab/color_helper.dart';
 import 'package:scamlab/provider/vote_provider.dart';
@@ -15,7 +13,6 @@ class VotePage extends StatefulWidget {
 }
 
 class _VotePageState extends State<VotePage> {
-  var _alertShowing = false;
   bool _hasNavigated = false; // Flag to ensure navigation only happens once
 
   Future askBeforeQuitting() {
@@ -31,14 +28,12 @@ class _VotePageState extends State<VotePage> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).popUntil(ModalRoute.withName('/'));
-                _alertShowing = false;
               },
               child: const Text('Yes'),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop(false);
-                _alertShowing = false;
               },
               child: const Text('No'),
             ),
