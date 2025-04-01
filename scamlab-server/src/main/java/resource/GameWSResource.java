@@ -22,14 +22,14 @@ import io.smallrye.reactive.messaging.annotations.Broadcast;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import model.dto.MessageDTODecoder;
-import model.dto.GameDTO.GameCallToVoteMessageDTO;
-import model.dto.GameDTO.GameCancelledMessageDTO;
-import model.dto.GameDTO.GameCastVoteMessageDTO;
-import model.dto.GameDTO.GameFinishedMessageDTO;
-import model.dto.GameDTO.GamePlayersMessageDTO;
-import model.dto.GameDTO.GameStartingOrContinuingMessageDTO;
-import model.dto.GameDTO.LeaveRequestInternalDTO;
-import model.dto.GameDTO.VoteAcknowledgedMessageDTO;
+import model.dto.GameDto.GameCallToVoteMessageDTO;
+import model.dto.GameDto.GameCancelledMessageDTO;
+import model.dto.GameDto.GameCastVoteMessageDTO;
+import model.dto.GameDto.GameFinishedMessageDTO;
+import model.dto.GameDto.GamePlayersMessageDTO;
+import model.dto.GameDto.GameStartingOrContinuingMessageDTO;
+import model.dto.GameDto.LeaveRequestInternalDTO;
+import model.dto.GameDto.VoteAcknowledgedMessageDTO;
 import model.entity.TransitionReason;
 
 @Authenticated

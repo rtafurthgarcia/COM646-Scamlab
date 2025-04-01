@@ -1,7 +1,6 @@
 package service;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import exception.PlayerException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;

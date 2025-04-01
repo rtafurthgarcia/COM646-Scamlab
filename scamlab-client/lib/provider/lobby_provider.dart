@@ -127,8 +127,7 @@ class LobbyProvider extends RetryableProvider {
       game.conditionsNotMetAnymore();
     }
 
-    if (message is WaitingLobbyReadyToStartMessage &&
-        game.conditionsMetForStart.canCall()) {
+    if (message is WaitingLobbyReadyToStartMessage) {
       _timer = Timer(
         Duration(seconds: message.voteTimeout),
         () => triggerTimeout(),

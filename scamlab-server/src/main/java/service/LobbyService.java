@@ -32,15 +32,15 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import model.dto.GameDTO.GameReconcileStateMessageDTO;
-import model.dto.GameDTO.LeaveRequestInternalDTO;
-import model.dto.GameDTO.VoteAcknowledgedMessageDTO;
-import model.dto.GameDTO.VoteStartRequestInternalDTO;
-import model.dto.GameDTO.WSReasonForWaiting;
-import model.dto.GameDTO.WaitingLobbyGameAssignmentMessageDTO;
-import model.dto.GameDTO.GameStartingOrContinuingMessageDTO;
-import model.dto.GameDTO.WaitingLobbyReadyToStartMessageDTO;
-import model.dto.GameDTO.WaitingLobbyReasonForWaitingMessageDTO;
+import model.dto.GameDto.GameReconcileStateMessageDTO;
+import model.dto.GameDto.LeaveRequestInternalDTO;
+import model.dto.GameDto.VoteAcknowledgedMessageDTO;
+import model.dto.GameDto.VoteStartRequestInternalDTO;
+import model.dto.GameDto.WSReasonForWaiting;
+import model.dto.GameDto.WaitingLobbyGameAssignmentMessageDTO;
+import model.dto.GameDto.GameStartingOrContinuingMessageDTO;
+import model.dto.GameDto.WaitingLobbyReadyToStartMessageDTO;
+import model.dto.GameDto.WaitingLobbyReasonForWaitingMessageDTO;
 import model.entity.Conversation;
 import model.entity.Participation;
 import model.entity.ParticipationId;
@@ -188,12 +188,13 @@ public class LobbyService {
                 .setParameter("state3", DefaultKeyValues.StateValue.VOTING.value)
                 .getSingleResult();
 
-        if (ongoingGamesCount == maxOngoingGamesCount) {
+        if (ongoingGamesCount.equals(maxOngoingGamesCount)) {
             reasonsList.add(WSReasonForWaiting.ALL_LOBBIES_OCCUPIED);
         }
 
+        // basically only other reason left
         if (reasonsList.isEmpty()) {
-            reasonsList.add(WSReasonForWaiting.SYNCHRONISING);
+            reasonsList.add(WSReasonForWaiting.START_CANCELLED_TIEMOUT);
         }
 
         for (var player : conversation.getParticipants()) {
@@ -286,7 +287,7 @@ public class LobbyService {
                                     p.getParticipationId().getPlayer().getSecondaryId().toString()));
                 });
 
-                scheduler.newJob("C" + conversation.getSecondaryId().toString())
+                scheduler.newJob("LT" + conversation.getSecondaryId().toString())
                         .setInterval("PT" + timeOutForWaitingLobby.toString() + "S")
                         .setDelayed("PT" + timeOutForWaitingLobby.toString() + "S")
                         .setConcurrentExecution(ConcurrentExecution.SKIP)
@@ -302,14 +303,14 @@ public class LobbyService {
     void timeoutTriggered(Long conversationId) {
         Log.info("Timeout triggered for start for game " + conversationId.toString());
         var conversation = entityManager.find(Conversation.class, conversationId);
-        scheduler.unscheduleJob("C" + conversation.getSecondaryId().toString());
-        
-        conversation.getParticipants().forEach(p -> {
+        scheduler.unscheduleJob("LT" + conversation.getSecondaryId().toString());
+
+        /*conversation.getParticipants().forEach(p -> {
             notifyReasonForWaitingEmitter.send(
                     new WaitingLobbyReasonForWaitingMessageDTO(
                             p.getParticipationId().getPlayer().getSecondaryId().toString(),
                             Arrays.asList(WSReasonForWaiting.START_CANCELLED_TIEMOUT)));
-        });
+        });*/
         var players = conversation.getParticipants().stream()
                 .map(p -> p.getParticipationId().getPlayer()).toList();
 
@@ -319,7 +320,6 @@ public class LobbyService {
         entityManager.persist(conversation);
         entityManager.flush();
 
-        // put players back on the queue
         players.forEach(p -> {
             voteRegistry.unregister(p.getId());
             putPlayerOnWaitingList(p);
@@ -368,7 +368,7 @@ public class LobbyService {
                 .allMatch(p -> voteRegistry.hasVoted(p.getParticipationId().getPlayer().getId()));
 
         if (everyOneHasVotedToStart) {
-            scheduler.unscheduleJob("C" + conversation.getSecondaryId().toString());
+            scheduler.unscheduleJob("LT" + conversation.getSecondaryId().toString());
 
             conversation.setCurrentState(entityManager.find(State.class, StateValue.RUNNING.value));
 
@@ -442,9 +442,11 @@ public class LobbyService {
                     + " for the following reason: "
                     + request.reason().name());
 
-            //if (conversation.getCurrentState().getId().equals(DefaultKeyValues.StateValue.READY.value)) {
-            scheduler.unscheduleJob("C" + conversation.getSecondaryId().toString());
-            //}
+            // if
+            // (conversation.getCurrentState().getId().equals(DefaultKeyValues.StateValue.READY.value))
+            // {
+            scheduler.unscheduleJob("LT" + conversation.getSecondaryId().toString());
+            // }
 
             conversation.setCurrentState(
                     entityManager.find(State.class, DefaultKeyValues.StateValue.WAITING.value),

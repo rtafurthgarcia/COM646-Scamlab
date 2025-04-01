@@ -25,8 +25,7 @@ services:
       - llm_models:/root/.ollama
     networks:
       - scamlab-net
-    post_start:
-      - command: ["sh", "ollama", "pull", "gemma2:2b", "&", "ollama", "run", "gemma2:2b"]
+    command: ["sh", "ollama", "pull", "gemma2:2b", "&", "ollama", "run", "gemma2:2b"]
     deploy:
       resources:
         reservations:

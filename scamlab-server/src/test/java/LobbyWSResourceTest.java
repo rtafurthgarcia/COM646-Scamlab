@@ -6,10 +6,10 @@ import io.quarkus.websockets.next.WebSocketClientConnection;
 import io.quarkus.websockets.next.WebSocketConnector;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
-import model.dto.GameDTO;
+import model.dto.GameDto;
 import model.dto.AuthenticationDTO.GetNewPlayerDTO;
-import model.dto.GameDTO.WaitingLobbyGameAssignmentMessageDTO;
-import model.dto.GameDTO.WaitingLobbyReasonForWaitingMessageDTO;
+import model.dto.GameDto.WaitingLobbyGameAssignmentMessageDTO;
+import model.dto.GameDto.WaitingLobbyReasonForWaitingMessageDTO;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -86,7 +86,7 @@ public class LobbyWSResourceTest {
 
             if (message instanceof WaitingLobbyReasonForWaitingMessageDTO) {
                 var reasonForWaiting = (WaitingLobbyReasonForWaitingMessageDTO) message;
-                assertEquals(GameDTO.WSReasonForWaiting.NOT_ENOUGH_PLAYERS, reasonForWaiting.reasons());
+                assertEquals(GameDto.WSReasonForWaiting.NOT_ENOUGH_PLAYERS, reasonForWaiting.reasons());
             }
 
             //assertNotNull(message);

@@ -9,7 +9,7 @@ import io.quarkus.websockets.next.OpenConnections;
 import io.quarkus.websockets.next.WebSocket;
 import io.quarkus.websockets.next.WebSocketConnection;
 import jakarta.inject.Inject;
-import model.dto.GameDTO.StartMenuStatisticsMessageDTO;
+import model.dto.GameDto.StartMenuStatisticsMessageDTO;
 
 @Authenticated
 @WebSocket(path = "/ws/start-menu")

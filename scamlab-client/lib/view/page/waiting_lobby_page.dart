@@ -183,7 +183,7 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
 
                   if (reasonsForWaiting != null) {
                     for (var reason in reasonsForWaiting.reasons) {
-                      children.add(Text(reason));
+                      children.add(Text(reason, softWrap: true));
                     }
                   }
                 }
@@ -212,11 +212,8 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
                       ),
                       InstructionsCard(
                         title: "2. Your role as a player:",
-                        text: assignedStrategy.role.replaceFirst(
-                          assignedStrategy.role[0],
-                          assignedStrategy.role[0].toUpperCase(),
-                        ),
-                        icon: const Icon(Icons.person),
+                        text: "You are ${assignedStrategy.username}, playing as a ${assignedStrategy.role}",
+                        icon: const Icon(Icons.person), 
                       ),
                       InstructionsCard(
                         title: "3. Example of what you can say:",

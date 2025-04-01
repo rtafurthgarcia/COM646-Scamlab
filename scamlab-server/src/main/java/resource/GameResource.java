@@ -21,7 +21,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import model.dto.AuthenticationDTO.GetNewPlayerDTO;
-import model.dto.GameDTO.GameReconcileStateMessageDTO;
+import model.dto.GameDto.GameReconcileStateMessageDTO;
 import model.entity.Player;
 import service.LobbyService;
 import service.AuthenticationService;

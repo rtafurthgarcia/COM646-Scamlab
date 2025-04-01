@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -30,83 +29,77 @@ Future<AppConfig> loadConfig() async {
 }
 
 Future<void> main() async {
-  // Define a ZoneSpecification that overrides print.
-  final zoneSpecification = ZoneSpecification(
-    print: (self, parent, zone, line) {
-      parent.print(zone, line);
-      final logFile = File('logs.txt');
-      logFile.writeAsStringSync('$line\n', mode: FileMode.append, flush: true);
-    },
-  );
+  // Initialize Flutter bindings.
+  WidgetsFlutterBinding.ensureInitialized();
 
-  // Execute all initialization inside the zone.
-  runZonedGuarded(() async {
-    // Initialize Flutter bindings.
-    WidgetsFlutterBinding.ensureInitialized();
+  // Now load the configuration asset.
+  final config = await loadConfig();
 
-    // Now load the configuration asset.
-    final config = await loadConfig();
-
-    runApp(
-      MultiProvider(
-        providers: [
-          Provider<AppConfig>.value(value: config),
-          Provider(
-              create: (context) => AuthenticationService(
-                  baseUrl: '${config.apiURL}/api')),
-          Provider(
-              create: (context) =>
-                  GameService(baseUrl: '${config.apiURL}/api', game: Game())),
-          Provider(
-              create: (context) =>
-                  StartmenuWsService(wsUrl: "${config.wsURL}/ws/start-menu")),
-          Provider(
-              create: (context) =>
-                  LobbyWsService(wsUrl: "${config.wsURL}/ws/lobby")),
-          Provider(create: (context) => ChatWSService(wsUrl: "")),
-          Provider(
-              create: (context) => SettingsService(appConfig: config)),
-          Provider(create: (context) => RouteObserver<PageRoute>()),
-          ChangeNotifierProvider(
-            create: (context) => AuthenticationProvider(
-              authenticationService: context.read<AuthenticationService>(),
-              settingsService: context.read<SettingsService>(),
-            ),
-          ),
-          ChangeNotifierProxyProvider<AuthenticationProvider, HomeProvider>(
-            create: (BuildContext context) => HomeProvider(
-              wsService: context.read(), 
-              gameService: context.read(), 
-              setingsService: context.read(),
-            ),
-            update: (context, authenticationProvider, homeProvider) {
-              homeProvider ??= HomeProvider(
-                wsService: context.read(), 
-                gameService: context.read(), 
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider<AppConfig>.value(value: config),
+        Provider(
+          create:
+              (context) =>
+                  AuthenticationService(baseUrl: '${config.apiURL}/api'),
+        ),
+        Provider(
+          create:
+              (context) =>
+                  GameService(baseUrl: '${config.apiURL}/api', game: Game()),
+        ),
+        Provider(
+          create:
+              (context) =>
+                  StartmenuWsService(wsUrl: "${config.wsURL}/ws/start-menu"),
+        ),
+        Provider(
+          create:
+              (context) => LobbyWsService(wsUrl: "${config.wsURL}/ws/lobby"),
+        ),
+        Provider(create: (context) => ChatWSService(wsUrl: "")),
+        Provider(create: (context) => SettingsService(appConfig: config)),
+        Provider(create: (context) => RouteObserver<PageRoute>()),
+        ChangeNotifierProvider(
+          create:
+              (context) => AuthenticationProvider(
+                authenticationService: context.read<AuthenticationService>(),
+                settingsService: context.read<SettingsService>(),
+              ),
+        ),
+        ChangeNotifierProxyProvider<AuthenticationProvider, HomeProvider>(
+          create:
+              (BuildContext context) => HomeProvider(
+                wsService: context.read(),
+                gameService: context.read(),
                 setingsService: context.read(),
-              );
-      
-              if (homeProvider.isListening) {
-                homeProvider.stopListening();
+              ),
+          update: (context, authenticationProvider, homeProvider) {
+            homeProvider ??= HomeProvider(
+              wsService: context.read(),
+              gameService: context.read(),
+              setingsService: context.read(),
+            );
+
+            if (homeProvider.isListening) {
+              homeProvider.stopListening();
+            }
+
+            if (homeProvider.jwtToken !=
+                authenticationProvider.player?.jwtToken) {
+              homeProvider.jwtToken = authenticationProvider.player?.jwtToken;
+              if (homeProvider.jwtToken != null) {
+                homeProvider.startListening();
               }
-      
-              if (homeProvider.jwtToken != authenticationProvider.player?.jwtToken) {
-                homeProvider.jwtToken = authenticationProvider.player?.jwtToken;
-                if (homeProvider.jwtToken != null) {
-                  homeProvider.startListening();
-                }
-              }
-              return homeProvider;
-            },
-          ),
-        ],
-        child: const MainApp(),
-      ),
-    );
-  }, (error, stack) {
-    print('Uncaught error: $error');
-    print('Stack trace: $stack');
-  }, zoneSpecification: zoneSpecification);
+            }
+            return homeProvider;
+          },
+        ),
+      ],
+      child: const MainApp(),
+    ),
+  );
 }
 
 class MainApp extends StatelessWidget {
@@ -128,10 +121,12 @@ class MainApp extends StatelessWidget {
           navigatorObservers: [innerContext.read<RouteObserver<PageRoute>>()],
           initialRoute: '/',
           routes: <String, WidgetBuilder>{
-            '/': (BuildContext context) => ClearableExceptionListener<AuthenticationProvider>(
-                  message: "Couldn't get a new identity.",
-                  child: const HomePage(),
-                ),
+            '/':
+                (BuildContext context) =>
+                    ClearableExceptionListener<AuthenticationProvider>(
+                      message: "Couldn't get a new identity.",
+                      child: const HomePage(),
+                    ),
             '/lobby': (BuildContext context) => const WaitingLobbyPage(),
             '/games': (BuildContext context) => const ChatPage(),
             '/votes': (BuildContext context) => const VotePage(),

@@ -6,7 +6,7 @@ import io.quarkus.websockets.next.WebSocketClientConnection;
 import io.quarkus.websockets.next.WebSocketConnector;
 import jakarta.inject.Inject;
 import model.dto.AuthenticationDTO.GetNewPlayerDTO;
-import model.dto.GameDTO.StartMenuStatisticsMessageDTO;
+import model.dto.GameDto.StartMenuStatisticsMessageDTO;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -15,7 +15,6 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
 import static io.restassured.RestAssured.given;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
