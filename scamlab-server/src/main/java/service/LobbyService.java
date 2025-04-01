@@ -372,20 +372,22 @@ public class LobbyService {
 
             conversation.setCurrentState(entityManager.find(State.class, StateValue.RUNNING.value));
 
-            var newBotPlayer = new Player()
-                    .setIsBot(true)
-                    .setIpAddress("127.0.0.1");
-            entityManager.persist(newBotPlayer);
-
-            var newBotParticipant = new Participation().setParticipationId(
-                    new ParticipationId()
-                            .setConversation(conversation)
-                            .setPlayer(newBotPlayer)
-                            .setRole(entityManager.find(Role.class, RoleValue.SCAMBAITER.value)))
-                    .setUserName(lorem.getFirstName());
-            entityManager.persist(newBotParticipant);
-
-            conversation.getParticipants().add(newBotParticipant);
+            if (conversation.getTestingScenario().equals(TestingScenario.OneBotTwoHumans)) {
+                var newBotPlayer = new Player()
+                        .setIsBot(true)
+                        .setIpAddress("127.0.0.1");
+                entityManager.persist(newBotPlayer);
+    
+                var newBotParticipant = new Participation().setParticipationId(
+                        new ParticipationId()
+                                .setConversation(conversation)
+                                .setPlayer(newBotPlayer)
+                                .setRole(entityManager.find(Role.class, RoleValue.SCAMBAITER.value)))
+                        .setUserName(lorem.getFirstName());
+                entityManager.persist(newBotParticipant);
+    
+                conversation.getParticipants().add(newBotParticipant);
+            }
 
             entityManager.persist(conversation);
             entityManager.flush();

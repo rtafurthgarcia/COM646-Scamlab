@@ -18,29 +18,29 @@ services:
       retries: 5
       start_period: 30s
 
-  llm:
-    image: ollama/ollama
-    container_name: llm
-    volumes:
-      - llm_models:/root/.ollama
-    post_start:
-      - command: ollama run gemma2:2b
-        user: root
-    networks:
-      - scamlab-net
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    healthcheck:
-      test: ["CMD", "pgrep", "-f", "ollama"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+  # llm:
+  #   image: vllm/vllm-openai:latest
+  #   container_name: llm
+  #   model: 
+  #     - google/gemma-2b
+  #   volumes:
+  #     - llm_models:/root/.cache/huggingface
+  #   networks:
+  #     - scamlab-net
+    
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: all
+  #             capabilities: [gpu]
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8000/v1/models"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 30s
 
   quarkus-api:
     image: com646/scamlab-server
@@ -60,7 +60,6 @@ services:
 
 volumes:
   postgres_data:
-  llm_models:
 
 networks:
   scamlab-net:
