@@ -23,9 +23,11 @@ services:
     container_name: llm
     volumes:
       - llm_models:/root/.ollama
+    post_start:
+      - command: ollama run gemma2:2b
+        user: root
     networks:
       - scamlab-net
-    command: ["sh", "ollama", "pull", "gemma2:2b", "&", "ollama", "run", "gemma2:2b"]
     deploy:
       resources:
         reservations:

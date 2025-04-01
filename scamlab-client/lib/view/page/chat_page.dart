@@ -10,6 +10,7 @@ import 'package:scamlab/service/settings_service.dart';
 import 'package:scamlab/view/widget/chat_bubble_widget.dart';
 import 'package:scamlab/view/widget/rules_card_widget.dart';
 import 'package:scamlab/view/widget/timout_timer_widget.dart';
+import 'dart:developer' as developer;
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -18,10 +19,12 @@ class ChatPage extends StatefulWidget {
   State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> with RouteAware {
+class _ChatPageState extends State<ChatPage>
+    with RouteAware, SingleTickerProviderStateMixin {
   late String _id;
   bool _hasNavigated = false; // Flag to ensure navigation only happens once
   late RouteObserver<PageRoute> _observer;
+  late AnimationController _controller;
 
   final TextEditingController _textEditingController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -39,6 +42,13 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
   void dispose() {
     _observer.unsubscribe(this);
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(vsync: this); 
   }
 
   Future askBeforeQuitting() {
@@ -86,10 +96,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                   context.read()
                     ..wsUrl = "$wsURL/ws/games/$_id"
                     ..jwtToken =
-                        context
-                            .read<AuthenticationProvider>()
-                            .player
-                            ?.jwtToken,
+                        context.read<AuthenticationProvider>().player?.jwtToken,
               gameService: context.read(),
             )..startListening();
           },
@@ -101,10 +108,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
       ],
       builder:
           (context, child) => Scaffold(
-            appBar: AppBar(
-              title: buildTitle(),
-              leading: buildLeading(context),
-            ),
+            appBar: AppBar(title: buildTitle()),
             drawer: buildDrawer(),
             body: Center(
               child: ConstrainedBox(
@@ -219,33 +223,46 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
     );
   }
 
-  Widget buildLeading(BuildContext context) {
+  Widget buildDrawerButton(BuildContext context) {
     return Builder(
       builder: (context) {
-        return IconButton(
-          icon: Icon(Icons.help_center),
-          onPressed: () => Scaffold.of(context).openDrawer(),
+        return Animate(
+          controller: _controller,
+          autoPlay: true,
+          effects: [ShakeEffect(duration: Duration(minutes: 5))],
+          child: IconButton(icon: Icon(Icons.help_center),
+            onPressed: () {
+              _controller.reset();
+              _controller.stop();
+              Scaffold.of(context).openDrawer();
+            },
+          ),
         );
       },
     );
   }
 
   void onError(dynamic message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: SelectableText(
-        message.toString(),
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Theme.of(context).colorScheme.onErrorContainer),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: SelectableText(
+          message.toString(),
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onErrorContainer,
+          ),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.errorContainer,
+        showCloseIcon: true,
+        closeIconColor: Theme.of(context).colorScheme.onErrorContainer,
+        duration: Duration(seconds: 15),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).size.height - 100,
+          right: 20,
+          left: 20,
+        ),
       ),
-      backgroundColor: Theme.of(context).colorScheme.errorContainer,
-      showCloseIcon: true,
-      closeIconColor: Theme.of(context).colorScheme.onErrorContainer,
-      duration: Duration(seconds: 15),
-      behavior: SnackBarBehavior.floating,
-      margin: EdgeInsets.only(
-        bottom: MediaQuery.of(context).size.height - 100,
-        right: 20,
-        left: 20),
-    ));
+    );
   }
 
   Widget buildChatBox(BuildContext context) {
@@ -253,17 +270,7 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
       mainAxisSize: MainAxisSize.max,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: <Widget>[
-        ElevatedButton(
-          onPressed: null,
-          style: ElevatedButton.styleFrom(
-            shape: CircleBorder(),
-            padding: EdgeInsets.all(24),
-            backgroundColor: Theme.of(context).colorScheme.secondary,
-            foregroundColor: Theme.of(context).colorScheme.onSecondary,
-            iconColor: Theme.of(context).colorScheme.onSecondary,
-          ),
-          child: Icon(Icons.photo_camera_back),
-        ),
+        buildDrawerButton(context),
         Flexible(
           fit: FlexFit.loose,
           child: TextField(
@@ -275,9 +282,12 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
               if (message.trim().isEmpty) {
                 return;
               }
-    
+
               // Send the message when Enter is pressed.
-              context.read<ChatProvider>().sendNewMessage(message).onError((error, stackTrace) {
+              context.read<ChatProvider>().sendNewMessage(message).onError((
+                error,
+                stackTrace,
+              ) {
                 onError(error);
                 _textEditingController.text = message;
               });
@@ -296,15 +306,18 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                 child: IconButton(
                   onPressed: () {
                     var message = _textEditingController.text;
-    
+
                     if (message.trim().isEmpty) {
                       return;
                     }
-    
-                    context.read<ChatProvider>().sendNewMessage(message).onError((error, stackTrace) {
-                      onError(error);
-                      _textEditingController.text = message;
-                    });
+
+                    context
+                        .read<ChatProvider>()
+                        .sendNewMessage(message)
+                        .onError((error, stackTrace) {
+                          onError(error);
+                          _textEditingController.text = message;
+                        });
                     _textEditingController.clear();
                     _focusNode.requestFocus();
                   },
@@ -345,7 +358,9 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                       message.senderSecondaryId);
 
               List<Widget> children = List.empty(growable: true);
-              var backgroundColor = getColorFromUsername(message.senderUsername);
+              var backgroundColor = getColorFromUsername(
+                message.senderUsername,
+              );
               var textColor = getContrastingColor(backgroundColor);
 
               if (message.origin == MessageOrigin.other) {
@@ -356,10 +371,10 @@ class _ChatPageState extends State<ChatPage> with RouteAware {
                         radius: 24,
                         backgroundColor: backgroundColor,
                         child: Text(
-                          message.senderUsername.substring(0, 1), 
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: textColor
-                          ),
+                          message.senderUsername.substring(0, 1),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelLarge?.copyWith(color: textColor),
                         ),
                       ),
                 );

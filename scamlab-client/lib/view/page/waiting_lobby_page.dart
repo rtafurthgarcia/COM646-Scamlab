@@ -16,6 +16,7 @@ class WaitingLobbyPage extends StatefulWidget {
 
 class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
   bool _hasNavigated = false; // Flag to ensure navigation only happens once
+  int? _lastHashCode;
   late RouteObserver<PageRoute> _observer;
 
   @override
@@ -103,8 +104,21 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
                 Consumer<LobbyProvider>(
                   builder: (context, provider, child) {
                     if (!_hasNavigated) {
-                      if (provider.game.currentState ==
-                          provider.game.isRunning) {
+                      if (_lastHashCode != null && provider.game.script.hashCode != _lastHashCode) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: SelectableText(
+                                "The game assigned has changed! Please review the scenario, your role and the example once again!",
+                              ),
+                              showCloseIcon: true,
+                              duration: Duration(seconds: 30),
+                            ),
+                          );
+                        });
+                      }
+
+                      if (provider.game.currentState == provider.game.isRunning) {
                         _hasNavigated = true;
                         // Schedule the navigation after the current frame
                         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -197,27 +211,23 @@ class _WaitingLobbyPageState extends State<WaitingLobbyPage> with RouteAware {
             ),
             Consumer<LobbyProvider>(
               builder: (context, provider, child) {
-                var assignedStrategy =
-                    provider
-                        .getLastMessageOfType<
-                          WaitingLobbyGameAssignmentMessage
-                        >();
-                if (assignedStrategy != null) {
+                if (provider.game.isGameAssigned) {
+                  _lastHashCode = provider.game.script.hashCode;
                   return Column(
                     children: [
                       InstructionsCard(
                         title: "1. This game's scenario:",
-                        text: assignedStrategy.script,
+                        text: provider.game.script!,
                         icon: const Icon(Icons.menu_book),
                       ),
                       InstructionsCard(
                         title: "2. Your role as a player:",
-                        text: "You are ${assignedStrategy.username}, playing as a ${assignedStrategy.role}",
+                        text: "You are ${provider.game.username}, playing as a ${provider.game.role}",
                         icon: const Icon(Icons.person), 
                       ),
                       InstructionsCard(
                         title: "3. Example of what you can say:",
-                        text: "\"${assignedStrategy.example}\"",
+                        text: "\"${provider.game.example}\"",
                         icon: const Icon(Icons.message),
                       ),
                     ],
