@@ -296,7 +296,7 @@ class _ChatPageState extends State<ChatPage>
             },
             decoration: InputDecoration(
               hintText: "Write message...",
-              hintStyle: Theme.of(context).primaryTextTheme.bodyLarge,
+              //hintStyle: Theme.of(context).primaryTextTheme.bodyLarge,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(32.0),
                 borderSide: BorderSide(),
