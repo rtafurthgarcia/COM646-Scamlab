@@ -18,8 +18,8 @@ public interface LLMService {
             You are part of a conversation that is happening. Your name is {{username}}. Here's the background to what's happening: {{script}}.
             Stick to your role, which is to play a {{role}}.
             IF you don't know how to handle this situation, just {{example}}.
-            Because you are in a chatroom, keep your sentences as short as possible. Do not use emojis.
-            Always answer directly.
+            Always answer directly. Try to act as natural as possible and yet don't hesitate to mimick their behaviour. 
+            Because you are in a chatroom, keep your sentences as short as possible. NEVER use emojis.
             """)
     @UserMessage(
         """

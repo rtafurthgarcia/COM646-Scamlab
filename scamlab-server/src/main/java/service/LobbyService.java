@@ -70,6 +70,10 @@ public class LobbyService {
     Long timeBeforeVote;
 
     @Inject
+    @ConfigProperty(name = "scamlab.scenario-bot-only")
+    Boolean strategyBotOnly;
+
+    @Inject
     @Channel("notify-reason-for-waiting")
     @Broadcast
     Emitter<WaitingLobbyReasonForWaitingMessageDTO> notifyReasonForWaitingEmitter;
@@ -153,14 +157,18 @@ public class LobbyService {
                     .getResultList();
 
             var randomlyPickedStrategy = strategies.get(MathHelper.getRandomNumber(0, (int) strategies.size()));
-            var randomlyPickedScenario = TestingScenario.values()[MathHelper.getRandomNumber(0,
-                    TestingScenario.values().length)];
+
+            var pickedScenario = TestingScenario.OneBotTwoHumans;
+            if (! strategyBotOnly) {
+                pickedScenario = TestingScenario.values()[MathHelper.getRandomNumber(0,
+                    TestingScenario.values().length)];    
+            }
 
             var newConversation = new Conversation()
                     .setCurrentState(
                             entityManager.find(State.class, helper.DefaultKeyValues.StateValue.WAITING.value))
                     .setStrategy(randomlyPickedStrategy)
-                    .setTestingScenario(randomlyPickedScenario)
+                    .setTestingScenario(pickedScenario)
                     .setStart(LocalTime.now());
             entityManager.persist(newConversation);
 
